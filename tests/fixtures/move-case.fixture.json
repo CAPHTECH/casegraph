@@ -1,0 +1,50 @@
+{
+  "case": {
+    "case_id": "move-2026-05",
+    "title": "Move in May 2026",
+    "description": "Personal move"
+  },
+  "nodes": [
+    { "node_id": "goal_move_completed", "kind": "goal", "title": "Move completed", "state": "todo" },
+    { "node_id": "task_choose_mover", "kind": "task", "title": "Choose moving company", "state": "todo" },
+    { "node_id": "task_book_mover", "kind": "task", "title": "Book moving company", "state": "todo" },
+    { "node_id": "task_cancel_old_electricity", "kind": "task", "title": "Cancel old electricity", "state": "todo" },
+    { "node_id": "task_start_new_electricity", "kind": "task", "title": "Start new electricity", "state": "todo" },
+    { "node_id": "task_change_address", "kind": "task", "title": "Change address", "state": "todo" },
+    { "node_id": "decision_pick_move_date", "kind": "decision", "title": "Pick move date", "state": "todo" },
+    { "node_id": "event_mover_quote_returned", "kind": "event", "title": "Mover quote returned", "state": "todo" },
+    { "node_id": "event_lease_confirmed", "kind": "event", "title": "Lease confirmed", "state": "todo" }
+  ],
+  "edges": [
+    { "edge_id": "e1", "type": "depends_on", "source_id": "task_book_mover", "target_id": "decision_pick_move_date" },
+    { "edge_id": "e2", "type": "waits_for", "source_id": "task_book_mover", "target_id": "event_mover_quote_returned" },
+    { "edge_id": "e3", "type": "waits_for", "source_id": "task_start_new_electricity", "target_id": "event_lease_confirmed" },
+    { "edge_id": "e4", "type": "waits_for", "source_id": "task_change_address", "target_id": "event_lease_confirmed" }
+  ],
+  "expected": {
+    "initial_frontier": [
+      "decision_pick_move_date",
+      "task_cancel_old_electricity",
+      "task_choose_mover"
+    ],
+    "initial_blockers": {
+      "task_book_mover": [
+        "depends_on:decision_pick_move_date is not done",
+        "waits_for:event_mover_quote_returned is not done"
+      ],
+      "task_start_new_electricity": [
+        "waits_for:event_lease_confirmed is not done"
+      ],
+      "task_change_address": [
+        "waits_for:event_lease_confirmed is not done"
+      ]
+    },
+    "after_completion_frontier": [
+      "task_cancel_old_electricity",
+      "task_choose_mover",
+      "task_book_mover",
+      "task_change_address",
+      "task_start_new_electricity"
+    ]
+  }
+}

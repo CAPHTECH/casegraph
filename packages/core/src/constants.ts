@@ -1,0 +1,13 @@
+export const SPEC_VERSION = "0.1-draft";
+export const DEFAULT_ACTOR_ID = "local-user";
+export const DEFAULT_ACTOR_NAME = "local-user";
+export const DEFAULT_WORKSPACE_TITLE = "CaseGraph Workspace";
+export const WORKSPACE_DIRNAME = ".casegraph";
+export const EVENTS_FILENAME = "events.jsonl";
+export const CASE_FILENAME = "case.yaml";
+export const WORKSPACE_FILENAME = "workspace.yaml";
+export const CONFIG_FILENAME = "config.yaml";
+export const CACHE_FILENAME = "state.sqlite";
+export const LOCK_FILENAME = ".lock";
+export const SUPPORTED_OUTPUT_FORMATS = ["text", "json"] as const;
+

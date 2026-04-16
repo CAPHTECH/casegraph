@@ -1,0 +1,16 @@
+{
+  "name": "@casegraph/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "cg": "./dist/index.js"
+  },
+  "dependencies": {
+    "@casegraph/core": "workspace:*",
+    "commander": "^14.0.1"
+  }
+}
+
