@@ -211,7 +211,7 @@ goal の自動完了は v0.1 では強制しません。
 
 ## 3.12 Impact analysis
 
-`cg impact <node-id>` は、次の問いに答える機能です。
+impact analysis は later-phase の分析能力で、次の問いに答える機能です。
 
 - この node が失敗 / 変更されたら、どこが影響を受けるか
 - どの ready node が無効化されるか
@@ -222,6 +222,8 @@ goal の自動完了は v0.1 では強制しません。
 - 必要なら `contributes_to` を補助的に表示する
 - 影響は「hard impact」と「context impact」を分けて返す
 
+Phase 0 では、この能力の CLI 名は凍結しません。
+
 ---
 
 ## 3.13 代表コマンド
@@ -229,7 +231,6 @@ goal の自動完了は v0.1 では強制しません。
 ```bash
 cg frontier --case release-1.8.0
 cg blockers --case move-2026-05
-cg impact --case move-2026-05 --node task_cancel_utility
 ```
 
 ---

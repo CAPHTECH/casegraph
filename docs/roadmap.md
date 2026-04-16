@@ -2,8 +2,9 @@
 
 ## Phase 0: Design freeze
 - spec 0.1-draft を文章で固める
-- release case / move case を examples として固定
-- CLI command surface を凍結候補まで絞る
+- release case / move case を normative acceptance fixture として固定
+- CLI command surface は Phase 1 core と storage recovery だけを凍結する
+- Phase 2 以降の capability は残すが、CLI 名と UX はまだ凍結しない
 
 ## Phase 1: Reference implementation core
 - workspace / case 作成

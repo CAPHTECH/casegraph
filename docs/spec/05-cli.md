@@ -5,12 +5,22 @@
 CLI は「メモ入力の窓」ではなく、**ケースグラフ操作面** です。  
 自然文一発ですべてを済ませる設計にはしません。
 
+Phase 0 では、**Phase 1 の参照実装に必要な core surface だけを凍結** します。
+この時点で凍結するのは、case 作成、graph 編集、state 更新、`frontier` / `blockers` / `validate`、storage recovery です。
+
+一方で次の能力は設計上は残しますが、**CLI 名や UX はまだ凍結しません**。
+
+- patch proposal / review / apply
+- ingest / generic export
+- projection sync
+- worker 実行
+- impact analysis
+
 CLI の責務は以下です。
 
 - graph を明示的に操作する
 - 現在状態と blocker を説明可能に出す
-- patch をレビューし適用する
-- worker / sink / importer を呼び出す
+- storage を検証し、復旧できる
 - スクリプト可能である
 
 ---
@@ -25,16 +35,17 @@ CLI の責務は以下です。
 
 ### 出力形式
 - human-readable table / text が既定
-- `--format json` を全コマンドで推奨
-- `--quiet`, `--verbose` を用意
+- 凍結対象コマンドは `--format json` をサポートする
+- `--quiet`, `--verbose` を用意する
 
 ### exit code
 - `0`: success
 - `2`: validation error
 - `3`: not found
 - `4`: conflict
-- `5`: adapter / worker error
-- `10`: patch rejected
+
+adapter / patch / worker など later-phase の面では、必要に応じて追加 code を導入してよい。
+ただし Phase 0 では上記 4 種だけを凍結対象とする。
 
 ### config 探索順
 1. `--workspace`
@@ -43,7 +54,7 @@ CLI の責務は以下です。
 
 ---
 
-## 5.4 初期化系
+## 5.4 Workspace / Case
 
 ### `cg init`
 workspace 初期化。
@@ -60,51 +71,58 @@ cg case new --id release-1.8.0 --title "Release 1.8.0" --description "May releas
 ```
 
 ### `cg case list`
-case 一覧。
+case 一覧を返す。
 
 ### `cg case show`
-case の概要、counts、frontier summary を表示。
+case の概要、counts、frontier summary を返す。
 
 ---
 
-## 5.5 Graph 操作系
+## 5.5 Graph 編集
 
 ### `cg node add`
 
 ```bash
-cg node add --case release-1.8.0   --id task_run_regression   --kind task   --title "Run regression test"   --state todo
+cg node add --case release-1.8.0 \
+  --id task_run_regression \
+  --kind task \
+  --title "Run regression test" \
+  --state todo
 ```
 
 ### `cg node update`
-タイトル、説明、labels、metadata などを更新。
+タイトル、説明、labels、metadata などを更新する。
 
 ### `cg edge add`
 
 ```bash
-cg edge add --case release-1.8.0   --id edge_submit_depends_regression   --type depends_on   --from task_submit_store   --to task_run_regression
+cg edge add --case release-1.8.0 \
+  --id edge_submit_depends_regression \
+  --type depends_on \
+  --from task_submit_store \
+  --to task_run_regression
 ```
 
 ### `cg edge remove`
-edge 削除。
-
-### `cg graph show`
-graph の要約表示。`--format mermaid` を将来入れてもよい。
+edge を削除する。
 
 ---
 
-## 5.6 状態更新系
+## 5.6 状態更新
 
 ### `cg task start`
-task を `doing` に遷移。
+task を `doing` に遷移する。
 
 ### `cg task done`
-task を `done` に遷移。
+task を `done` に遷移する。
 
 ### `cg task wait`
-task を `waiting` に遷移。理由や待機 event を記録可能。
+task を `waiting` に遷移する。理由や待機 event を記録できる。
 
 ```bash
-cg task wait --case move-2026-05 task_book_mover   --reason "見積もり返信待ち"   --for event_mover_quote_returned
+cg task wait --case move-2026-05 task_book_mover \
+  --reason "見積もり返信待ち" \
+  --for event_mover_quote_returned
 ```
 
 ### `cg task resume`
@@ -123,14 +141,14 @@ decision を確定し、必要なら metadata に結果を残す。
 event node を `done` にする。
 
 ### `cg evidence add`
-evidence を追加し、verifies edge を張る。
+evidence を追加し、必要なら `verifies` 関係を作る。
 
 ---
 
-## 5.7 分析系
+## 5.7 分析
 
 ### `cg frontier`
-今やれる task / decision を返す。
+今やれる `task` / `decision` を返す。
 
 ```bash
 cg frontier --case release-1.8.0
@@ -139,87 +157,48 @@ cg frontier --case release-1.8.0
 ### `cg blockers`
 blocked node と理由を返す。
 
-### `cg impact`
-ある node の変更がどこへ伝播するかを見る。
-
 ### `cg validate`
-graph / storage / patch の妥当性確認。
+case graph と current state の整合性を確認する。
+Phase 0 では patch file 検証や importer 検証までは含めない。
 
 ---
 
-## 5.8 Patch 系
+## 5.8 Storage Recovery / Admin
 
-### `cg plan propose`
-planner を呼んで patch を生成。
+### `cg validate storage`
+workspace 構造、case metadata、event log、cache 参照の基本整合性を確認する。
+
+### `cg cache rebuild`
+event log から cache を再構築する。
 
 ```bash
-cg plan propose --case move-2026-05 --input notes.md --planner local-llm
+cg cache rebuild
 ```
 
-### `cg patch show`
-patch の diff 表示。
+### `cg events verify`
+event log の envelope shape と replay 前提の整合性を確認する。
 
-### `cg patch apply`
-patch 適用。
-
-### `cg patch reject`
-patch を却下して履歴だけ残す拡張も将来考えられる。
+### `cg events export`
+対象 case の raw event stream を export する。
 
 ---
 
-## 5.9 Import / Export
+## 5.9 後続フェーズで凍結する領域
 
-### `cg ingest`
-Markdown や plain text から graph 候補を取り込む。
+以下は v0.1 の設計には含まれるが、Phase 0 では **command name を固定しない**。
 
-```bash
-cg ingest --case release-1.8.0 notes.md --importer markdown
-```
+- patch proposal / patch review / patch apply
+- notes からの ingest
+- case snapshot や projection 向け export
+- external sink への sync push / pull
+- worker 実行
+- impact analysis
 
-### `cg export`
-case snapshot, events, mermaid, json などへの export。
-
----
-
-## 5.10 Worker 系
-
-### `cg run`
-worker を指定して task を実行する。
-
-```bash
-cg run --case release-1.8.0 --worker codex task_update_release_notes
-cg run --case move-2026-05 --worker local-llm task_summarize_required_documents
-cg run --case release-1.8.0 --worker shell task_run_tests
-```
-
-### 期待される worker 出力
-- execution result
-- summary
-- artifacts
-- optional GraphPatch
+他の spec 文書でこれらの能力に触れる場合も、**CLI 名は将来の決定事項** として扱う。
 
 ---
 
-## 5.11 Sync 系
-
-### `cg sync push`
-内部 graph から sink へ投影。
-
-```bash
-cg sync push --case release-1.8.0 --sink todoist
-cg sync push --case move-2026-05 --sink markdown
-```
-
-### `cg sync pull`
-外部から状態差分を取得。reverse sync は限定的でよい。
-
-```bash
-cg sync pull --case release-1.8.0 --sink taskwarrior
-```
-
----
-
-## 5.12 典型フロー
+## 5.10 典型フロー
 
 ### 例: case 作成から frontier 確認まで
 
@@ -233,22 +212,21 @@ cg edge add --case release-1.8.0 --id edge_submit_depends_regression --type depe
 cg frontier --case release-1.8.0
 ```
 
-### 例: planner から patch 適用
+### 例: storage 検証と復旧
 
 ```bash
-cg plan propose --case move-2026-05 --input move-notes.md --planner local-llm > patch.json
-cg patch show patch.json
-cg patch apply patch.json --case move-2026-05
-cg frontier --case move-2026-05
+cg validate storage
+cg events verify --case release-1.8.0
+cg cache rebuild
+cg case show --case release-1.8.0 --format json
 ```
 
 ---
 
-## 5.13 v0.1 で CLI に求める品質
+## 5.11 Phase 0 で CLI に求める品質
 
 - スクリプト可能
-- 出力が安定
-- dry-run がある
-- JSON 出力がある
+- 凍結対象コマンドの JSON 出力が安定
 - エラー原因が明確
-- path / IDs / revision mismatch が説明可能
+- workspace path / case ID mismatch が説明可能
+- `blockers` が node / edge にトレースできる

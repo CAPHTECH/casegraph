@@ -166,7 +166,7 @@ case metadata の更新。
 
 ## 4.7 Apply semantics
 
-`cg patch apply` は次を行います。
+patch apply flow は次を行います。
 
 1. patch schema validation
 2. base revision チェック
@@ -216,18 +216,18 @@ GraphPatch が危険になるのは、次のときです。
 
 ## 4.10 Patch review の最小 UX
 
-CLI で最低限必要なのは次です。
+Phase 2 以降の CLI / API では、最低限次の 3 段階が必要です。
 
-```bash
-cg plan propose --case move-2026-05 --input notes.md
-cg patch show patch.json
-cg patch apply patch.json --case move-2026-05
-```
+1. patch proposal を生成する
+2. patch diff をレビューする
+3. 受け入れた patch を apply する
 
-### `cg patch show`
+### patch preview に必要な表示
 - add / update / remove の要約
 - cycle / invalid reference の警告
 - risky op の強調
+
+Phase 0 では、この一連の CLI 名はまだ凍結しません。
 
 ---
 
