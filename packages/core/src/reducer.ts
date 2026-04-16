@@ -1,5 +1,6 @@
 import { cloneRecord, dueDateValue, metadataPriorityValue } from "./helpers.js";
 import { CaseGraphError } from "./errors.js";
+import { applyPatchOperationsToDraft } from "./patch.js";
 import { deriveNodeStates, validateGraph } from "./validation.js";
 import type {
   AttachmentRecord,
@@ -10,6 +11,7 @@ import type {
   EdgeRecord,
   EventEnvelope,
   FrontierItem,
+  GraphPatch,
   NodeRecord
 } from "./types.js";
 
@@ -137,6 +139,39 @@ export function replayCaseEvents(events: EventEnvelope[]): CaseStateView {
         if (attachment) {
           attachments.set(attachment.attachment_id, cloneRecord(attachment));
         }
+        break;
+      }
+
+      case "patch.applied": {
+        ensureCaseLoaded(caseRecord, event.type);
+        const patch = cloneRecord(event.payload.patch as GraphPatch);
+        const draft: {
+          caseRecord: CaseRecord;
+          nodes: Map<string, NodeRecord>;
+          edges: Map<string, EdgeRecord>;
+          attachments: Map<string, AttachmentRecord>;
+        } = {
+          caseRecord,
+          nodes,
+          edges,
+          attachments
+        };
+        const draftErrors = applyPatchOperationsToDraft(
+          draft,
+          patch,
+          event.timestamp
+        );
+
+        if (draftErrors.length > 0) {
+          throw new CaseGraphError(
+            "patch_replay_failed",
+            `Patch ${patch.patch_id} failed during replay`,
+            { exitCode: 2, details: draftErrors }
+          );
+        }
+
+        caseRecord = draft.caseRecord;
+
         break;
       }
 

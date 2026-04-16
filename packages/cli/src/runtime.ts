@@ -257,6 +257,21 @@ function renderText(result: CommandResult<unknown>): string {
       const data = (result as CommandSuccess<{ valid: boolean; errors: unknown[] }>).data;
       return data.valid ? "VALID" : `INVALID (${data.errors.length} errors)`;
     }
+    case "patch validate": {
+      const data = (result as CommandSuccess<{ valid: boolean; errors: unknown[] }>).data;
+      return data.valid ? "VALID PATCH" : `INVALID PATCH (${data.errors.length} errors)`;
+    }
+    case "patch review": {
+      const data = (result as CommandSuccess<{ valid: boolean; stale: boolean; errors: unknown[] }>).data;
+      if (data.stale) {
+        return `STALE PATCH (${data.errors.length} errors)`;
+      }
+      return data.valid ? "PATCH REVIEW OK" : `PATCH REVIEW FAILED (${data.errors.length} errors)`;
+    }
+    case "patch apply": {
+      const data = (result as CommandSuccess<{ patch_id: string; case_id: string }>).data;
+      return `Applied ${data.patch_id} to ${data.case_id}`;
+    }
     case "cache rebuild":
       return `Rebuilt cache for ${(result as CommandSuccess<{ cases: number }>).data.cases} cases`;
     case "events verify": {
@@ -265,6 +280,12 @@ function renderText(result: CommandResult<unknown>): string {
     }
     case "events export":
       return JSON.stringify((result as CommandSuccess<{ events: unknown[] }>).data.events, null, 2);
+    case "import markdown": {
+      const data = (result as CommandSuccess<{ patch: unknown; output_file?: string }>).data;
+      return data.output_file
+        ? `Wrote patch to ${data.output_file}`
+        : JSON.stringify(data.patch, null, 2);
+    }
     default:
       return `${result.command} ok`;
   }

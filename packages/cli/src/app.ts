@@ -5,6 +5,7 @@ import {
   addEdge,
   addEvidence,
   addNode,
+  applyPatch,
   changeNodeState,
   createCase,
   exportEvents,
@@ -16,9 +17,11 @@ import {
   recordEventNode,
   rebuildCache,
   removeEdge,
+  reviewPatch,
   showCase,
   updateNode,
   validateCase,
+  validatePatchDocument,
   validateStorage,
   verifyEvents,
   waitTask,
@@ -30,6 +33,12 @@ import type {
   NodeState,
 } from "@casegraph/core";
 import { successResult } from "./result.js";
+import { ingestMarkdownPatch } from "./importer-host.js";
+import {
+  loadPatchValidation,
+  loadValidPatch,
+  writeStructuredFile
+} from "./patch-file.js";
 import {
   type CliRuntime,
   type CliRuntimeOptions,
@@ -488,6 +497,83 @@ export async function runCli(
         return successResult("events export", {
           case_id: options.case,
           events: await exportEvents(workspaceRoot, options.case)
+        });
+      });
+    });
+
+  const patchCommand = program.command("patch");
+  patchCommand
+    .command("validate")
+    .requiredOption("--file <path>")
+    .action(async (_, command) => {
+      const options = command.opts() as { file: string };
+      await runCliAction(runtime, command, async () => {
+        const data = await loadPatchValidation(path.resolve(runtime.cwd, options.file));
+        return successResult("patch validate", data);
+      });
+    });
+
+  patchCommand
+    .command("review")
+    .requiredOption("--file <path>")
+    .action(async (_, command) => {
+      const options = command.opts() as { file: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const patch = await loadValidPatch(path.resolve(runtime.cwd, options.file));
+        return successResult("patch review", await reviewPatch(workspaceRoot, patch));
+      });
+    });
+
+  patchCommand
+    .command("apply")
+    .requiredOption("--file <path>")
+    .action(async (_, command) => {
+      const options = command.opts() as { file: string };
+      await runMutationCommand(runtime, command, async (workspaceRoot, _, mutationContext) => {
+        const patch = await loadValidPatch(path.resolve(runtime.cwd, options.file));
+        const state = await applyPatch(workspaceRoot, patch, mutationContext);
+        return successResult(
+          "patch apply",
+          {
+            patch_id: patch.patch_id,
+            case_id: patch.case_id,
+            summary: patch.summary,
+            op_count: patch.operations.length
+          },
+          state.caseRecord.case_revision
+        );
+      });
+    });
+
+  const importCommand = program.command("import");
+  importCommand
+    .command("markdown")
+    .requiredOption("--case <caseId>")
+    .requiredOption("--file <path>")
+    .option("--output <path>")
+    .action(async (_, command) => {
+      const options = command.opts() as {
+        case: string;
+        file: string;
+        output?: string;
+      };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const result = await ingestMarkdownPatch({
+          workspaceRoot,
+          caseId: options.case,
+          inputFile: path.resolve(runtime.cwd, options.file),
+          env: runtime.env
+        });
+
+        const outputPath = options.output ? path.resolve(runtime.cwd, options.output) : undefined;
+        if (outputPath) {
+          await writeStructuredFile(outputPath, result.patch);
+        }
+
+        return successResult("import markdown", {
+          patch: result.patch,
+          warnings: result.warnings,
+          output_file: outputPath
         });
       });
     });

@@ -159,7 +159,7 @@ blocked node と理由を返す。
 
 ### `cg validate`
 case graph と current state の整合性を確認する。
-Phase 0 では patch file 検証や importer 検証までは含めない。
+patch file 検証や importer 検証は、Phase 2 では別 command として扱う。
 
 ---
 
@@ -195,6 +195,17 @@ event log の envelope shape と replay 前提の整合性を確認する。
 - impact analysis
 
 他の spec 文書でこれらの能力に触れる場合も、**CLI 名は将来の決定事項** として扱う。
+
+### Phase 2 参照実装の working surface
+
+現行の参照実装では、未凍結領域に対して次の command surface を採用しています。
+
+- `cg patch validate --file <patch.{json|yaml|yml}>`
+- `cg patch review --file <patch.{json|yaml|yml}>`
+- `cg patch apply --file <patch.{json|yaml|yml}>`
+- `cg import markdown --case <caseId> --file <notes.md> [--output <patchPath>]`
+
+これは **実装上の作業面** であり、Phase 0 の freeze policy は変更しません。
 
 ---
 

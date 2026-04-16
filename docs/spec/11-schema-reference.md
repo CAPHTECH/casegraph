@@ -193,6 +193,10 @@ workers:
   shell:
     command: ["casegraph-worker-shell"]
 
+importers:
+  markdown:
+    command: ["casegraph-importer-markdown"]
+
 sinks:
   markdown:
     command: ["casegraph-sink-markdown"]

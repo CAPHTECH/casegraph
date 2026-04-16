@@ -19,6 +19,7 @@
 - markdown importer
 - patch review CLI
 - cache rebuild
+- 参照実装の working surface は `cg patch ...` と `cg import markdown`
 
 ## Phase 3: Projection sinks
 - markdown checklist sink

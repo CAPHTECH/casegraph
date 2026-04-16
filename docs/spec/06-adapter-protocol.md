@@ -90,7 +90,7 @@ v0.1 では **JSON-RPC 2.0 over stdio** を採用します。
 ### `initialize`
 handshake。
 
-### `health.check`
+### `health`
 疎通確認。
 
 ### `capabilities.list`
@@ -115,6 +115,7 @@ handshake。
   "method": "importer.ingest",
   "params": {
     "case_id": "move-2026-05",
+    "base_revision": 12,
     "input": {
       "kind": "file",
       "path": "/tmp/move-notes.md"
@@ -138,6 +139,9 @@ handshake。
   }
 }
 ```
+
+`base_revision` は importer が stale patch を避けるための基準 revision です。
+v0.1 の markdown importer は `mode: "append"` のみを受け付けます。
 
 ---
 

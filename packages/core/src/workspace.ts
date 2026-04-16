@@ -21,6 +21,10 @@ import {
   sanitizeEdgeRecord,
   sanitizeNodeRecord
 } from "./helpers.js";
+import {
+  reviewGraphPatch,
+  validateGraphPatchDocument
+} from "./patch.js";
 import { withWorkspaceLock } from "./lock.js";
 import { getCasePaths, getWorkspacePaths, resolveWorkspaceRoot } from "./paths.js";
 import {
@@ -42,6 +46,8 @@ import type {
   ConfigRecord,
   EventEnvelope,
   FrontierItem,
+  GraphPatch,
+  PatchReview,
   MutationContext,
   NodeRecord,
   RevisionSnapshot,
@@ -80,6 +86,13 @@ export interface ValidateStorageData {
   errors: ValidationIssue[];
   warnings: ValidationIssue[];
   cases_checked: number;
+}
+
+export interface PatchValidationData {
+  valid: boolean;
+  errors: ValidationIssue[];
+  warnings: ValidationIssue[];
+  patch: GraphPatch | null;
 }
 
 export async function resolveWorkspaceContext(
@@ -602,6 +615,61 @@ export async function validateCase(
   };
 }
 
+export function validatePatchDocument(input: unknown): PatchValidationData {
+  const validation = validateGraphPatchDocument(input);
+  return {
+    valid: validation.errors.length === 0,
+    ...validation
+  };
+}
+
+export async function reviewPatch(
+  workspaceRoot: string,
+  patch: GraphPatch
+): Promise<PatchReview> {
+  const state = await loadCaseState(workspaceRoot, patch.case_id);
+  return reviewGraphPatch(state, patch);
+}
+
+export async function applyPatch(
+  workspaceRoot: string,
+  patch: GraphPatch,
+  context: MutationContext = {}
+): Promise<CaseStateView> {
+  const workspacePaths = getWorkspacePaths(workspaceRoot);
+  const casePaths = getCasePaths(workspaceRoot, patch.case_id);
+
+  return withWorkspaceLock(workspacePaths.lockFile, async () => {
+    const review = await reviewPatch(workspaceRoot, patch);
+    if (!review.valid) {
+      throw new CaseGraphError(
+        review.stale ? "patch_stale" : "patch_invalid",
+        review.stale ? "Patch base revision is stale" : "Patch validation failed",
+        {
+          exitCode: review.stale ? 4 : 2,
+          details: review
+        }
+      );
+    }
+
+    const timestamp = context.now ?? nowUtc();
+    const canonicalPatch = await canonicalizePatchForApply(patch, casePaths.attachmentsDir);
+    const event = createEvent({
+      case_id: canonicalPatch.case_id,
+      timestamp,
+      type: "patch.applied",
+      source: "patch",
+      command_id: context.commandId,
+      actor: context.actor,
+      payload: {
+        patch: canonicalPatch
+      }
+    });
+
+    return appendPreparedCaseEvents(workspaceRoot, canonicalPatch.case_id, [event]);
+  });
+}
+
 export async function validateStorage(
   workspaceRoot: string
 ): Promise<ValidateStorageData> {
@@ -847,5 +915,49 @@ export function createDefaultMutationContext(commandId?: string): MutationContex
     actor: defaultActor(),
     now: nowUtc(),
     commandId: commandId ?? generateId()
+  };
+}
+
+async function canonicalizePatchForApply(
+  patch: GraphPatch,
+  attachmentsDir: string
+): Promise<GraphPatch> {
+  const operations = await Promise.all(
+    patch.operations.map(async (operation) => {
+      if (operation.op !== "attach_evidence" || !operation.attachment) {
+        return operation;
+      }
+
+      if (operation.attachment.storage_mode !== "workspace_copy") {
+        return {
+          ...operation,
+          attachment: {
+            ...operation.attachment,
+            attachment_id: operation.attachment.attachment_id ?? generateId()
+          }
+        };
+      }
+
+      const attachmentId = operation.attachment.attachment_id ?? generateId();
+      const copied = await copyAttachmentIntoWorkspace(
+        operation.attachment.path_or_url,
+        attachmentsDir,
+        attachmentId
+      );
+
+      return {
+        ...operation,
+        attachment: {
+          ...operation.attachment,
+          attachment_id: attachmentId,
+          ...copied
+        }
+      };
+    })
+  );
+
+  return {
+    ...patch,
+    operations
   };
 }

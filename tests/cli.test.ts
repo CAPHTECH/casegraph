@@ -1,3 +1,6 @@
+import { writeFile } from "node:fs/promises";
+import path from "node:path";
+
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "@casegraph/cli/app";
@@ -200,6 +203,74 @@ describe("cli phase 1 acceptance", () => {
     expect(result.stderr.startsWith("{")).toBe(true);
     expect(result.json.ok).toBe(false);
     expect(result.json.error.message).toBe("--case is required for validate");
+  });
+
+  it("imports markdown, reviews the patch, and applies it through CLI", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-cli-");
+    createdWorkspaces.push(workspaceRoot);
+    const markdownFile = path.join(workspaceRoot, "release-notes.md");
+    const patchFile = path.join(workspaceRoot, "release-import.patch.json");
+
+    await runJsonCommand(workspaceRoot, [
+      "case",
+      "new",
+      "--id",
+      "release-1.8.0",
+      "--title",
+      "Release 1.8.0",
+      "--description",
+      "May release"
+    ]);
+
+    await writeFile(
+      markdownFile,
+      [
+        "- [ ] Prepare release #release [priority:high]",
+        "  - [x] Run regression #qa",
+        "  - [ ] Update release notes [due_date:2026-05-01]"
+      ].join("\n"),
+      "utf8"
+    );
+
+    const imported = await runJsonCommand(workspaceRoot, [
+      "import",
+      "markdown",
+      "--case",
+      "release-1.8.0",
+      "--file",
+      markdownFile,
+      "--output",
+      patchFile
+    ]);
+    expect(imported.code).toBe(0);
+    expect(imported.json.data.output_file).toBe(patchFile);
+    expect(imported.json.data.patch.base_revision).toBe(1);
+
+    const review = await runJsonCommand(workspaceRoot, [
+      "patch",
+      "review",
+      "--file",
+      patchFile
+    ]);
+    expect(review.json.data.valid).toBe(true);
+
+    const applied = await runJsonCommand(workspaceRoot, [
+      "patch",
+      "apply",
+      "--file",
+      patchFile
+    ]);
+    expect(applied.code).toBe(0);
+    expect(applied.json.revision.current).toBe(2);
+
+    const frontier = await runJsonCommand(workspaceRoot, [
+      "frontier",
+      "--case",
+      "release-1.8.0"
+    ]);
+    expect(frontier.json.data.nodes.map((node: any) => node.node_id)).toEqual([
+      "task_update_release_notes_l3"
+    ]);
   });
 });
 

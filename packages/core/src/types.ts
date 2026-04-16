@@ -40,8 +40,17 @@ export interface WorkspaceRecord {
   updated_at: string;
 }
 
+export interface CommandPluginConfig {
+  command: string[];
+  env_allowlist?: string[];
+}
+
 export interface ConfigRecord {
   default_format: "text" | "json";
+  approval_policy?: Record<string, string>;
+  importers?: Record<string, CommandPluginConfig>;
+  sinks?: Record<string, CommandPluginConfig>;
+  workers?: Record<string, CommandPluginConfig>;
 }
 
 export interface CaseRecord {
@@ -101,7 +110,8 @@ export type EventType =
   | "edge.added"
   | "edge.removed"
   | "event.recorded"
-  | "evidence.attached";
+  | "evidence.attached"
+  | "patch.applied";
 
 export interface EventEnvelope<TPayload = Record<string, unknown>> {
   event_id: string;
@@ -220,3 +230,183 @@ export interface AddEvidenceInput {
   verifiesTargetId?: string;
   attachment?: Omit<AttachmentRecord, "created_at"> & { created_at?: string };
 }
+
+export interface PatchGenerator {
+  kind: "user" | "planner" | "normalizer" | "worker" | "sync" | string;
+  name: string;
+  version?: string;
+}
+
+export interface PatchNodeInput {
+  node_id: string;
+  kind: NodeKind;
+  title: string;
+  state: NodeState;
+  description?: string;
+  labels?: string[];
+  acceptance?: string[];
+  metadata?: Record<string, unknown>;
+  extensions?: Record<string, unknown>;
+}
+
+export interface PatchNodeChanges {
+  title?: string;
+  description?: string;
+  labels?: string[];
+  acceptance?: string[];
+  metadata?: Record<string, unknown>;
+  extensions?: Record<string, unknown>;
+}
+
+export interface PatchEdgeInput {
+  edge_id: string;
+  type: EdgeType;
+  source_id: string;
+  target_id: string;
+  metadata?: Record<string, unknown>;
+  extensions?: Record<string, unknown>;
+}
+
+export interface PatchAttachmentInput {
+  attachment_id?: string;
+  storage_mode: AttachmentRecord["storage_mode"];
+  path_or_url: string;
+  sha256?: string | null;
+  mime_type?: string | null;
+  size_bytes?: number | null;
+}
+
+export interface AddNodePatchOperation {
+  op: "add_node";
+  node: PatchNodeInput;
+}
+
+export interface UpdateNodePatchOperation {
+  op: "update_node";
+  node_id: string;
+  changes: PatchNodeChanges;
+}
+
+export interface RemoveNodePatchOperation {
+  op: "remove_node";
+  node_id: string;
+}
+
+export interface AddEdgePatchOperation {
+  op: "add_edge";
+  edge: PatchEdgeInput;
+}
+
+export interface RemoveEdgePatchOperation {
+  op: "remove_edge";
+  edge_id: string;
+}
+
+export interface ChangeStatePatchOperation {
+  op: "change_state";
+  node_id: string;
+  state: NodeState;
+  metadata?: Record<string, unknown>;
+}
+
+export interface AttachEvidencePatchOperation {
+  op: "attach_evidence";
+  evidence: Omit<PatchNodeInput, "kind" | "state"> & {
+    kind?: "evidence";
+    state?: "done";
+  };
+  verifies_target_id?: string;
+  attachment?: PatchAttachmentInput;
+}
+
+export interface SetCaseFieldPatchOperation {
+  op: "set_case_field";
+  changes: Partial<
+    Pick<CaseRecord, "title" | "description" | "state" | "labels" | "metadata" | "extensions">
+  >;
+}
+
+export type GraphPatchOperation =
+  | AddNodePatchOperation
+  | UpdateNodePatchOperation
+  | RemoveNodePatchOperation
+  | AddEdgePatchOperation
+  | RemoveEdgePatchOperation
+  | ChangeStatePatchOperation
+  | AttachEvidencePatchOperation
+  | SetCaseFieldPatchOperation;
+
+export interface GraphPatch {
+  patch_id: string;
+  spec_version: string;
+  case_id: string;
+  base_revision: number;
+  summary: string;
+  generator?: PatchGenerator;
+  operations: GraphPatchOperation[];
+  notes?: string[];
+  risks?: string[];
+}
+
+export interface PatchRisk {
+  op_index: number;
+  op: GraphPatchOperation["op"];
+  reason: string;
+}
+
+export interface PatchReview {
+  patch_id: string;
+  case_id: string;
+  base_revision: number;
+  current_revision: number;
+  stale: boolean;
+  valid: boolean;
+  errors: ValidationIssue[];
+  warnings: ValidationIssue[];
+  risky_ops: PatchRisk[];
+  op_counts: Partial<Record<GraphPatchOperation["op"], number>>;
+}
+
+export interface ImporterInputFile {
+  kind: "file";
+  path: string;
+}
+
+export interface ImporterIngestParams {
+  case_id: string;
+  base_revision: number;
+  input: ImporterInputFile;
+  options?: {
+    mode?: "append";
+  };
+}
+
+export interface ImporterIngestResult {
+  patch: GraphPatch;
+  warnings: string[];
+}
+
+export interface JsonRpcRequest<TParams> {
+  jsonrpc: "2.0";
+  id: number | string;
+  method: string;
+  params?: TParams;
+}
+
+export interface JsonRpcSuccess<TResult> {
+  jsonrpc: "2.0";
+  id: number | string;
+  result: TResult;
+}
+
+export interface JsonRpcErrorResponse {
+  jsonrpc: "2.0";
+  id: number | string | null;
+  error: {
+    code: number;
+    message: string;
+    data?: unknown;
+  };
+}
+
+export type JsonRpcResponse<TResult> = JsonRpcSuccess<TResult> | JsonRpcErrorResponse;
