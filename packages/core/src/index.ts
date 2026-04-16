@@ -1,6 +1,7 @@
 export * from "./constants.js";
 export * from "./errors.js";
 export * from "./helpers.js";
+export * from "./jsonrpc.js";
 export * from "./patch.js";
 export * from "./paths.js";
 export * from "./reducer.js";
