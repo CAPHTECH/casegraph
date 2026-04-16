@@ -7,20 +7,16 @@ import {
   addNode,
   changeNodeState,
   createCase,
-  createDefaultMutationContext,
   exportEvents,
   generateId,
   getFrontierItems,
   initWorkspace,
   listBlockedItems,
   listCases,
-  normalizeUnknownError,
   recordEventNode,
   rebuildCache,
   removeEdge,
-  resolveWorkspaceContext,
   showCase,
-  successResult,
   updateNode,
   validateCase,
   validateStorage,
@@ -29,44 +25,29 @@ import {
   decideNode
 } from "@casegraph/core";
 import type {
-  BlockedItem,
   EdgeType,
   NodeKind,
   NodeState,
-  CommandResult,
-  CommandSuccess,
-  FrontierItem
 } from "@casegraph/core";
-
-interface CliIo {
-  stdout: (text: string) => void;
-  stderr: (text: string) => void;
-}
-
-interface CliRuntimeOptions {
-  cwd?: string;
-  env?: NodeJS.ProcessEnv;
-  io?: CliIo;
-}
-
-interface GlobalOptions {
-  workspace?: string;
-  format: "text" | "json";
-  quiet?: boolean;
-  verbose?: boolean;
-}
+import { successResult } from "./result.js";
+import {
+  type CliRuntime,
+  type CliRuntimeOptions,
+  createAttachmentOptions,
+  createCliRuntime,
+  emitFatalCliError,
+  parseCsv,
+  parseJsonObject,
+  runCliAction,
+  runMutationCommand,
+  runWorkspaceCommand
+} from "./runtime.js";
 
 export async function runCli(
   argv: string[],
   runtimeOptions: CliRuntimeOptions = {}
 ): Promise<number> {
-  const io: CliIo = runtimeOptions.io ?? {
-    stdout: (text) => process.stdout.write(text),
-    stderr: (text) => process.stderr.write(text)
-  };
-  const cwd = runtimeOptions.cwd ?? process.cwd();
-  const env = runtimeOptions.env ?? process.env;
-  let outputFormat: "text" | "json" = "text";
+  const runtime = createCliRuntime(argv, runtimeOptions);
 
   const program = new Command();
   program
@@ -76,7 +57,16 @@ export async function runCli(
     .option("--format <format>", "text or json", "text")
     .option("--quiet")
     .option("--verbose")
-    .showHelpAfterError();
+    .showHelpAfterError(runtime.format === "text");
+
+  program.configureOutput({
+    writeOut: (text) => runtime.io.stdout(text),
+    writeErr: (text) => {
+      if (runtime.format === "text") {
+        runtime.io.stderr(text);
+      }
+    }
+  });
 
   program.exitOverride();
 
@@ -84,23 +74,16 @@ export async function runCli(
     .command("init")
     .option("--title <title>")
     .action(async (_, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(
-        io,
-        globals.format,
-        async () =>
-          successResult(
-            "init",
-            {
-              workspace: await initWorkspace({
-                workspaceRoot: globals.workspace
-                  ? path.resolve(cwd, globals.workspace)
-                  : cwd,
-                title: command.opts().title as string | undefined
-              })
-            }
-          )
+      const options = command.opts() as { title?: string };
+      await runCliAction(runtime, command, async (globals) =>
+        successResult("init", {
+          workspace: await initWorkspace({
+            workspaceRoot: globals.workspace
+              ? path.resolve(runtime.cwd, globals.workspace)
+              : runtime.cwd,
+            title: options.title
+          })
+        })
       );
     });
 
@@ -111,22 +94,20 @@ export async function runCli(
     .requiredOption("--title <title>")
     .option("--description <description>", "Case description", "")
     .action(async (_, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
+      const options = command.opts() as {
+        id: string;
+        title: string;
+        description: string;
+      };
+      await runMutationCommand(runtime, command, async (workspaceRoot, _, mutationContext) => {
         const state = await createCase(
-          workspace.workspaceRoot,
+          workspaceRoot,
           {
-            case_id: command.opts().id as string,
-            title: command.opts().title as string,
-            description: command.opts().description as string
+            case_id: options.id,
+            title: options.title,
+            description: options.description
           },
-          createDefaultMutationContext()
+          mutationContext
         );
         return successResult(
           "case new",
@@ -137,31 +118,18 @@ export async function runCli(
     });
 
   caseCommand.command("list").action(async (_, command) => {
-    const globals = getGlobalOptions(command);
-    outputFormat = globals.format;
-    await runCommand(io, globals.format, async () => {
-      const workspace = await resolveWorkspaceContext({
-        cwd,
-        env,
-        workspaceOverride: globals.workspace
-      });
-      return successResult("case list", { cases: await listCases(workspace.workspaceRoot) });
-    });
+    await runWorkspaceCommand(runtime, command, async (workspaceRoot) =>
+      successResult("case list", { cases: await listCases(workspaceRoot) })
+    );
   });
 
   caseCommand
     .command("show")
     .requiredOption("--case <caseId>")
     .action(async (_, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
-        const data = await showCase(workspace.workspaceRoot, command.opts().case as string);
+      const options = command.opts() as { case: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const data = await showCase(workspaceRoot, options.case);
         return successResult("case show", data, data.revision);
       });
     });
@@ -179,32 +147,36 @@ export async function runCli(
     .option("--acceptance <acceptance>")
     .option("--metadata <json>")
     .action(async (_, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
-        const nodeId = (command.opts().id as string | undefined) ?? generateId();
+      const options = command.opts() as {
+        case: string;
+        kind: NodeKind;
+        title: string;
+        id?: string;
+        description: string;
+        state: NodeState;
+        labels?: string;
+        acceptance?: string;
+        metadata?: string;
+      };
+      await runMutationCommand(runtime, command, async (workspaceRoot, _, mutationContext) => {
+        const nodeId = options.id ?? generateId();
         const state = await addNode(
-          workspace.workspaceRoot,
+          workspaceRoot,
           {
-            caseId: command.opts().case as string,
+            caseId: options.case,
             node: {
               node_id: nodeId,
-              kind: command.opts().kind as NodeKind,
-              title: command.opts().title as string,
-              description: command.opts().description as string,
-              state: command.opts().state as NodeState,
-              labels: parseCsv(command.opts().labels as string | undefined),
-              acceptance: parseCsv(command.opts().acceptance as string | undefined),
-              metadata: parseJsonObject(command.opts().metadata as string | undefined),
+              kind: options.kind,
+              title: options.title,
+              description: options.description,
+              state: options.state,
+              labels: parseCsv(options.labels),
+              acceptance: parseCsv(options.acceptance),
+              metadata: parseJsonObject(options.metadata),
               extensions: {}
             }
           },
-          createDefaultMutationContext()
+          mutationContext
         );
         return successResult(
           "node add",
@@ -224,38 +196,34 @@ export async function runCli(
     .option("--acceptance <acceptance>")
     .option("--metadata <json>")
     .action(async (_, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
+      const options = command.opts() as {
+        case: string;
+        id: string;
+        title?: string;
+        description?: string;
+        labels?: string;
+        acceptance?: string;
+        metadata?: string;
+      };
+      await runMutationCommand(runtime, command, async (workspaceRoot, _, mutationContext) => {
         const state = await updateNode(
-          workspace.workspaceRoot,
+          workspaceRoot,
           {
-            caseId: command.opts().case as string,
-            nodeId: command.opts().id as string,
+            caseId: options.case,
+            nodeId: options.id,
             changes: {
-              title: command.opts().title as string | undefined,
-              description: command.opts().description as string | undefined,
-              labels: command.opts().labels
-                ? parseCsv(command.opts().labels as string)
-                : undefined,
-              acceptance: command.opts().acceptance
-                ? parseCsv(command.opts().acceptance as string)
-                : undefined,
-              metadata: command.opts().metadata
-                ? parseJsonObject(command.opts().metadata as string)
-                : undefined
+              title: options.title,
+              description: options.description,
+              labels: options.labels ? parseCsv(options.labels) : undefined,
+              acceptance: options.acceptance ? parseCsv(options.acceptance) : undefined,
+              metadata: options.metadata ? parseJsonObject(options.metadata) : undefined
             }
           },
-          createDefaultMutationContext()
+          mutationContext
         );
         return successResult(
           "node update",
-          { node: state.nodes.get(command.opts().id as string) ?? null },
+          { node: state.nodes.get(options.id) ?? null },
           state.caseRecord.case_revision
         );
       });
@@ -270,30 +238,29 @@ export async function runCli(
     .requiredOption("--to <targetId>")
     .option("--id <edgeId>")
     .action(async (_, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
-        const edgeId =
-          (command.opts().id as string | undefined) ?? generateId();
+      const options = command.opts() as {
+        case: string;
+        type: EdgeType;
+        from: string;
+        to: string;
+        id?: string;
+      };
+      await runMutationCommand(runtime, command, async (workspaceRoot, _, mutationContext) => {
+        const edgeId = options.id ?? generateId();
         const state = await addEdge(
-          workspace.workspaceRoot,
+          workspaceRoot,
           {
-            caseId: command.opts().case as string,
+            caseId: options.case,
             edge: {
               edge_id: edgeId,
-              type: command.opts().type as EdgeType,
-              source_id: command.opts().from as string,
-              target_id: command.opts().to as string,
+              type: options.type,
+              source_id: options.from,
+              target_id: options.to,
               metadata: {},
               extensions: {}
             }
           },
-          createDefaultMutationContext()
+          mutationContext
         );
         return successResult(
           "edge add",
@@ -308,30 +275,28 @@ export async function runCli(
     .requiredOption("--case <caseId>")
     .requiredOption("--id <edgeId>")
     .action(async (_, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
+      const options = command.opts() as { case: string; id: string };
+      await runMutationCommand(runtime, command, async (workspaceRoot, _, mutationContext) => {
         const state = await removeEdge(
-          workspace.workspaceRoot,
-          command.opts().case as string,
-          command.opts().id as string,
-          createDefaultMutationContext()
+          workspaceRoot,
+          options.case,
+          options.id,
+          mutationContext
         );
-        return successResult("edge remove", { edge_id: command.opts().id as string }, state.caseRecord.case_revision);
+        return successResult(
+          "edge remove",
+          { edge_id: options.id },
+          state.caseRecord.case_revision
+        );
       });
     });
 
   const taskCommand = program.command("task");
-  addTaskStateCommand(taskCommand, "start", "doing", io, cwd, env);
-  addTaskStateCommand(taskCommand, "done", "done", io, cwd, env);
-  addTaskStateCommand(taskCommand, "resume", "todo", io, cwd, env);
-  addTaskStateCommand(taskCommand, "cancel", "cancelled", io, cwd, env);
-  addTaskStateCommand(taskCommand, "fail", "failed", io, cwd, env, "--reason");
+  addTaskStateCommand(taskCommand, "start", "doing", runtime);
+  addTaskStateCommand(taskCommand, "done", "done", runtime);
+  addTaskStateCommand(taskCommand, "resume", "todo", runtime);
+  addTaskStateCommand(taskCommand, "cancel", "cancelled", runtime);
+  addTaskStateCommand(taskCommand, "fail", "failed", runtime, "--reason");
 
   taskCommand
     .command("wait <nodeId>")
@@ -339,23 +304,16 @@ export async function runCli(
     .option("--reason <reason>")
     .option("--for <eventId>")
     .action(async (nodeId, options, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
+      await runMutationCommand(runtime, command, async (workspaceRoot, _, mutationContext) => {
         const state = await waitTask(
-          workspace.workspaceRoot,
+          workspaceRoot,
           {
             caseId: options.case as string,
             nodeId: nodeId as string,
             reason: options.reason as string | undefined,
             eventId: options.for as string | undefined
           },
-          createDefaultMutationContext()
+          mutationContext
         );
         return successResult(
           "task wait",
@@ -371,22 +329,15 @@ export async function runCli(
     .requiredOption("--case <caseId>")
     .option("--result <result>")
     .action(async (nodeId, options, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
+      await runMutationCommand(runtime, command, async (workspaceRoot, _, mutationContext) => {
         const state = await decideNode(
-          workspace.workspaceRoot,
+          workspaceRoot,
           {
             caseId: options.case as string,
             nodeId: nodeId as string,
             result: options.result as string | undefined
           },
-          createDefaultMutationContext()
+          mutationContext
         );
         return successResult(
           "decision decide",
@@ -401,18 +352,11 @@ export async function runCli(
     .command("record <nodeId>")
     .requiredOption("--case <caseId>")
     .action(async (nodeId, options, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
+      await runMutationCommand(runtime, command, async (workspaceRoot, _, mutationContext) => {
         const state = await recordEventNode(
-          workspace.workspaceRoot,
+          workspaceRoot,
           { caseId: options.case as string, nodeId: nodeId as string },
-          createDefaultMutationContext()
+          mutationContext
         );
         return successResult(
           "event record",
@@ -433,34 +377,36 @@ export async function runCli(
     .option("--file <path>")
     .option("--url <url>")
     .action(async (_, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
-        const nodeId = (command.opts().id as string | undefined) ?? generateId();
-        const attachment = createAttachmentOptions(command.opts(), nodeId);
+      const options = command.opts() as {
+        case: string;
+        title: string;
+        id?: string;
+        target?: string;
+        description: string;
+        file?: string;
+        url?: string;
+      };
+      await runMutationCommand(runtime, command, async (workspaceRoot, _, mutationContext) => {
+        const nodeId = options.id ?? generateId();
+        const attachment = createAttachmentOptions(options, nodeId);
         const state = await addEvidence(
-          workspace.workspaceRoot,
+          workspaceRoot,
           {
-            caseId: command.opts().case as string,
+            caseId: options.case,
             evidence: {
               node_id: nodeId,
-              title: command.opts().title as string,
-              description: command.opts().description as string,
+              title: options.title,
+              description: options.description,
               state: "done",
               labels: [],
               acceptance: [],
               metadata: {},
               extensions: {}
             },
-            verifiesTargetId: command.opts().target as string | undefined,
+            verifiesTargetId: options.target,
             attachment
           },
-          createDefaultMutationContext()
+          mutationContext
         );
         return successResult(
           "evidence add",
@@ -474,15 +420,9 @@ export async function runCli(
     .command("frontier")
     .requiredOption("--case <caseId>")
     .action(async (_, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
-        const data = await getFrontierItems(workspace.workspaceRoot, command.opts().case as string);
+      const options = command.opts() as { case: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const data = await getFrontierItems(workspaceRoot, options.case);
         return successResult("frontier", data, data.revision);
       });
     });
@@ -491,18 +431,9 @@ export async function runCli(
     .command("blockers")
     .requiredOption("--case <caseId>")
     .action(async (_, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
-        const data = await listBlockedItems(
-          workspace.workspaceRoot,
-          command.opts().case as string
-        );
+      const options = command.opts() as { case: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const data = await listBlockedItems(workspaceRoot, options.case);
         return successResult("blockers", data, data.revision);
       });
     });
@@ -511,52 +442,29 @@ export async function runCli(
   validateCommand
     .command("storage")
     .action(async (_, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
-        return successResult(
-          "validate storage",
-          await validateStorage(workspace.workspaceRoot)
-        );
-      });
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) =>
+        successResult("validate storage", await validateStorage(workspaceRoot))
+      );
     });
 
   validateCommand.option("--case <caseId>");
   validateCommand.action(async (_, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
-        const caseId = command.opts().case as string | undefined;
-        if (!caseId) {
-          throw new Error("--case is required for validate");
-        }
-        const data = await validateCase(workspace.workspaceRoot, caseId);
-        return successResult("validate", data);
-      });
+    const options = command.opts() as { case?: string };
+    await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+      const caseId = options.case;
+      if (!caseId) {
+        throw new Error("--case is required for validate");
+      }
+      const data = await validateCase(workspaceRoot, caseId);
+      return successResult("validate", data);
     });
+  });
 
   const cacheCommand = program.command("cache");
   cacheCommand.command("rebuild").action(async (_, command) => {
-    const globals = getGlobalOptions(command);
-    outputFormat = globals.format;
-    await runCommand(io, globals.format, async () => {
-      const workspace = await resolveWorkspaceContext({
-        cwd,
-        env,
-        workspaceOverride: globals.workspace
-      });
-      return successResult("cache rebuild", await rebuildCache(workspace.workspaceRoot));
-    });
+    await runWorkspaceCommand(runtime, command, async (workspaceRoot) =>
+      successResult("cache rebuild", await rebuildCache(workspaceRoot))
+    );
   });
 
   const eventsCommand = program.command("events");
@@ -564,15 +472,9 @@ export async function runCli(
     .command("verify")
     .requiredOption("--case <caseId>")
     .action(async (_, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
-        const data = await verifyEvents(workspace.workspaceRoot, command.opts().case as string);
+      const options = command.opts() as { case: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const data = await verifyEvents(workspaceRoot, options.case);
         return successResult("events verify", data, data.revision);
       });
     });
@@ -581,17 +483,11 @@ export async function runCli(
     .command("export")
     .requiredOption("--case <caseId>")
     .action(async (_, command) => {
-      const globals = getGlobalOptions(command);
-      outputFormat = globals.format;
-      await runCommand(io, globals.format, async () => {
-        const workspace = await resolveWorkspaceContext({
-          cwd,
-          env,
-          workspaceOverride: globals.workspace
-        });
+      const options = command.opts() as { case: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
         return successResult("events export", {
-          case_id: command.opts().case as string,
-          events: await exportEvents(workspace.workspaceRoot, command.opts().case as string)
+          case_id: options.case,
+          events: await exportEvents(workspaceRoot, options.case)
         });
       });
     });
@@ -600,22 +496,7 @@ export async function runCli(
     await program.parseAsync(argv, { from: "user" });
     return 0;
   } catch (error) {
-    const normalized = normalizeUnknownError(error);
-    emitResult(
-      io,
-      outputFormat,
-      {
-        ok: false,
-        command: "cg",
-        error: {
-          code: normalized.code,
-          message: normalized.message,
-          details: normalized.details
-        }
-      },
-      true
-    );
-    return normalized.exitCode;
+    return emitFatalCliError(runtime, error);
   }
 }
 
@@ -623,9 +504,7 @@ function addTaskStateCommand(
   taskCommand: Command,
   name: string,
   state: "doing" | "done" | "todo" | "cancelled" | "failed",
-  io: CliIo,
-  cwd: string,
-  env: NodeJS.ProcessEnv,
+  runtime: CliRuntime,
   reasonFlag?: string
 ): void {
   const command = taskCommand.command(`${name} <nodeId>`).requiredOption("--case <caseId>");
@@ -633,27 +512,21 @@ function addTaskStateCommand(
     command.option(reasonFlag, "Reason");
   }
   command.action(async (nodeId, options, commandInstance) => {
-    const globals = getGlobalOptions(commandInstance);
-    await runCommand(io, globals.format, async () => {
-      const workspace = await resolveWorkspaceContext({
-        cwd,
-        env,
-        workspaceOverride: globals.workspace
-      });
+    await runMutationCommand(runtime, commandInstance, async (workspaceRoot, _, mutationContext) => {
       const reasonOptionName = reasonFlag ? reasonFlag.replace(/^--/, "") : undefined;
       const metadata =
         reasonOptionName && options[reasonOptionName]
           ? { [`last_${name}_reason`]: options[reasonOptionName] as string }
           : undefined;
       const resultState = await changeNodeState(
-        workspace.workspaceRoot,
+        workspaceRoot,
         {
           caseId: options.case as string,
           nodeId: nodeId as string,
           state,
           metadata
         },
-        createDefaultMutationContext()
+        mutationContext
       );
       return successResult(
         `task ${name}`,
@@ -662,181 +535,4 @@ function addTaskStateCommand(
       );
     });
   });
-}
-
-async function runCommand<T>(
-  io: CliIo,
-  format: "text" | "json",
-  action: () => Promise<CommandResult<T>>
-): Promise<void> {
-  try {
-    const result = await action();
-    emitResult(io, format, result, false);
-  } catch (error) {
-    const normalized = normalizeUnknownError(error);
-    emitResult(
-      io,
-      format,
-      {
-        ok: false,
-        command: "cg",
-        error: {
-          code: normalized.code,
-          message: normalized.message,
-          details: normalized.details
-        }
-      },
-      true
-    );
-    throw normalized;
-  }
-}
-
-function emitResult(
-  io: CliIo,
-  format: "text" | "json",
-  result: CommandResult<unknown>,
-  isError: boolean
-): void {
-  const target = isError ? io.stderr : io.stdout;
-  target(format === "json" ? `${JSON.stringify(result, null, 2)}\n` : `${renderText(result)}\n`);
-}
-
-function renderText(result: CommandResult<unknown>): string {
-  if (!result.ok) {
-    return `ERROR ${result.error.code}: ${result.error.message}`;
-  }
-
-  switch (result.command) {
-    case "init":
-      return `Initialized workspace ${String((result.data as any).workspace.title)}`;
-    case "case list":
-      return renderCaseList((result as CommandSuccess<{ cases: any[] }>).data.cases);
-    case "case show": {
-      const data = (result as CommandSuccess<any>).data;
-      return [
-        `${data.case.case_id}: ${data.case.title}`,
-        `state=${data.case.state} revision=${data.revision.current}`,
-        `ready=${data.frontier_summary.ready_count}`
-      ].join("\n");
-    }
-    case "frontier":
-      return renderFrontier((result as CommandSuccess<{ nodes: FrontierItem[] }>).data.nodes);
-    case "blockers":
-      return renderBlockers((result as CommandSuccess<{ items: BlockedItem[] }>).data.items);
-    case "validate":
-    case "validate storage": {
-      const data = (result as CommandSuccess<any>).data;
-      return data.valid ? "VALID" : `INVALID (${data.errors.length} errors)`;
-    }
-    case "cache rebuild":
-      return `Rebuilt cache for ${(result as CommandSuccess<{ cases: number }>).data.cases} cases`;
-    case "events verify": {
-      const data = (result as CommandSuccess<any>).data;
-      return `Verified ${data.event_count} events for ${data.case_id}`;
-    }
-    case "events export":
-      return JSON.stringify((result as CommandSuccess<any>).data.events, null, 2);
-    default:
-      return `${result.command} ok`;
-  }
-}
-
-function renderCaseList(cases: Array<{ case_id: string; state: string; title: string }>): string {
-  if (cases.length === 0) {
-    return "No cases";
-  }
-
-  return cases
-    .map((caseRecord) => `${caseRecord.case_id}\t${caseRecord.state}\t${caseRecord.title}`)
-    .join("\n");
-}
-
-function renderFrontier(nodes: FrontierItem[]): string {
-  if (nodes.length === 0) {
-    return "No frontier nodes";
-  }
-
-  return nodes.map((node) => `${node.node_id}\t${node.kind}\t${node.title}`).join("\n");
-}
-
-function renderBlockers(items: BlockedItem[]): string {
-  if (items.length === 0) {
-    return "No blockers";
-  }
-
-  return items
-    .map(
-      (item) =>
-        `${item.node.node_id}\t${item.reasons.map((reason) => reason.message).join("; ")}`
-    )
-    .join("\n");
-}
-
-function parseCsv(value: string | undefined): string[] {
-  if (!value) {
-    return [];
-  }
-
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
-}
-
-function parseJsonObject(value: string | undefined): Record<string, unknown> {
-  if (!value) {
-    return {};
-  }
-
-  return JSON.parse(value) as Record<string, unknown>;
-}
-
-function getGlobalOptions(command: Command): GlobalOptions {
-  const options: Record<string, unknown> = {};
-  let current: unknown = command;
-  while (
-    current &&
-    typeof current === "object" &&
-    "opts" in current &&
-    typeof (current as Command).opts === "function"
-  ) {
-    const currentCommand = current as Command;
-    Object.assign(options, currentCommand.opts());
-    current = currentCommand.parent;
-  }
-  return {
-    workspace: options.workspace as string | undefined,
-    format: (options.format as "text" | "json" | undefined) ?? "text",
-    quiet: options.quiet as boolean | undefined,
-    verbose: options.verbose as boolean | undefined
-  };
-}
-
-function createAttachmentOptions(options: Record<string, unknown>, nodeId: string) {
-  if (typeof options.file === "string") {
-    return {
-      attachment_id: generateId(),
-      evidence_node_id: nodeId,
-      storage_mode: "workspace_copy" as const,
-      path_or_url: options.file,
-      sha256: null,
-      mime_type: null,
-      size_bytes: null
-    };
-  }
-
-  if (typeof options.url === "string") {
-    return {
-      attachment_id: generateId(),
-      evidence_node_id: nodeId,
-      storage_mode: "url" as const,
-      path_or_url: options.url,
-      sha256: null,
-      mime_type: null,
-      size_bytes: null
-    };
-  }
-
-  return undefined;
 }

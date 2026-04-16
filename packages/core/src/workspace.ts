@@ -39,7 +39,6 @@ import type {
   CaseRecord,
   CaseStateView,
   ChangeNodeStateInput,
-  CommandResult,
   ConfigRecord,
   EventEnvelope,
   FrontierItem,
@@ -753,22 +752,6 @@ export async function listBlockedItems(
     revision: state.caseRecord.case_revision,
     items: getReducerBlockedItems(state)
   };
-}
-
-export function successResult<T>(
-  command: string,
-  data: T,
-  revision?: RevisionSnapshot
-): CommandResult<T> {
-  const result: CommandResult<T> = {
-    ok: true,
-    command,
-    data
-  };
-  if (revision) {
-    result.revision = revision;
-  }
-  return result;
 }
 
 async function appendCaseEvents(

@@ -176,6 +176,31 @@ describe("cli phase 1 acceptance", () => {
     const validate = await runJsonCommand(workspaceRoot, ["validate", "storage"]);
     expect(validate.json.data.valid).toBe(true);
   });
+
+  it("emits JSON errors for parse failures when json output is requested", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-cli-");
+    createdWorkspaces.push(workspaceRoot);
+
+    const result = await runJsonCommand(workspaceRoot, ["unknown-command"]);
+
+    expect(result.code).toBe(1);
+    expect(result.json.ok).toBe(false);
+    expect(result.json.command).toBe("cg");
+    expect(result.json.error.code).toBe("internal_error");
+  });
+
+  it("emits a single JSON payload for action errors", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-cli-");
+    createdWorkspaces.push(workspaceRoot);
+
+    await runJsonCommand(workspaceRoot, ["init"]);
+    const result = await runJsonCommand(workspaceRoot, ["validate"]);
+
+    expect(result.code).toBe(1);
+    expect(result.stderr.startsWith("{")).toBe(true);
+    expect(result.json.ok).toBe(false);
+    expect(result.json.error.message).toBe("--case is required for validate");
+  });
 });
 
 async function runJsonCommand(workspaceRoot: string, args: string[]) {
@@ -190,10 +215,12 @@ async function runJsonCommand(workspaceRoot: string, args: string[]) {
   });
 
   const output = stdout.join("").trim();
+  const errorOutput = stderr.join("").trim();
+  const payload = output.length > 0 ? output : errorOutput;
   return {
     code,
     stdout: output,
-    stderr: stderr.join(""),
-    json: output.length > 0 ? JSON.parse(output) : null
+    stderr: errorOutput,
+    json: payload.length > 0 ? JSON.parse(payload) : null
   };
 }

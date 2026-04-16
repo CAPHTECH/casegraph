@@ -166,25 +166,6 @@ export interface BlockedItem {
   reasons: BlockerReason[];
 }
 
-export interface CommandSuccess<TData> {
-  ok: true;
-  command: string;
-  data: TData;
-  revision?: RevisionSnapshot;
-}
-
-export interface CommandFailure {
-  ok: false;
-  command: string;
-  error: {
-    code: string;
-    message: string;
-    details?: unknown;
-  };
-}
-
-export type CommandResult<TData> = CommandSuccess<TData> | CommandFailure;
-
 export interface WorkspaceContextOptions {
   workspaceOverride?: string;
   cwd?: string;
@@ -239,4 +220,3 @@ export interface AddEvidenceInput {
   verifiesTargetId?: string;
   attachment?: Omit<AttachmentRecord, "created_at"> & { created_at?: string };
 }
-
