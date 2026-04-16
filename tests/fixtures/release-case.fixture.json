@@ -5,17 +5,57 @@
     "description": "May release"
   },
   "nodes": [
-    { "node_id": "goal_release_ready", "kind": "goal", "title": "Release 1.8.0 ready", "state": "todo" },
-    { "node_id": "task_run_regression", "kind": "task", "title": "Run regression test", "state": "todo" },
-    { "node_id": "task_update_notes", "kind": "task", "title": "Update release notes", "state": "todo" },
-    { "node_id": "task_submit_store", "kind": "task", "title": "Submit to App Store", "state": "todo" },
-    { "node_id": "task_monitor_post_release", "kind": "task", "title": "Monitor post-release", "state": "todo" },
+    {
+      "node_id": "goal_release_ready",
+      "kind": "goal",
+      "title": "Release 1.8.0 ready",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_run_regression",
+      "kind": "task",
+      "title": "Run regression test",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_update_notes",
+      "kind": "task",
+      "title": "Update release notes",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_submit_store",
+      "kind": "task",
+      "title": "Submit to App Store",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_monitor_post_release",
+      "kind": "task",
+      "title": "Monitor post-release",
+      "state": "todo"
+    },
     { "node_id": "event_release_live", "kind": "event", "title": "Release live", "state": "todo" }
   ],
   "edges": [
-    { "edge_id": "e1", "type": "depends_on", "source_id": "task_submit_store", "target_id": "task_run_regression" },
-    { "edge_id": "e2", "type": "depends_on", "source_id": "task_submit_store", "target_id": "task_update_notes" },
-    { "edge_id": "e3", "type": "waits_for", "source_id": "task_monitor_post_release", "target_id": "event_release_live" }
+    {
+      "edge_id": "e1",
+      "type": "depends_on",
+      "source_id": "task_submit_store",
+      "target_id": "task_run_regression"
+    },
+    {
+      "edge_id": "e2",
+      "type": "depends_on",
+      "source_id": "task_submit_store",
+      "target_id": "task_update_notes"
+    },
+    {
+      "edge_id": "e3",
+      "type": "waits_for",
+      "source_id": "task_monitor_post_release",
+      "target_id": "event_release_live"
+    }
   ],
   "expected": {
     "initial_frontier": ["task_run_regression", "task_update_notes"],
@@ -24,14 +64,8 @@
         "depends_on:task_run_regression is not done",
         "depends_on:task_update_notes is not done"
       ],
-      "task_monitor_post_release": [
-        "waits_for:event_release_live is not done"
-      ]
+      "task_monitor_post_release": ["waits_for:event_release_live is not done"]
     },
-    "after_completion_frontier": [
-      "task_submit_store",
-      "task_monitor_post_release"
-    ]
+    "after_completion_frontier": ["task_submit_store", "task_monitor_post_release"]
   }
 }
-

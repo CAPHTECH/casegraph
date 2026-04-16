@@ -1,20 +1,8 @@
-import { writeFile } from "node:fs/promises";
-import path from "node:path";
-
-import {
-  applyPatch,
-  getFrontierItems,
-  reviewPatch,
-  validatePatchDocument
-} from "@casegraph/core";
+import { applyPatch, getFrontierItems, reviewPatch, validatePatchDocument } from "@casegraph/core";
 import { afterEach, describe, expect, it } from "vitest";
 
 import releaseFixture from "./fixtures/release-case.fixture.json";
-import {
-  createTempWorkspace,
-  removeTempWorkspace,
-  seedFixture
-} from "./helpers/workspace.js";
+import { createTempWorkspace, removeTempWorkspace, seedFixture } from "./helpers/workspace.js";
 
 const createdWorkspaces: string[] = [];
 
@@ -107,9 +95,7 @@ describe("phase 2 patch engine", () => {
 
     const invalidReview = await reviewPatch(workspaceRoot, invalidPatch);
     expect(invalidReview.valid).toBe(false);
-    expect(
-      invalidReview.errors.some((issue) => issue.code === "dangling_edge")
-    ).toBe(true);
+    expect(invalidReview.errors.some((issue) => issue.code === "dangling_edge")).toBe(true);
   });
 
   it("validates patch documents before review/apply", async () => {
@@ -134,8 +120,6 @@ describe("phase 2 patch engine", () => {
 
     expect(validation.valid).toBe(false);
     expect(validation.patch).toBeNull();
-    expect(validation.errors.some((issue) => issue.code === "patch_node_value_invalid")).toBe(
-      true
-    );
+    expect(validation.errors.some((issue) => issue.code === "patch_node_value_invalid")).toBe(true);
   });
 });

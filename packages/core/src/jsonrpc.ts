@@ -2,11 +2,7 @@ import { spawn } from "node:child_process";
 import readline from "node:readline";
 
 import { CaseGraphError } from "./errors.js";
-import type {
-  JsonRpcErrorResponse,
-  JsonRpcResponse,
-  JsonRpcSuccess
-} from "./types.js";
+import type { JsonRpcErrorResponse, JsonRpcResponse, JsonRpcSuccess } from "./types.js";
 
 export interface JsonRpcStdioClient {
   close: () => Promise<void>;
@@ -175,10 +171,7 @@ function rejectPending(
   pending.clear();
 }
 
-function toRpcError(
-  peerName: string,
-  error: JsonRpcErrorResponse["error"]
-): CaseGraphError {
+function toRpcError(peerName: string, error: JsonRpcErrorResponse["error"]): CaseGraphError {
   return new CaseGraphError(`${peerName}_rpc_error`, error.message, {
     details: error.data,
     exitCode: 2

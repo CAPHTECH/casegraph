@@ -83,14 +83,11 @@ export async function resolveWorkspaceRoot(
     } catch {
       const parentDir = path.dirname(currentDir);
       if (parentDir === currentDir) {
-        throw new CaseGraphError(
-          "workspace_not_found",
-          "Could not find .casegraph workspace",
-          { exitCode: 3 }
-        );
+        throw new CaseGraphError("workspace_not_found", "Could not find .casegraph workspace", {
+          exitCode: 3
+        });
       }
       currentDir = parentDir;
     }
   }
 }
-

@@ -80,7 +80,7 @@ export function validateGraph(
     }
     seenEdgeIds.add(edge.edge_id);
 
-    if (!nodes.has(edge.source_id) || !nodes.has(edge.target_id)) {
+    if (!(nodes.has(edge.source_id) && nodes.has(edge.target_id))) {
       issues.push({
         severity: "error",
         code: "dangling_edge",
@@ -222,8 +222,7 @@ export function deriveNodeStates(
 
     const dependencySatisfiedRatio =
       hardDependencyTotal === 0 ? 1 : satisfiedDependencyCount / hardDependencyTotal;
-    const actionable =
-      ACTIONABLE_KINDS.has(node.kind) && FRONTIER_STATES.has(node.state);
+    const actionable = ACTIONABLE_KINDS.has(node.kind) && FRONTIER_STATES.has(node.state);
     const isReady = actionable && blockers.length === 0;
 
     result.set(node.node_id, {

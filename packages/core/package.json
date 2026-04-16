@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./plugin-server": {
+      "types": "./dist/plugin-server.d.ts",
+      "import": "./dist/plugin-server.js"
     }
   },
   "dependencies": {
@@ -16,4 +20,3 @@
     "yaml": "^2.8.1"
   }
 }
-

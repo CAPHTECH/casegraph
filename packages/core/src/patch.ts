@@ -1,4 +1,4 @@
-import { CaseGraphError } from "./errors.js";
+import { SPEC_VERSION } from "./constants.js";
 import {
   cloneRecord,
   ensureArray,
@@ -9,8 +9,6 @@ import {
   sanitizeEdgeRecord,
   sanitizeNodeRecord
 } from "./helpers.js";
-import { SPEC_VERSION } from "./constants.js";
-import { deriveNodeStates, validateGraph } from "./validation.js";
 import type {
   AttachmentRecord,
   CaseRecord,
@@ -24,6 +22,7 @@ import type {
   PatchReview,
   ValidationIssue
 } from "./types.js";
+import { deriveNodeStates, validateGraph } from "./validation.js";
 
 const CASE_STATES = new Set(["open", "closed", "archived"]);
 const EDGE_TYPES = new Set([
@@ -261,8 +260,7 @@ export function applyPatchOperationsToDraft(
 
       case "add_edge": {
         if (
-          !draft.nodes.has(operation.edge.source_id) ||
-          !draft.nodes.has(operation.edge.target_id)
+          !(draft.nodes.has(operation.edge.source_id) && draft.nodes.has(operation.edge.target_id))
         ) {
           errors.push({
             severity: "error",
@@ -538,10 +536,7 @@ function classifyPatchRisks(patch: GraphPatch) {
   return risks;
 }
 
-function parseOperations(
-  input: unknown,
-  errors: ValidationIssue[]
-): GraphPatchOperation[] {
+function parseOperations(input: unknown, errors: ValidationIssue[]): GraphPatchOperation[] {
   if (!Array.isArray(input)) {
     errors.push({
       severity: "error",
@@ -561,9 +556,9 @@ function parseOperations(
       errors.push({
         severity: "error",
         code: "patch_operation_invalid",
-          message: `Operation at ${ref} must be an object with op`,
-          ref
-        });
+        message: `Operation at ${ref} must be an object with op`,
+        ref
+      });
       continue;
     }
 
@@ -627,11 +622,11 @@ function parseAddNodeOperation(
   const title = requireString(node.title, `${ref}.node.title`, errors);
   const state = requireString(node.state, `${ref}.node.state`, errors);
 
-  if (!nodeId || !kind || !title || !state) {
+  if (!(nodeId && kind && title && state)) {
     return [];
   }
 
-  if (!NODE_KINDS.has(kind) || !NODE_STATES.has(state)) {
+  if (!(NODE_KINDS.has(kind) && NODE_STATES.has(state))) {
     errors.push({
       severity: "error",
       code: "patch_node_value_invalid",
@@ -729,7 +724,7 @@ function parseAddEdgeOperation(
   const sourceId = requireString(edge.source_id, `${ref}.edge.source_id`, errors);
   const targetId = requireString(edge.target_id, `${ref}.edge.target_id`, errors);
 
-  if (!edgeId || !type || !sourceId || !targetId) {
+  if (!(edgeId && type && sourceId && targetId)) {
     return [];
   }
 
@@ -774,7 +769,7 @@ function parseChangeStateOperation(
 ) {
   const nodeId = requireString(input.node_id, `${ref}.node_id`, errors);
   const state = requireString(input.state, `${ref}.state`, errors);
-  if (!nodeId || !state) {
+  if (!(nodeId && state)) {
     return [];
   }
 
@@ -817,7 +812,7 @@ function parseAttachEvidenceOperation(
   const nodeId = requireString(evidence.node_id, `${ref}.evidence.node_id`, errors);
   const title = requireString(evidence.title, `${ref}.evidence.title`, errors);
 
-  if (!nodeId || !title) {
+  if (!(nodeId && title)) {
     return [];
   }
 
@@ -837,17 +832,9 @@ function parseAttachEvidenceOperation(
       evidence: {
         node_id: nodeId,
         title,
-        description: optionalString(
-          evidence.description,
-          `${ref}.evidence.description`,
-          errors
-        ),
+        description: optionalString(evidence.description, `${ref}.evidence.description`, errors),
         labels: parseStringArray(evidence.labels, `${ref}.evidence.labels`, errors),
-        acceptance: parseStringArray(
-          evidence.acceptance,
-          `${ref}.evidence.acceptance`,
-          errors
-        ),
+        acceptance: parseStringArray(evidence.acceptance, `${ref}.evidence.acceptance`, errors),
         metadata: parseRecord(evidence.metadata, `${ref}.evidence.metadata`, errors),
         extensions: parseRecord(evidence.extensions, `${ref}.evidence.extensions`, errors)
       },
@@ -905,10 +892,7 @@ function parseSetCaseFieldOperation(
   ];
 }
 
-function parseGenerator(
-  input: unknown,
-  errors: ValidationIssue[]
-): GraphPatch["generator"] | null {
+function parseGenerator(input: unknown, errors: ValidationIssue[]): GraphPatch["generator"] | null {
   if (input === undefined) {
     return null;
   }
@@ -953,7 +937,7 @@ function parseAttachment(
   const pathOrUrl = requireString(input.path_or_url, `${ref}.path_or_url`, errors);
   const attachmentId = optionalString(input.attachment_id, `${ref}.attachment_id`, errors);
 
-  if (!storageMode || !pathOrUrl) {
+  if (!(storageMode && pathOrUrl)) {
     return undefined;
   }
 
@@ -1077,11 +1061,7 @@ function parseRecord(
   return { ...input };
 }
 
-function requireString(
-  input: unknown,
-  ref: string,
-  errors: ValidationIssue[]
-): string | null {
+function requireString(input: unknown, ref: string, errors: ValidationIssue[]): string | null {
   if (typeof input !== "string" || input.trim().length === 0) {
     errors.push({
       severity: "error",
@@ -1094,11 +1074,7 @@ function requireString(
   return input;
 }
 
-function requireNumber(
-  input: unknown,
-  ref: string,
-  errors: ValidationIssue[]
-): number | null {
+function requireNumber(input: unknown, ref: string, errors: ValidationIssue[]): number | null {
   if (typeof input !== "number" || !Number.isInteger(input) || input < 0) {
     errors.push({
       severity: "error",

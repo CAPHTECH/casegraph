@@ -1,5 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 
+import { deriveProjectionMappings } from "./sink-mappings.js";
 import type { CaseStateView } from "./types.js";
 
 export function openCacheDatabase(databasePath: string): DatabaseSync {
@@ -182,6 +183,27 @@ export function rebuildCaseCache(database: DatabaseSync, state: CaseStateView): 
         attachment.mime_type,
         attachment.size_bytes,
         attachment.created_at
+      );
+    }
+
+    const insertMapping = database.prepare(
+      [
+        "INSERT INTO projection_mappings (",
+        "  case_id, sink_name, internal_node_id, external_item_id,",
+        "  last_pushed_at, last_pulled_at, last_known_external_hash, sync_policy_json",
+        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      ].join(" ")
+    );
+    for (const mapping of deriveProjectionMappings(state.events)) {
+      insertMapping.run(
+        caseId,
+        mapping.sink_name,
+        mapping.internal_node_id,
+        mapping.external_item_id,
+        mapping.last_pushed_at,
+        mapping.last_pulled_at,
+        mapping.last_known_external_hash,
+        mapping.sync_policy_json
       );
     }
 

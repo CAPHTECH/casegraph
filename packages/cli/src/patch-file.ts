@@ -1,13 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-
-import {
-  CaseGraphError,
-  parseYaml,
-  stringifyYaml,
-  validatePatchDocument
-} from "@casegraph/core";
 import type { GraphPatch, PatchValidationData } from "@casegraph/core";
+import { CaseGraphError, parseYaml, stringifyYaml, validatePatchDocument } from "@casegraph/core";
 
 export async function readPatchDocument(filePath: string): Promise<unknown> {
   const absolutePath = path.resolve(filePath);
@@ -41,15 +35,13 @@ export async function readPatchDocument(filePath: string): Promise<unknown> {
   );
 }
 
-export async function loadPatchValidation(
-  filePath: string
-): Promise<PatchValidationData> {
+export async function loadPatchValidation(filePath: string): Promise<PatchValidationData> {
   return validatePatchDocument(await readPatchDocument(filePath));
 }
 
 export async function loadValidPatch(filePath: string): Promise<GraphPatch> {
   const validation = await loadPatchValidation(filePath);
-  if (!validation.valid || !validation.patch) {
+  if (!(validation.valid && validation.patch)) {
     throw new CaseGraphError("patch_invalid", "Patch validation failed", {
       exitCode: 2,
       details: validation
@@ -59,10 +51,7 @@ export async function loadValidPatch(filePath: string): Promise<GraphPatch> {
   return validation.patch;
 }
 
-export async function writeStructuredFile(
-  filePath: string,
-  value: unknown
-): Promise<void> {
+export async function writeStructuredFile(filePath: string, value: unknown): Promise<void> {
   const absolutePath = path.resolve(filePath);
   const extension = path.extname(absolutePath).toLowerCase();
 

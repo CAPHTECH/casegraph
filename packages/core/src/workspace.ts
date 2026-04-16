@@ -1,11 +1,7 @@
-import { access, appendFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { access, appendFile, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
-import {
-  CASE_FILENAME,
-  DEFAULT_WORKSPACE_TITLE,
-  SPEC_VERSION
-} from "./constants.js";
+import { DEFAULT_WORKSPACE_TITLE, SPEC_VERSION } from "./constants.js";
 import { CaseGraphError } from "./errors.js";
 import {
   cloneRecord,
@@ -21,21 +17,17 @@ import {
   sanitizeEdgeRecord,
   sanitizeNodeRecord
 } from "./helpers.js";
-import {
-  reviewGraphPatch,
-  validateGraphPatchDocument
-} from "./patch.js";
 import { withWorkspaceLock } from "./lock.js";
+import { reviewGraphPatch, validateGraphPatchDocument } from "./patch.js";
 import { getCasePaths, getWorkspacePaths, resolveWorkspaceRoot } from "./paths.js";
 import {
   computeCaseCounts,
-  getBlockedItems as getReducerBlockedItems,
   getFrontier,
+  getBlockedItems as getReducerBlockedItems,
   replayCaseEvents
 } from "./reducer.js";
 import { openCacheDatabase, rebuildCaseCache } from "./sqlite.js";
 import type {
-  ActorRef,
   AddEdgeInput,
   AddEvidenceInput,
   AddNodeInput,
@@ -47,9 +39,8 @@ import type {
   EventEnvelope,
   FrontierItem,
   GraphPatch,
-  PatchReview,
   MutationContext,
-  NodeRecord,
+  PatchReview,
   RevisionSnapshot,
   UpdateNodeInput,
   ValidationIssue,
@@ -99,11 +90,7 @@ export async function resolveWorkspaceContext(
   options: WorkspaceContextOptions = {}
 ): Promise<ResolvedWorkspaceContext> {
   const cwd = options.cwd ?? process.cwd();
-  const workspaceRoot = await resolveWorkspaceRoot(
-    cwd,
-    options.workspaceOverride,
-    options.env
-  );
+  const workspaceRoot = await resolveWorkspaceRoot(cwd, options.workspaceOverride, options.env);
   return {
     workspaceRoot,
     workspacePaths: getWorkspacePaths(workspaceRoot)
@@ -228,9 +215,7 @@ export async function createCase(
 
 export async function listCases(workspaceRoot: string): Promise<CaseRecord[]> {
   const workspacePaths = getWorkspacePaths(workspaceRoot);
-  const entries = await readdir(workspacePaths.casesDir, { withFileTypes: true }).catch(
-    () => []
-  );
+  const entries = await readdir(workspacePaths.casesDir, { withFileTypes: true }).catch(() => []);
   const cases: CaseRecord[] = [];
 
   for (const entry of entries) {
@@ -242,28 +227,20 @@ export async function listCases(workspaceRoot: string): Promise<CaseRecord[]> {
     try {
       const caseRecord = await readYamlFile<CaseRecord>(casePaths.caseFile);
       cases.push(caseRecord);
-    } catch {
-      continue;
-    }
+    } catch {}
   }
 
   cases.sort((left, right) => left.case_id.localeCompare(right.case_id));
   return cases;
 }
 
-export async function loadCaseState(
-  workspaceRoot: string,
-  caseId: string
-): Promise<CaseStateView> {
+export async function loadCaseState(workspaceRoot: string, caseId: string): Promise<CaseStateView> {
   const casePaths = getCasePaths(workspaceRoot, caseId);
   const events = await loadCaseEvents(casePaths.eventsFile);
   return replayCaseEvents(events);
 }
 
-export async function showCase(
-  workspaceRoot: string,
-  caseId: string
-): Promise<ShowCaseData> {
+export async function showCase(workspaceRoot: string, caseId: string): Promise<ShowCaseData> {
   const state = await loadCaseState(workspaceRoot, caseId);
   const frontier = getFrontier(state);
 
@@ -290,21 +267,17 @@ export async function addNode(
     updated_at: input.node.updated_at ?? timestamp
   });
 
-  return appendCaseEvents(
-    workspaceRoot,
-    input.caseId,
-    [
-      createEvent({
-        case_id: input.caseId,
-        timestamp,
-        type: "node.added",
-        source: "cli",
-        command_id: context.commandId,
-        actor: context.actor,
-        payload: { node }
-      })
-    ]
-  );
+  return appendCaseEvents(workspaceRoot, input.caseId, [
+    createEvent({
+      case_id: input.caseId,
+      timestamp,
+      type: "node.added",
+      source: "cli",
+      command_id: context.commandId,
+      actor: context.actor,
+      payload: { node }
+    })
+  ]);
 }
 
 export async function updateNode(
@@ -313,32 +286,24 @@ export async function updateNode(
   context: MutationContext = {}
 ): Promise<CaseStateView> {
   const timestamp = context.now ?? nowUtc();
-  return appendCaseEvents(
-    workspaceRoot,
-    input.caseId,
-    [
-      createEvent({
-        case_id: input.caseId,
-        timestamp,
-        type: "node.updated",
-        source: "cli",
-        command_id: context.commandId,
-        actor: context.actor,
-        payload: {
-          node_id: input.nodeId,
-          changes: {
-            ...input.changes,
-            metadata: input.changes.metadata
-              ? ensureObject(input.changes.metadata)
-              : undefined,
-            extensions: input.changes.extensions
-              ? ensureObject(input.changes.extensions)
-              : undefined
-          }
+  return appendCaseEvents(workspaceRoot, input.caseId, [
+    createEvent({
+      case_id: input.caseId,
+      timestamp,
+      type: "node.updated",
+      source: "cli",
+      command_id: context.commandId,
+      actor: context.actor,
+      payload: {
+        node_id: input.nodeId,
+        changes: {
+          ...input.changes,
+          metadata: input.changes.metadata ? ensureObject(input.changes.metadata) : undefined,
+          extensions: input.changes.extensions ? ensureObject(input.changes.extensions) : undefined
         }
-      })
-    ]
-  );
+      }
+    })
+  ]);
 }
 
 export async function addEdge(
@@ -352,21 +317,17 @@ export async function addEdge(
     created_at: input.edge.created_at ?? timestamp
   });
 
-  return appendCaseEvents(
-    workspaceRoot,
-    input.caseId,
-    [
-      createEvent({
-        case_id: input.caseId,
-        timestamp,
-        type: "edge.added",
-        source: "cli",
-        command_id: context.commandId,
-        actor: context.actor,
-        payload: { edge }
-      })
-    ]
-  );
+  return appendCaseEvents(workspaceRoot, input.caseId, [
+    createEvent({
+      case_id: input.caseId,
+      timestamp,
+      type: "edge.added",
+      source: "cli",
+      command_id: context.commandId,
+      actor: context.actor,
+      payload: { edge }
+    })
+  ]);
 }
 
 export async function removeEdge(
@@ -376,21 +337,17 @@ export async function removeEdge(
   context: MutationContext = {}
 ): Promise<CaseStateView> {
   const timestamp = context.now ?? nowUtc();
-  return appendCaseEvents(
-    workspaceRoot,
-    caseId,
-    [
-      createEvent({
-        case_id: caseId,
-        timestamp,
-        type: "edge.removed",
-        source: "cli",
-        command_id: context.commandId,
-        actor: context.actor,
-        payload: { edge_id: edgeId }
-      })
-    ]
-  );
+  return appendCaseEvents(workspaceRoot, caseId, [
+    createEvent({
+      case_id: caseId,
+      timestamp,
+      type: "edge.removed",
+      source: "cli",
+      command_id: context.commandId,
+      actor: context.actor,
+      payload: { edge_id: edgeId }
+    })
+  ]);
 }
 
 export async function changeNodeState(
@@ -399,25 +356,21 @@ export async function changeNodeState(
   context: MutationContext = {}
 ): Promise<CaseStateView> {
   const timestamp = context.now ?? nowUtc();
-  return appendCaseEvents(
-    workspaceRoot,
-    input.caseId,
-    [
-      createEvent({
-        case_id: input.caseId,
-        timestamp,
-        type: "node.state_changed",
-        source: "cli",
-        command_id: context.commandId,
-        actor: context.actor,
-        payload: {
-          node_id: input.nodeId,
-          state: input.state,
-          metadata: input.metadata
-        }
-      })
-    ]
-  );
+  return appendCaseEvents(workspaceRoot, input.caseId, [
+    createEvent({
+      case_id: input.caseId,
+      timestamp,
+      type: "node.state_changed",
+      source: "cli",
+      command_id: context.commandId,
+      actor: context.actor,
+      payload: {
+        node_id: input.nodeId,
+        state: input.state,
+        metadata: input.metadata
+      }
+    })
+  ]);
 }
 
 export async function waitTask(
@@ -512,23 +465,19 @@ export async function recordEventNode(
   context: MutationContext = {}
 ): Promise<CaseStateView> {
   const timestamp = context.now ?? nowUtc();
-  return appendCaseEvents(
-    workspaceRoot,
-    input.caseId,
-    [
-      createEvent({
-        case_id: input.caseId,
-        timestamp,
-        type: "event.recorded",
-        source: "cli",
-        command_id: context.commandId,
-        actor: context.actor,
-        payload: {
-          node_id: input.nodeId
-        }
-      })
-    ]
-  );
+  return appendCaseEvents(workspaceRoot, input.caseId, [
+    createEvent({
+      case_id: input.caseId,
+      timestamp,
+      type: "event.recorded",
+      source: "cli",
+      command_id: context.commandId,
+      actor: context.actor,
+      payload: {
+        node_id: input.nodeId
+      }
+    })
+  ]);
 }
 
 export async function addEvidence(
@@ -623,10 +572,7 @@ export function validatePatchDocument(input: unknown): PatchValidationData {
   };
 }
 
-export async function reviewPatch(
-  workspaceRoot: string,
-  patch: GraphPatch
-): Promise<PatchReview> {
+export async function reviewPatch(workspaceRoot: string, patch: GraphPatch): Promise<PatchReview> {
   const state = await loadCaseState(workspaceRoot, patch.case_id);
   return reviewGraphPatch(state, patch);
 }
@@ -670,9 +616,7 @@ export async function applyPatch(
   });
 }
 
-export async function validateStorage(
-  workspaceRoot: string
-): Promise<ValidateStorageData> {
+export async function validateStorage(workspaceRoot: string): Promise<ValidateStorageData> {
   const workspacePaths = getWorkspacePaths(workspaceRoot);
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
@@ -711,9 +655,7 @@ export async function validateStorage(
 
     const state = await loadCaseState(workspaceRoot, caseRecord.case_id);
     const replayErrors = state.validation.filter((issue) => issue.severity === "error");
-    const replayWarnings = state.validation.filter(
-      (issue) => issue.severity === "warning"
-    );
+    const replayWarnings = state.validation.filter((issue) => issue.severity === "warning");
     errors.push(...replayErrors);
     warnings.push(...replayWarnings);
 
@@ -822,7 +764,7 @@ export async function listBlockedItems(
   };
 }
 
-async function appendCaseEvents(
+export async function appendCaseEvents(
   workspaceRoot: string,
   caseId: string,
   events: EventEnvelope[]

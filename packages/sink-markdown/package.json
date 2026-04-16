@@ -1,12 +1,12 @@
 {
-  "name": "@casegraph/importer-markdown",
+  "name": "@casegraph/sink-markdown",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "casegraph-importer-markdown": "./src/index.ts"
+    "casegraph-sink-markdown": "./src/index.ts"
   },
   "dependencies": {
     "@casegraph/core": "workspace:*"

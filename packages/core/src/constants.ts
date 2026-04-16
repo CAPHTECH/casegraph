@@ -10,4 +10,3 @@ export const CONFIG_FILENAME = "config.yaml";
 export const CACHE_FILENAME = "state.sqlite";
 export const LOCK_FILENAME = ".lock";
 export const SUPPORTED_OUTPUT_FORMATS = ["text", "json"] as const;
-

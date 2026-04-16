@@ -205,7 +205,17 @@ event log の envelope shape と replay 前提の整合性を確認する。
 - `cg patch apply --file <patch.{json|yaml|yml}>`
 - `cg import markdown --case <caseId> --file <notes.md> [--output <patchPath>]`
 
-これは **実装上の作業面** であり、Phase 0 の freeze policy は変更しません。
+### Phase 3 参照実装の working surface
+
+Phase 3 では projection sink 向けに次の command surface を追加しています。
+
+- `cg sync push --sink <name> --case <caseId> [--apply]`
+  - 既定は dry-run として plan を表示のみ。`--apply` で `sink.applyProjection` を実行し `projection.pushed` event を追記する。
+- `cg sync pull --sink <name> --case <caseId> --output <patchPath>`
+  - 外部表現を読み取り、限定的な reverse sync として `GraphPatch` (`generator.kind = "sync"`) を書き出す。
+  - `projection.pulled` audit event を直接 event log へ追記し、出力された patch は `cg patch review` / `cg patch apply` で従来の検証経路に乗せる。
+
+これらは **実装上の作業面** であり、Phase 0 の freeze policy は変更しません。
 
 ---
 

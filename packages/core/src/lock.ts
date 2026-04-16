@@ -1,4 +1,4 @@
-import { open, unlink } from "node:fs/promises";
+import { type FileHandle, open, unlink } from "node:fs/promises";
 
 import { CaseGraphError } from "./errors.js";
 
@@ -6,16 +6,15 @@ export async function withWorkspaceLock<T>(
   lockFile: string,
   callback: () => Promise<T>
 ): Promise<T> {
-  let handle;
+  let handle: FileHandle;
 
   try {
     handle = await open(lockFile, "wx");
   } catch (error) {
-    throw new CaseGraphError(
-      "workspace_locked",
-      "Workspace is locked by another operation",
-      { exitCode: 4, details: error }
-    );
+    throw new CaseGraphError("workspace_locked", "Workspace is locked by another operation", {
+      exitCode: 4,
+      details: error
+    });
   }
 
   try {
@@ -25,4 +24,3 @@ export async function withWorkspaceLock<T>(
     await unlink(lockFile).catch(() => undefined);
   }
 }
-

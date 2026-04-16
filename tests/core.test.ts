@@ -54,13 +54,10 @@ describe("core phase 1 flows", () => {
     );
 
     await advanceReleaseFixture(workspaceRoot, releaseFixture.case.case_id);
-    const advancedFrontier = await getFrontierItems(
-      workspaceRoot,
-      releaseFixture.case.case_id
+    const advancedFrontier = await getFrontierItems(workspaceRoot, releaseFixture.case.case_id);
+    expect(new Set(advancedFrontier.nodes.map((node) => node.node_id))).toEqual(
+      new Set(releaseFixture.expected.after_completion_frontier)
     );
-    expect(
-      new Set(advancedFrontier.nodes.map((node) => node.node_id))
-    ).toEqual(new Set(releaseFixture.expected.after_completion_frontier));
   });
 
   it("matches move fixture frontier and blockers", async () => {
@@ -113,13 +110,7 @@ describe("core phase 1 flows", () => {
     expect(after.frontier_summary).toEqual(before.frontier_summary);
 
     const rawEvents = await readFile(
-      path.join(
-        workspaceRoot,
-        ".casegraph",
-        "cases",
-        releaseFixture.case.case_id,
-        "events.jsonl"
-      ),
+      path.join(workspaceRoot, ".casegraph", "cases", releaseFixture.case.case_id, "events.jsonl"),
       "utf8"
     );
     expect(rawEvents.trim().length).toBeGreaterThan(0);
@@ -135,4 +126,3 @@ describe("core phase 1 flows", () => {
     expect(result.errors).toEqual([]);
   });
 });
-

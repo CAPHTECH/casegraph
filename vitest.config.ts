@@ -10,14 +10,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@casegraph/core": fileURLToPath(
-        new URL("./packages/core/src/index.ts", import.meta.url)
-      ),
-      "@casegraph/cli/app": fileURLToPath(
-        new URL("./packages/cli/src/app.ts", import.meta.url)
-      )
+      "@casegraph/core": fileURLToPath(new URL("./packages/core/src/index.ts", import.meta.url)),
+      "@casegraph/cli/app": fileURLToPath(new URL("./packages/cli/src/app.ts", import.meta.url))
     }
   },
   root: rootDir
 });
-

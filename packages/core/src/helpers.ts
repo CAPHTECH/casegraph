@@ -3,11 +3,7 @@ import { copyFile, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { ulid } from "ulid";
 
-import {
-  DEFAULT_ACTOR_ID,
-  DEFAULT_ACTOR_NAME,
-  SPEC_VERSION
-} from "./constants.js";
+import { DEFAULT_ACTOR_ID, DEFAULT_ACTOR_NAME, SPEC_VERSION } from "./constants.js";
 import type {
   ActorRef,
   AttachmentRecord,
@@ -55,9 +51,7 @@ export function ensureArray(value: string[] | undefined): string[] {
   return value ? [...value] : [];
 }
 
-export function ensureObject(
-  value: Record<string, unknown> | undefined
-): Record<string, unknown> {
+export function ensureObject(value: Record<string, unknown> | undefined): Record<string, unknown> {
   return value ? { ...value } : {};
 }
 
@@ -90,9 +84,7 @@ export function sanitizeEdgeRecord(edge: EdgeRecord): EdgeRecord {
   };
 }
 
-export function sanitizeAttachmentRecord(
-  attachment: AttachmentRecord
-): AttachmentRecord {
+export function sanitizeAttachmentRecord(attachment: AttachmentRecord): AttachmentRecord {
   return {
     ...attachment,
     sha256: attachment.sha256 ?? null,
@@ -155,4 +147,3 @@ export async function copyAttachmentIntoWorkspace(
     size_bytes: sourceStat.size
   };
 }
-

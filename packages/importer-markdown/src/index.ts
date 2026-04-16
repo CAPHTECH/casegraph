@@ -2,9 +2,11 @@
 
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import readline from "node:readline";
+import { isRecord, runPluginStdioServer } from "@casegraph/core/plugin-server";
 
 const SPEC_VERSION = "0.1-draft";
+const IMPORTER_NAME = "casegraph-importer-markdown";
+const IMPORTER_VERSION = "0.1.0";
 
 interface ImporterIngestParams {
   case_id: string;
@@ -24,7 +26,23 @@ interface ParsedChecklistResult {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  await runServer();
+  await runPluginStdioServer({
+    info: {
+      name: IMPORTER_NAME,
+      version: IMPORTER_VERSION,
+      capabilities: {},
+      methods: ["importer.ingest"],
+      extra: {
+        importer: {
+          formats: ["markdown"],
+          modes: ["append"]
+        }
+      }
+    },
+    handlers: {
+      "importer.ingest": (params) => parseMarkdownChecklistPatch(assertIngestParams(params))
+    }
+  });
 }
 
 export async function parseMarkdownChecklistPatch(
@@ -112,8 +130,8 @@ export async function parseMarkdownChecklistPatch(
       summary: "Import markdown checklist items",
       generator: {
         kind: "planner",
-        name: "casegraph-importer-markdown",
-        version: "0.1.0"
+        name: IMPORTER_NAME,
+        version: IMPORTER_VERSION
       },
       operations,
       notes: [],
@@ -121,76 +139,6 @@ export async function parseMarkdownChecklistPatch(
     },
     warnings
   };
-}
-
-async function runServer(): Promise<void> {
-  const input = readline.createInterface({ input: process.stdin });
-
-  for await (const line of input) {
-    if (line.trim().length === 0) {
-      continue;
-    }
-
-    let request: {
-      id?: number | string | null;
-      method?: string;
-      params?: unknown;
-    };
-
-    try {
-      request = JSON.parse(line) as {
-        id?: number | string | null;
-        method?: string;
-        params?: unknown;
-      };
-    } catch (error) {
-      writeError(null, -32700, "Parse error", error);
-      continue;
-    }
-
-    if (typeof request.method !== "string") {
-      writeError(request.id ?? null, -32600, "Invalid Request");
-      continue;
-    }
-
-    try {
-      switch (request.method) {
-        case "initialize":
-          writeResult(request.id ?? null, {
-            name: "casegraph-importer-markdown",
-            version: "0.1.0"
-          });
-          break;
-        case "health":
-          writeResult(request.id ?? null, { ok: true });
-          break;
-        case "capabilities.list":
-          writeResult(request.id ?? null, {
-            methods: ["importer.ingest"],
-            importer: {
-              formats: ["markdown"],
-              modes: ["append"]
-            }
-          });
-          break;
-        case "importer.ingest":
-          writeResult(
-            request.id ?? null,
-            await parseMarkdownChecklistPatch(assertIngestParams(request.params))
-          );
-          break;
-        case "shutdown":
-          writeResult(request.id ?? null, { ok: true });
-          input.close();
-          process.exit(0);
-          break;
-        default:
-          writeError(request.id ?? null, -32601, `Method ${request.method} not found`);
-      }
-    } catch (error) {
-      writeError(request.id ?? null, -32000, toErrorMessage(error), error);
-    }
-  }
 }
 
 function parseChecklistPayload(raw: string): {
@@ -260,37 +208,6 @@ function assertIngestParams(input: unknown): ImporterIngestParams {
       path: input.input.path
     },
     options:
-      isRecord(input.options) && input.options.mode === "append"
-        ? { mode: "append" }
-        : undefined
+      isRecord(input.options) && input.options.mode === "append" ? { mode: "append" } : undefined
   };
-}
-
-function writeResult(id: number | string | null, result: unknown): void {
-  process.stdout.write(
-    `${JSON.stringify({ jsonrpc: "2.0", id, result })}\n`
-  );
-}
-
-function writeError(
-  id: number | string | null,
-  code: number,
-  message: string,
-  data?: unknown
-): void {
-  process.stdout.write(
-    `${JSON.stringify({
-      jsonrpc: "2.0",
-      id,
-      error: { code, message, data }
-    })}\n`
-  );
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unknown error";
-}
-
-function isRecord(input: unknown): input is Record<string, any> {
-  return typeof input === "object" && input !== null && !Array.isArray(input);
 }

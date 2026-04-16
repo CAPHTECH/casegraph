@@ -1,5 +1,5 @@
 import path from "node:path";
-import { Command } from "commander";
+import type { EdgeType, NodeKind, NodeState } from "@casegraph/core";
 
 import {
   addEdge,
@@ -8,37 +8,28 @@ import {
   applyPatch,
   changeNodeState,
   createCase,
+  decideNode,
   exportEvents,
   generateId,
   getFrontierItems,
   initWorkspace,
   listBlockedItems,
   listCases,
-  recordEventNode,
   rebuildCache,
+  recordEventNode,
   removeEdge,
   reviewPatch,
   showCase,
   updateNode,
   validateCase,
-  validatePatchDocument,
   validateStorage,
   verifyEvents,
-  waitTask,
-  decideNode
+  waitTask
 } from "@casegraph/core";
-import type {
-  EdgeType,
-  NodeKind,
-  NodeState,
-} from "@casegraph/core";
-import { successResult } from "./result.js";
+import { Command } from "commander";
 import { ingestMarkdownPatch } from "./importer-host.js";
-import {
-  loadPatchValidation,
-  loadValidPatch,
-  writeStructuredFile
-} from "./patch-file.js";
+import { loadPatchValidation, loadValidPatch, writeStructuredFile } from "./patch-file.js";
+import { successResult } from "./result.js";
 import {
   type CliRuntime,
   type CliRuntimeOptions,
@@ -51,6 +42,7 @@ import {
   runMutationCommand,
   runWorkspaceCommand
 } from "./runtime.js";
+import { runSinkPull, runSinkPush } from "./sink-host.js";
 
 export async function runCli(
   argv: string[],
@@ -286,12 +278,7 @@ export async function runCli(
     .action(async (_, command) => {
       const options = command.opts() as { case: string; id: string };
       await runMutationCommand(runtime, command, async (workspaceRoot, _, mutationContext) => {
-        const state = await removeEdge(
-          workspaceRoot,
-          options.case,
-          options.id,
-          mutationContext
-        );
+        const state = await removeEdge(workspaceRoot, options.case, options.id, mutationContext);
         return successResult(
           "edge remove",
           { edge_id: options.id },
@@ -448,13 +435,11 @@ export async function runCli(
     });
 
   const validateCommand = program.command("validate");
-  validateCommand
-    .command("storage")
-    .action(async (_, command) => {
-      await runWorkspaceCommand(runtime, command, async (workspaceRoot) =>
-        successResult("validate storage", await validateStorage(workspaceRoot))
-      );
-    });
+  validateCommand.command("storage").action(async (_, command) => {
+    await runWorkspaceCommand(runtime, command, async (workspaceRoot) =>
+      successResult("validate storage", await validateStorage(workspaceRoot))
+    );
+  });
 
   validateCommand.option("--case <caseId>");
   validateCommand.action(async (_, command) => {
@@ -578,6 +563,78 @@ export async function runCli(
       });
     });
 
+  const syncCommand = program.command("sync");
+  syncCommand
+    .command("push")
+    .requiredOption("--sink <name>")
+    .requiredOption("--case <caseId>")
+    .option("--apply")
+    .action(async (_, command) => {
+      const options = command.opts() as {
+        sink: string;
+        case: string;
+        apply?: boolean;
+      };
+      await runMutationCommand(
+        runtime,
+        command,
+        async (workspaceRoot, _globals, mutationContext) => {
+          const result = await runSinkPush({
+            workspaceRoot,
+            caseId: options.case,
+            sinkName: options.sink,
+            env: runtime.env,
+            apply: options.apply === true,
+            mutationContext
+          });
+          return successResult("sync push", result, result.revision ?? undefined);
+        }
+      );
+    });
+
+  syncCommand
+    .command("pull")
+    .requiredOption("--sink <name>")
+    .requiredOption("--case <caseId>")
+    .requiredOption("--output <path>")
+    .action(async (_, command) => {
+      const options = command.opts() as {
+        sink: string;
+        case: string;
+        output: string;
+      };
+      await runMutationCommand(
+        runtime,
+        command,
+        async (workspaceRoot, _globals, mutationContext) => {
+          const result = await runSinkPull({
+            workspaceRoot,
+            caseId: options.case,
+            sinkName: options.sink,
+            env: runtime.env,
+            mutationContext
+          });
+
+          const outputPath = path.resolve(runtime.cwd, options.output);
+          if (result.patch) {
+            await writeStructuredFile(outputPath, result.patch);
+          }
+
+          return successResult(
+            "sync pull",
+            {
+              sink_name: result.sink_name,
+              patch: result.patch,
+              item_count: result.item_count,
+              warnings: result.warnings,
+              output_file: result.patch ? outputPath : null
+            },
+            result.revision
+          );
+        }
+      );
+    });
+
   try {
     await program.parseAsync(argv, { from: "user" });
     return 0;
@@ -598,27 +655,31 @@ function addTaskStateCommand(
     command.option(reasonFlag, "Reason");
   }
   command.action(async (nodeId, options, commandInstance) => {
-    await runMutationCommand(runtime, commandInstance, async (workspaceRoot, _, mutationContext) => {
-      const reasonOptionName = reasonFlag ? reasonFlag.replace(/^--/, "") : undefined;
-      const metadata =
-        reasonOptionName && options[reasonOptionName]
-          ? { [`last_${name}_reason`]: options[reasonOptionName] as string }
-          : undefined;
-      const resultState = await changeNodeState(
-        workspaceRoot,
-        {
-          caseId: options.case as string,
-          nodeId: nodeId as string,
-          state,
-          metadata
-        },
-        mutationContext
-      );
-      return successResult(
-        `task ${name}`,
-        { node: resultState.nodes.get(nodeId as string) ?? null },
-        resultState.caseRecord.case_revision
-      );
-    });
+    await runMutationCommand(
+      runtime,
+      commandInstance,
+      async (workspaceRoot, _, mutationContext) => {
+        const reasonOptionName = reasonFlag ? reasonFlag.replace(/^--/, "") : undefined;
+        const metadata =
+          reasonOptionName && options[reasonOptionName]
+            ? { [`last_${name}_reason`]: options[reasonOptionName] as string }
+            : undefined;
+        const resultState = await changeNodeState(
+          workspaceRoot,
+          {
+            caseId: options.case as string,
+            nodeId: nodeId as string,
+            state,
+            metadata
+          },
+          mutationContext
+        );
+        return successResult(
+          `task ${name}`,
+          { node: resultState.nodes.get(nodeId as string) ?? null },
+          resultState.caseRecord.case_revision
+        );
+      }
+    );
   });
 }

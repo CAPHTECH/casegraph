@@ -1,14 +1,9 @@
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
-
+import { runCli } from "@casegraph/cli/app";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { runCli } from "@casegraph/cli/app";
-
-import {
-  createTempWorkspace,
-  removeTempWorkspace
-} from "./helpers/workspace.js";
+import { createTempWorkspace, removeTempWorkspace } from "./helpers/workspace.js";
 
 const createdWorkspaces: string[] = [];
 
@@ -98,11 +93,7 @@ describe("cli phase 1 acceptance", () => {
       "task_update_notes"
     ]);
 
-    const frontier = await runJsonCommand(workspaceRoot, [
-      "frontier",
-      "--case",
-      "release-1.8.0"
-    ]);
+    const frontier = await runJsonCommand(workspaceRoot, ["frontier", "--case", "release-1.8.0"]);
     expect(frontier.code).toBe(0);
     expect(frontier.json.ok).toBe(true);
     expect(frontier.json.data.nodes.map((node: any) => node.node_id)).toEqual([
@@ -110,17 +101,11 @@ describe("cli phase 1 acceptance", () => {
       "task_update_notes"
     ]);
 
-    const blockers = await runJsonCommand(workspaceRoot, [
-      "blockers",
-      "--case",
-      "release-1.8.0"
-    ]);
+    const blockers = await runJsonCommand(workspaceRoot, ["blockers", "--case", "release-1.8.0"]);
     expect(blockers.code).toBe(0);
     expect(blockers.json.data.items).toHaveLength(1);
     expect(blockers.json.data.items[0].node.node_id).toBe("task_submit_store");
-    expect(
-      blockers.json.data.items[0].reasons.map((reason: any) => reason.message)
-    ).toEqual([
+    expect(blockers.json.data.items[0].reasons.map((reason: any) => reason.message)).toEqual([
       "depends_on:task_run_regression is not done",
       "depends_on:task_update_notes is not done"
     ]);
@@ -246,28 +231,14 @@ describe("cli phase 1 acceptance", () => {
     expect(imported.json.data.output_file).toBe(patchFile);
     expect(imported.json.data.patch.base_revision).toBe(1);
 
-    const review = await runJsonCommand(workspaceRoot, [
-      "patch",
-      "review",
-      "--file",
-      patchFile
-    ]);
+    const review = await runJsonCommand(workspaceRoot, ["patch", "review", "--file", patchFile]);
     expect(review.json.data.valid).toBe(true);
 
-    const applied = await runJsonCommand(workspaceRoot, [
-      "patch",
-      "apply",
-      "--file",
-      patchFile
-    ]);
+    const applied = await runJsonCommand(workspaceRoot, ["patch", "apply", "--file", patchFile]);
     expect(applied.code).toBe(0);
     expect(applied.json.revision.current).toBe(2);
 
-    const frontier = await runJsonCommand(workspaceRoot, [
-      "frontier",
-      "--case",
-      "release-1.8.0"
-    ]);
+    const frontier = await runJsonCommand(workspaceRoot, ["frontier", "--case", "release-1.8.0"]);
     expect(frontier.json.data.nodes.map((node: any) => node.node_id)).toEqual([
       "task_update_release_notes_l3"
     ]);

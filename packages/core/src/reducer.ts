@@ -1,7 +1,6 @@
-import { cloneRecord, dueDateValue, metadataPriorityValue } from "./helpers.js";
 import { CaseGraphError } from "./errors.js";
+import { cloneRecord, dueDateValue, metadataPriorityValue } from "./helpers.js";
 import { applyPatchOperationsToDraft } from "./patch.js";
-import { deriveNodeStates, validateGraph } from "./validation.js";
 import type {
   AttachmentRecord,
   BlockedItem,
@@ -14,6 +13,7 @@ import type {
   GraphPatch,
   NodeRecord
 } from "./types.js";
+import { deriveNodeStates, validateGraph } from "./validation.js";
 
 export function replayCaseEvents(events: EventEnvelope[]): CaseStateView {
   const nodes = new Map<string, NodeRecord>();
@@ -24,9 +24,7 @@ export function replayCaseEvents(events: EventEnvelope[]): CaseStateView {
   for (const event of events) {
     switch (event.type) {
       case "case.created": {
-        const nextCase = cloneRecord(
-          event.payload.case as Omit<CaseRecord, "case_revision">
-        );
+        const nextCase = cloneRecord(event.payload.case as Omit<CaseRecord, "case_revision">);
         caseRecord = {
           ...nextCase,
           case_revision: { current: 0, last_event_id: null }
@@ -57,11 +55,9 @@ export function replayCaseEvents(events: EventEnvelope[]): CaseStateView {
         const nodeId = event.payload.node_id as string;
         const existingNode = nodes.get(nodeId);
         if (!existingNode) {
-          throw new CaseGraphError(
-            "node_not_found",
-            `Node ${nodeId} not found during replay`,
-            { exitCode: 3 }
-          );
+          throw new CaseGraphError("node_not_found", `Node ${nodeId} not found during replay`, {
+            exitCode: 3
+          });
         }
 
         nodes.set(nodeId, {
@@ -76,11 +72,9 @@ export function replayCaseEvents(events: EventEnvelope[]): CaseStateView {
         const nodeId = event.payload.node_id as string;
         const existingNode = nodes.get(nodeId);
         if (!existingNode) {
-          throw new CaseGraphError(
-            "node_not_found",
-            `Node ${nodeId} not found during replay`,
-            { exitCode: 3 }
-          );
+          throw new CaseGraphError("node_not_found", `Node ${nodeId} not found during replay`, {
+            exitCode: 3
+          });
         }
 
         nodes.set(nodeId, {
@@ -142,6 +136,12 @@ export function replayCaseEvents(events: EventEnvelope[]): CaseStateView {
         break;
       }
 
+      case "projection.pushed":
+      case "projection.pulled": {
+        ensureCaseLoaded(caseRecord, event.type);
+        break;
+      }
+
       case "patch.applied": {
         ensureCaseLoaded(caseRecord, event.type);
         const patch = cloneRecord(event.payload.patch as GraphPatch);
@@ -156,11 +156,7 @@ export function replayCaseEvents(events: EventEnvelope[]): CaseStateView {
           edges,
           attachments
         };
-        const draftErrors = applyPatchOperationsToDraft(
-          draft,
-          patch,
-          event.timestamp
-        );
+        const draftErrors = applyPatchOperationsToDraft(draft, patch, event.timestamp);
 
         if (draftErrors.length > 0) {
           throw new CaseGraphError(

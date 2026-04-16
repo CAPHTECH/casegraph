@@ -14,7 +14,8 @@
     "sourceMap": true,
     "composite": true,
     "paths": {
-      "@casegraph/core": ["./packages/core/src/index.ts"]
+      "@casegraph/core": ["./packages/core/src/index.ts"],
+      "@casegraph/core/plugin-server": ["./packages/core/src/plugin-server.ts"]
     }
   }
 }

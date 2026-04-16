@@ -8,13 +8,16 @@
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write ."
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.12",
     "@types/node": "^24.5.2",
     "fast-check": "^3.22.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }
 }
-

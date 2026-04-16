@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import type { AddEvidenceInput, BlockedItem, FrontierItem, MutationContext } from "@casegraph/core";
 
 import {
   createDefaultMutationContext,
@@ -6,12 +6,7 @@ import {
   normalizeUnknownError,
   resolveWorkspaceContext
 } from "@casegraph/core";
-import type {
-  AddEvidenceInput,
-  BlockedItem,
-  FrontierItem,
-  MutationContext
-} from "@casegraph/core";
+import type { Command } from "commander";
 
 import type { CommandResult, CommandSuccess } from "./result.js";
 
@@ -211,16 +206,10 @@ function detectOutputFormat(argv: string[]): "text" | "json" {
   return "text";
 }
 
-function emitResult(
-  runtime: CliRuntime,
-  result: CommandResult<unknown>,
-  isError: boolean
-): void {
+function emitResult(runtime: CliRuntime, result: CommandResult<unknown>, isError: boolean): void {
   const target = isError ? runtime.io.stderr : runtime.io.stdout;
   target(
-    runtime.format === "json"
-      ? `${JSON.stringify(result, null, 2)}\n`
-      : `${renderText(result)}\n`
+    runtime.format === "json" ? `${JSON.stringify(result, null, 2)}\n` : `${renderText(result)}\n`
   );
 }
 
@@ -234,7 +223,11 @@ function renderText(result: CommandResult<unknown>): string {
       return `Initialized workspace ${String((result.data as { workspace: { title: string } }).workspace.title)}`;
     case "case list":
       return renderCaseList(
-        (result as CommandSuccess<{ cases: Array<{ case_id: string; state: string; title: string }> }>).data.cases
+        (
+          result as CommandSuccess<{
+            cases: Array<{ case_id: string; state: string; title: string }>;
+          }>
+        ).data.cases
       );
     case "case show": {
       const data = (result as CommandSuccess<any>).data;
@@ -245,13 +238,9 @@ function renderText(result: CommandResult<unknown>): string {
       ].join("\n");
     }
     case "frontier":
-      return renderFrontier(
-        (result as CommandSuccess<{ nodes: FrontierItem[] }>).data.nodes
-      );
+      return renderFrontier((result as CommandSuccess<{ nodes: FrontierItem[] }>).data.nodes);
     case "blockers":
-      return renderBlockers(
-        (result as CommandSuccess<{ items: BlockedItem[] }>).data.items
-      );
+      return renderBlockers((result as CommandSuccess<{ items: BlockedItem[] }>).data.items);
     case "validate":
     case "validate storage": {
       const data = (result as CommandSuccess<{ valid: boolean; errors: unknown[] }>).data;
@@ -262,7 +251,8 @@ function renderText(result: CommandResult<unknown>): string {
       return data.valid ? "VALID PATCH" : `INVALID PATCH (${data.errors.length} errors)`;
     }
     case "patch review": {
-      const data = (result as CommandSuccess<{ valid: boolean; stale: boolean; errors: unknown[] }>).data;
+      const data = (result as CommandSuccess<{ valid: boolean; stale: boolean; errors: unknown[] }>)
+        .data;
       if (data.stale) {
         return `STALE PATCH (${data.errors.length} errors)`;
       }
@@ -286,14 +276,44 @@ function renderText(result: CommandResult<unknown>): string {
         ? `Wrote patch to ${data.output_file}`
         : JSON.stringify(data.patch, null, 2);
     }
+    case "sync push": {
+      const data = (
+        result as CommandSuccess<{
+          sink_name: string;
+          applied: boolean;
+          plan_summary: Record<string, number>;
+          plan_warnings: string[];
+          apply_warnings: string[];
+        }>
+      ).data;
+      const summary = Object.entries(data.plan_summary)
+        .filter(([, count]) => count > 0)
+        .map(([op, count]) => `${op}=${count}`)
+        .join(" ");
+      const verb = data.applied ? "Applied" : "Planned";
+      return `${verb} projection to ${data.sink_name} (${summary || "no-op"})`;
+    }
+    case "sync pull": {
+      const data = (
+        result as CommandSuccess<{
+          sink_name: string;
+          patch: unknown;
+          item_count: number;
+          warnings: string[];
+          output_file: string | null;
+        }>
+      ).data;
+      if (!data.patch) {
+        return `Pulled ${data.item_count} items from ${data.sink_name}; no state changes`;
+      }
+      return `Wrote patch to ${data.output_file} (pulled ${data.item_count} items)`;
+    }
     default:
       return `${result.command} ok`;
   }
 }
 
-function renderCaseList(
-  cases: Array<{ case_id: string; state: string; title: string }>
-): string {
+function renderCaseList(cases: Array<{ case_id: string; state: string; title: string }>): string {
   if (cases.length === 0) {
     return "No cases";
   }
@@ -318,8 +338,7 @@ function renderBlockers(items: BlockedItem[]): string {
 
   return items
     .map(
-      (item) =>
-        `${item.node.node_id}\t${item.reasons.map((reason) => reason.message).join("; ")}`
+      (item) => `${item.node.node_id}\t${item.reasons.map((reason) => reason.message).join("; ")}`
     )
     .join("\n");
 }

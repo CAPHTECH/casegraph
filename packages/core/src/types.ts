@@ -6,14 +6,7 @@ export interface JsonObject {
 
 export type CaseState = "open" | "closed" | "archived";
 export type NodeKind = "goal" | "task" | "decision" | "event" | "evidence";
-export type NodeState =
-  | "proposed"
-  | "todo"
-  | "doing"
-  | "waiting"
-  | "done"
-  | "cancelled"
-  | "failed";
+export type NodeState = "proposed" | "todo" | "doing" | "waiting" | "done" | "cancelled" | "failed";
 export type EdgeType =
   | "depends_on"
   | "waits_for"
@@ -111,7 +104,9 @@ export type EventType =
   | "edge.removed"
   | "event.recorded"
   | "evidence.attached"
-  | "patch.applied";
+  | "patch.applied"
+  | "projection.pushed"
+  | "projection.pulled";
 
 export interface EventEnvelope<TPayload = Record<string, unknown>> {
   event_id: string;
@@ -200,10 +195,7 @@ export interface UpdateNodeInput {
   caseId: string;
   nodeId: string;
   changes: Partial<
-    Pick<
-      NodeRecord,
-      "title" | "description" | "labels" | "acceptance" | "metadata" | "extensions"
-    >
+    Pick<NodeRecord, "title" | "description" | "labels" | "acceptance" | "metadata" | "extensions">
   >;
 }
 
