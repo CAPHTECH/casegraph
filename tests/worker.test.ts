@@ -255,6 +255,68 @@ describe("cg worker run", () => {
     expect(types).toContain("worker.finished");
     expect(types).toContain("patch.applied");
   });
+
+  it("aborts with worker_timeout and still records worker.finished when the worker hangs", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-worker-cli-");
+    createdWorkspaces.push(workspaceRoot);
+    const caseId = "demo";
+
+    await runJsonCli(workspaceRoot, [
+      "case",
+      "new",
+      "--id",
+      caseId,
+      "--title",
+      "Demo",
+      "--description",
+      ""
+    ]);
+    await runJsonCli(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      caseId,
+      "--id",
+      "task_hang",
+      "--kind",
+      "task",
+      "--title",
+      "Hang"
+    ]);
+
+    await setWorkerCommand(workspaceRoot, "hang", [
+      process.execPath,
+      "--experimental-strip-types",
+      path.resolve("tests/fixtures/worker-hang.ts")
+    ]);
+    await setApprovalPolicy(workspaceRoot, { hang: "auto" });
+
+    const result = await runJsonCli(workspaceRoot, [
+      "worker",
+      "run",
+      "--worker",
+      "hang",
+      "--case",
+      caseId,
+      "--node",
+      "task_hang",
+      "--timeout",
+      "1"
+    ]);
+
+    expect(result.code).toBe(2);
+    expect(result.json.ok).toBe(false);
+    expect(result.json.error.code).toBe("worker_timeout");
+    expect(result.json.error.details.timeout_seconds).toBe(1);
+
+    const events = await exportEvents(workspaceRoot, caseId);
+    const workerEvents = events.filter((event) => event.type.startsWith("worker."));
+    expect(workerEvents.map((event) => event.type)).toEqual([
+      "worker.dispatched",
+      "worker.finished"
+    ]);
+    expect((workerEvents[1]?.payload as { status: string }).status).toBe("failed");
+  });
 });
 
 async function setApprovalPolicy(

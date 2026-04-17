@@ -6,6 +6,7 @@ import {
   addEvidence,
   addNode,
   applyPatch,
+  CaseGraphError,
   changeNodeState,
   createCase,
   decideNode,
@@ -15,6 +16,7 @@ import {
   initWorkspace,
   listBlockedItems,
   listCases,
+  loadCaseState,
   rebuildCache,
   recordEventNode,
   removeEdge,
@@ -27,6 +29,7 @@ import {
   waitTask
 } from "@casegraph/core";
 import { Command } from "commander";
+import { buildCaseViewData } from "./case-view.js";
 import { ingestMarkdownPatch } from "./importer-host.js";
 import { loadPatchValidation, loadValidPatch, writeStructuredFile } from "./patch-file.js";
 import { successResult } from "./result.js";
@@ -133,6 +136,18 @@ export async function runCli(
       await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
         const data = await showCase(workspaceRoot, options.case);
         return successResult("case show", data, data.revision);
+      });
+    });
+
+  caseCommand
+    .command("view")
+    .requiredOption("--case <caseId>")
+    .action(async (_, command) => {
+      const options = command.opts() as { case: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const state = await loadCaseState(workspaceRoot, options.case);
+        const data = buildCaseViewData(state);
+        return successResult("case view", data, data.revision);
       });
     });
 
@@ -448,7 +463,9 @@ export async function runCli(
     await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
       const caseId = options.case;
       if (!caseId) {
-        throw new Error("--case is required for validate");
+        throw new CaseGraphError("missing_case", "--case is required for validate", {
+          exitCode: 2
+        });
       }
       const data = await validateCase(workspaceRoot, caseId);
       return successResult("validate", data);

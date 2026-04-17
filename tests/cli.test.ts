@@ -184,9 +184,10 @@ describe("cli phase 1 acceptance", () => {
     await runJsonCommand(workspaceRoot, ["init"]);
     const result = await runJsonCommand(workspaceRoot, ["validate"]);
 
-    expect(result.code).toBe(1);
+    expect(result.code).toBe(2);
     expect(result.stderr.startsWith("{")).toBe(true);
     expect(result.json.ok).toBe(false);
+    expect(result.json.error.code).toBe("missing_case");
     expect(result.json.error.message).toBe("--case is required for validate");
   });
 

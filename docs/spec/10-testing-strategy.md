@@ -56,6 +56,10 @@ Phase 2 では次も property / invariant 候補に含める。
 - `remove_node` は参照 edge が残ると reject
 - patch replay 後も `frontier` は blocked task を返さない
 
+Phase 5 で `fast-check` による property tests を `tests/properties.test.ts` に追加した。
+リプレイの決定性、node_id 一意性 (Map の構造不変条件として)、`depends_on` cycle 検出、
+`frontier` の非ブロック性、stale patch reject の 5 つを乱数生成された小さなグラフに対して検証する。
+
 ---
 
 ## 10.4 Golden fixture の推奨対象
@@ -96,6 +100,15 @@ public OSS として plugin ecosystem を育てるなら、conformance suite が
 - worker.execute
 - effectful capability declaration
 - timeout / error reporting
+
+Phase 5 で `tests/helpers/conformance.ts` に再利用可能な runner を追加し、
+`tests/conformance.test.ts` で `importer-markdown` / `sink-markdown` / `worker-shell` の
+三つの in-tree plugin に対して `initialize` → `health` → `capabilities.list` →
+未知 method による JSON-RPC error → `shutdown` のハンドシェイクを検証する。
+role 別の必須 method (`importer.ingest` / `sink.{planProjection,applyProjection,pullChanges}` /
+`worker.execute`) が advertise されているかも同時に確認する。
+out-of-tree plugin も `runPluginConformance({ command, cwd, role })` を呼ぶだけで
+最低限の適合性を確認できる。
 
 ---
 

@@ -35,6 +35,7 @@ const BUILT_IN_WORKERS: Record<string, { entryFromImport: URL; requiredMethod: s
 };
 
 const DEFAULT_WORKER_TIMEOUT_SECONDS = 60;
+const WORKER_TIMEOUT_MARKER = Symbol("worker_timeout");
 
 export interface WorkerRunOptions {
   workspaceRoot: string;
@@ -135,22 +136,49 @@ export async function runWorkerExecute(options: WorkerRunOptions): Promise<Worke
     const taskSnapshot = buildTaskSnapshot(targetNode);
     const taskContext = buildWorkerTaskContext(state, options.nodeId);
 
-    const executeResult = await client.request<WorkerExecuteResult>("worker.execute", {
-      case: {
-        case_id: state.caseRecord.case_id,
-        title: state.caseRecord.title,
-        base_revision: dispatchedState.caseRecord.case_revision.current
-      },
-      task: taskSnapshot,
-      context: taskContext,
-      execution_policy: {
-        effectful: capabilities.effectful,
-        approval:
-          decision === "auto" ? "not_required" : decision === "require" ? "required" : "auto",
-        timeout_seconds: timeoutSeconds,
-        command_id: commandId
+    let executeResult: WorkerExecuteResult;
+    try {
+      executeResult = await requestWithTimeout(
+        client.request<WorkerExecuteResult>("worker.execute", {
+          case: {
+            case_id: state.caseRecord.case_id,
+            title: state.caseRecord.title,
+            base_revision: dispatchedState.caseRecord.case_revision.current
+          },
+          task: taskSnapshot,
+          context: taskContext,
+          execution_policy: {
+            effectful: capabilities.effectful,
+            approval:
+              decision === "auto" ? "not_required" : decision === "require" ? "required" : "auto",
+            timeout_seconds: timeoutSeconds,
+            command_id: commandId
+          }
+        }),
+        timeoutSeconds
+      );
+    } catch (error) {
+      if (isWorkerTimeoutError(error)) {
+        await appendWorkerEvent(options, "worker.finished", {
+          worker_name: options.workerName,
+          node_id: options.nodeId,
+          command_id: commandId,
+          status: "failed",
+          summary: `Worker timed out after ${timeoutSeconds}s`,
+          artifacts: [],
+          observations: [`Worker did not respond within ${timeoutSeconds}s; client aborted.`],
+          patch_id: null,
+          patch_path: null,
+          exit_code: null
+        } satisfies WorkerFinishedPayload);
+        throw new CaseGraphError(
+          "worker_timeout",
+          `Worker ${options.workerName} did not respond within ${timeoutSeconds}s`,
+          { exitCode: 2, details: { timeout_seconds: timeoutSeconds } }
+        );
       }
-    });
+      throw error;
+    }
 
     let patch: GraphPatch | null = null;
     let patchError: unknown = null;
@@ -279,6 +307,26 @@ interface WorkerEventContext {
   workspaceRoot: string;
   caseId: string;
   mutationContext: MutationContext;
+}
+
+async function requestWithTimeout<T>(promise: Promise<T>, timeoutSeconds: number): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject({ [WORKER_TIMEOUT_MARKER]: true }), timeoutSeconds * 1000);
+      })
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
+
+function isWorkerTimeoutError(error: unknown): boolean {
+  return typeof error === "object" && error !== null && WORKER_TIMEOUT_MARKER in error;
 }
 
 async function appendWorkerEvent(

@@ -237,6 +237,10 @@ function renderText(result: CommandResult<unknown>): string {
         `ready=${data.frontier_summary.ready_count}`
       ].join("\n");
     }
+    case "case view": {
+      const data = (result as CommandSuccess<{ tree_lines: string[] }>).data;
+      return data.tree_lines.join("\n");
+    }
     case "frontier":
       return renderFrontier((result as CommandSuccess<{ nodes: FrontierItem[] }>).data.nodes);
     case "blockers":
