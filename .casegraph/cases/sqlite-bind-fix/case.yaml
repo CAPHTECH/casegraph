@@ -1,0 +1,12 @@
+case_id: sqlite-bind-fix
+title: Fix update_node partial-changes SQLite bind error
+description: Real-Claude dogfood discovery on 2026-04-17
+state: open
+labels: []
+metadata: {}
+extensions: {}
+created_at: 2026-04-17T04:37:46.862Z
+updated_at: 2026-04-17T04:37:47.585Z
+case_revision:
+  current: 6
+  last_event_id: 01KPCVP4Y8X24QDKB3PFH6BJY2

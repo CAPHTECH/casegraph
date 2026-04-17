@@ -50,6 +50,32 @@ describe("phase 2 patch engine", () => {
     expect(frontier.nodes.map((node) => node.node_id)).toEqual(["task_update_notes"]);
   });
 
+  it("applies update_node with partial changes without clobbering existing fields", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-patch-");
+    createdWorkspaces.push(workspaceRoot);
+    await seedFixture(workspaceRoot, releaseFixture);
+
+    const patch = {
+      patch_id: "patch_update_metadata_only",
+      spec_version: "0.1-draft",
+      case_id: releaseFixture.case.case_id,
+      base_revision: 10,
+      summary: "Bump priority on task_run_regression",
+      operations: [
+        {
+          op: "update_node",
+          node_id: "task_run_regression",
+          changes: { metadata: { priority: "high" } }
+        }
+      ]
+    };
+
+    const nextState = await applyPatch(workspaceRoot, patch);
+    const node = nextState.nodes.get("task_run_regression");
+    expect(node?.title).toBe("Run regression test");
+    expect(node?.metadata.priority).toBe("high");
+  });
+
   it("rejects stale patches and remove_node patches that leave dangling edges", async () => {
     const workspaceRoot = await createTempWorkspace("casegraph-patch-");
     createdWorkspaces.push(workspaceRoot);

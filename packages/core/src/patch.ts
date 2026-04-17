@@ -980,13 +980,14 @@ function cloneDraftState(state: CaseStateView): PatchDraftState {
 }
 
 function cloneNodeChanges(changes: PatchNodeChanges): PatchNodeChanges {
-  return {
-    ...changes,
-    labels: changes.labels ? [...changes.labels] : undefined,
-    acceptance: changes.acceptance ? [...changes.acceptance] : undefined,
-    metadata: changes.metadata ? { ...changes.metadata } : undefined,
-    extensions: changes.extensions ? { ...changes.extensions } : undefined
-  };
+  const out: PatchNodeChanges = {};
+  if (changes.title !== undefined) out.title = changes.title;
+  if (changes.description !== undefined) out.description = changes.description;
+  if (changes.labels !== undefined) out.labels = [...changes.labels];
+  if (changes.acceptance !== undefined) out.acceptance = [...changes.acceptance];
+  if (changes.metadata !== undefined) out.metadata = { ...changes.metadata };
+  if (changes.extensions !== undefined) out.extensions = { ...changes.extensions };
+  return out;
 }
 
 function cloneCaseChanges(
