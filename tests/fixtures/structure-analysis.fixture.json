@@ -1,0 +1,155 @@
+{
+  "seed_mode": "event_replay",
+  "case": {
+    "case_id": "release-structure",
+    "title": "Release structure",
+    "description": "User-facing structure analysis"
+  },
+  "nodes": [
+    {
+      "node_id": "goal_release_ready",
+      "kind": "goal",
+      "title": "Release ready",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_prepare",
+      "kind": "task",
+      "title": "Prepare build",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_review",
+      "kind": "task",
+      "title": "Review build",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_publish",
+      "kind": "task",
+      "title": "Publish release",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_docs",
+      "kind": "task",
+      "title": "Write docs",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_cleanup",
+      "kind": "task",
+      "title": "Cleanup",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_archive",
+      "kind": "task",
+      "title": "Archive",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_archived",
+      "kind": "task",
+      "title": "Archived",
+      "state": "done"
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "edge_review_prepare",
+      "type": "depends_on",
+      "source_id": "task_review",
+      "target_id": "task_prepare"
+    },
+    {
+      "edge_id": "edge_publish_review",
+      "type": "depends_on",
+      "source_id": "task_publish",
+      "target_id": "task_review"
+    },
+    {
+      "edge_id": "edge_prepare_publish",
+      "type": "depends_on",
+      "source_id": "task_prepare",
+      "target_id": "task_publish"
+    },
+    {
+      "edge_id": "edge_docs_prepare",
+      "type": "depends_on",
+      "source_id": "task_docs",
+      "target_id": "task_prepare"
+    },
+    {
+      "edge_id": "edge_archive_cleanup",
+      "type": "depends_on",
+      "source_id": "task_archive",
+      "target_id": "task_cleanup"
+    },
+    {
+      "edge_id": "edge_publish_goal",
+      "type": "contributes_to",
+      "source_id": "task_publish",
+      "target_id": "goal_release_ready"
+    },
+    {
+      "edge_id": "edge_docs_goal",
+      "type": "contributes_to",
+      "source_id": "task_docs",
+      "target_id": "goal_release_ready"
+    },
+    {
+      "edge_id": "edge_archived_goal",
+      "type": "contributes_to",
+      "source_id": "task_archived",
+      "target_id": "goal_release_ready"
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "cycles on unresolved structure graph",
+      "cycles": {
+        "cycle_count": 1,
+        "cycle_node_sets": [["task_prepare", "task_publish", "task_review"]],
+        "warnings": []
+      }
+    },
+    {
+      "name": "components on unresolved structure graph",
+      "components": {
+        "component_count": 3,
+        "component_node_sets": [
+          ["goal_release_ready"],
+          ["task_archive", "task_cleanup"],
+          ["task_docs", "task_prepare", "task_publish", "task_review"]
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "name": "bridges on unresolved structure graph",
+      "bridges": {
+        "bridge_pairs": ["task_archive::task_cleanup", "task_docs::task_prepare"],
+        "warnings": []
+      }
+    },
+    {
+      "name": "cutpoints on unresolved structure graph",
+      "cutpoints": {
+        "cutpoint_ids": ["task_prepare"],
+        "separated_component_node_sets_by_node": {
+          "task_prepare": [["task_docs"], ["task_publish", "task_review"]]
+        },
+        "warnings": []
+      }
+    },
+    {
+      "name": "fragility ranks prepare node first",
+      "fragility": {
+        "node_ids": ["task_prepare", "task_archive", "task_cleanup", "task_docs"],
+        "top_node_id": "task_prepare",
+        "warnings": ["bottleneck_signal_unavailable_due_to_cycles"]
+      }
+    }
+  ]
+}

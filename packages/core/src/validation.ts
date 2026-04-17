@@ -1,3 +1,4 @@
+import { hasInvalidEstimateMinutes } from "./helpers.js";
 import type {
   AttachmentRecord,
   BlockerReason,
@@ -49,6 +50,15 @@ export function validateGraph(
       });
     }
     seenNodeIds.add(node.node_id);
+
+    if (hasInvalidEstimateMinutes(node)) {
+      issues.push({
+        severity: "warning",
+        code: "invalid_estimate_minutes",
+        message: `Node ${node.node_id} has invalid estimate_minutes metadata`,
+        ref: node.node_id
+      });
+    }
 
     if (
       node.state === "done" &&

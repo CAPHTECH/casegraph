@@ -56,7 +56,7 @@ export function buildAgentPrompt(params: WorkerExecuteParams): string {
   lines.push("Keep `base_revision` at 0 (CaseGraph rewrites it). Emit no prose outside the fence.");
   lines.push("");
   lines.push("Envelope:");
-  lines.push("```" + PREFERRED_FENCE);
+  lines.push(`\`\`\`${PREFERRED_FENCE}`);
   lines.push(
     JSON.stringify(
       {

@@ -127,6 +127,27 @@ export function dueDateValue(metadata: Record<string, unknown>): number {
   return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
 }
 
+export function estimateMinutesValue(node: Pick<NodeRecord, "kind" | "metadata">): number | null {
+  if (node.kind === "event") {
+    return 0;
+  }
+
+  const raw = node.metadata.estimate_minutes;
+  if (typeof raw === "number" && Number.isInteger(raw) && raw >= 0) {
+    return raw;
+  }
+
+  return null;
+}
+
+export function hasInvalidEstimateMinutes(node: Pick<NodeRecord, "kind" | "metadata">): boolean {
+  if (node.kind === "event") {
+    return false;
+  }
+
+  return Object.hasOwn(node.metadata, "estimate_minutes") && estimateMinutesValue(node) === null;
+}
+
 export async function copyAttachmentIntoWorkspace(
   sourcePath: string,
   destinationDir: string,

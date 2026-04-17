@@ -1,0 +1,183 @@
+{
+  "corpora": [
+    {
+      "corpus_id": "release-ready",
+      "events_file": "./analysis-eval.release-ready.events.json",
+      "queries": [
+        {
+          "name": "impact invalidates release submission",
+          "kind": "impact",
+          "source_node_id": "task_run_regression",
+          "labels": {
+            "must_include_node_ids": ["task_submit_store", "goal_release_ready"],
+            "must_not_include_node_ids": ["task_monitor_post_release"],
+            "expected_warning_ids": [],
+            "top_k_contains": ["task_submit_store"]
+          }
+        }
+      ]
+    },
+    {
+      "corpus_id": "release-topology",
+      "events_file": "./analysis-eval.release-topology.events.json",
+      "queries": [
+        {
+          "name": "slack highlights critical release chain",
+          "kind": "slack",
+          "goal_node_id": "goal_release_ready",
+          "labels": {
+            "must_include_node_ids": ["task_prepare", "task_monitor", "event_release_window"],
+            "expected_warning_ids": [],
+            "top_k_contains": ["task_prepare"]
+          }
+        },
+        {
+          "name": "bottlenecks rank prepare step first",
+          "kind": "bottlenecks",
+          "goal_node_id": "goal_release_ready",
+          "labels": {
+            "must_include_node_ids": ["task_prepare", "event_release_window"],
+            "expected_warning_ids": [],
+            "top_k_contains": ["task_prepare"]
+          }
+        },
+        {
+          "name": "unblock isolates actionable and wait leaves",
+          "kind": "unblock",
+          "target_node_id": "task_monitor",
+          "labels": {
+            "must_include_node_ids": ["task_prepare", "event_release_window"],
+            "expected_warning_ids": [],
+            "top_k_contains": ["task_prepare"]
+          }
+        }
+      ]
+    },
+    {
+      "corpus_id": "vendor-selection",
+      "events_file": "./analysis-eval.vendor-selection.events.json",
+      "queries": [
+        {
+          "name": "critical path reports missing estimates",
+          "kind": "critical_path",
+          "goal_node_id": "goal_vendor_selected",
+          "labels": {
+            "must_include_node_ids": ["task_collect_quotes", "task_compare_quotes"],
+            "expected_warning_ids": [
+              "missing_estimates_present",
+              "duration_path_unavailable_due_to_missing_estimates"
+            ],
+            "top_k_contains": ["task_collect_quotes", "task_compare_quotes"]
+          }
+        },
+        {
+          "name": "slack remains unavailable without estimates",
+          "kind": "slack",
+          "goal_node_id": "goal_vendor_selected",
+          "labels": {
+            "expected_warning_ids": [
+              "missing_estimates_present",
+              "slack_unavailable_due_to_missing_estimates"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "corpus_id": "topology-eval",
+      "events_file": "./analysis-eval.topology-eval.events.json",
+      "queries": [
+        {
+          "name": "hard unresolved projection reports component split and one cycle",
+          "kind": "topology",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_beta_0": 3,
+            "expected_beta_1": 1,
+            "expected_warning_ids": [],
+            "expected_component_node_sets": [
+              ["goal_release_ready"],
+              ["task_archive", "task_cleanup"],
+              ["task_docs", "task_prepare", "task_publish", "task_review"]
+            ]
+          }
+        },
+        {
+          "name": "goal scoped topology keeps contributing cycle only",
+          "kind": "topology",
+          "projection": "hard_goal_scope",
+          "goal_node_id": "goal_release_ready",
+          "labels": {
+            "expected_beta_0": 1,
+            "expected_beta_1": 1,
+            "expected_warning_ids": [],
+            "expected_component_node_sets": [
+              ["task_docs", "task_prepare", "task_publish", "task_review"]
+            ]
+          }
+        },
+        {
+          "name": "empty goal scope warns instead of failing",
+          "kind": "topology",
+          "projection": "hard_goal_scope",
+          "goal_node_id": "goal_archive_ready",
+          "labels": {
+            "expected_beta_0": 0,
+            "expected_beta_1": 0,
+            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+          }
+        },
+        {
+          "name": "cycles explain the release loop",
+          "kind": "cycles",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_cycle_node_sets": [["task_prepare", "task_publish", "task_review"]],
+            "expected_warning_ids": []
+          }
+        },
+        {
+          "name": "components expose isolated goal and work islands",
+          "kind": "components",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_component_count": 3,
+            "expected_component_node_sets": [
+              ["goal_release_ready"],
+              ["task_archive", "task_cleanup"],
+              ["task_docs", "task_prepare", "task_publish", "task_review"]
+            ],
+            "expected_warning_ids": []
+          }
+        },
+        {
+          "name": "bridges expose single dependency cuts",
+          "kind": "bridges",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_bridge_pairs": ["task_archive::task_cleanup", "task_docs::task_prepare"],
+            "expected_warning_ids": []
+          }
+        },
+        {
+          "name": "cutpoints expose node-level splits",
+          "kind": "cutpoints",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_cutpoint_ids": ["task_prepare"],
+            "expected_warning_ids": []
+          }
+        },
+        {
+          "name": "fragility ranks structural single points",
+          "kind": "fragility",
+          "projection": "hard_unresolved",
+          "labels": {
+            "top_k_contains": ["task_prepare"],
+            "expected_warning_ids": ["bottleneck_signal_unavailable_due_to_cycles"]
+          }
+        }
+      ]
+    }
+  ]
+}

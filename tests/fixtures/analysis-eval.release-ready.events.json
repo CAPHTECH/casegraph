@@ -1,0 +1,334 @@
+[
+  {
+    "event_id": "evt_release_0001",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:00.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "case.created",
+    "source": "cli",
+    "payload": {
+      "case": {
+        "case_id": "release-1.8.0",
+        "title": "Release 1.8.0",
+        "description": "May release",
+        "state": "open",
+        "labels": [],
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-01T00:00:00.000Z",
+        "updated_at": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_release_0002",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:01.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "goal_release_ready",
+        "kind": "goal",
+        "title": "Release 1.8.0 ready",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-01T00:00:00.000Z",
+        "updated_at": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_release_0003",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:02.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "task_run_regression",
+        "kind": "task",
+        "title": "Run regression test",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": { "estimate_minutes": 45 },
+        "extensions": {},
+        "created_at": "2026-04-01T00:00:00.000Z",
+        "updated_at": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_release_0004",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:03.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "task_update_notes",
+        "kind": "task",
+        "title": "Update release notes",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": { "estimate_minutes": 15 },
+        "extensions": {},
+        "created_at": "2026-04-01T00:00:00.000Z",
+        "updated_at": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_release_0005",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:04.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "task_submit_store",
+        "kind": "task",
+        "title": "Submit to App Store",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": { "estimate_minutes": 20 },
+        "extensions": {},
+        "created_at": "2026-04-01T00:00:00.000Z",
+        "updated_at": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_release_0006",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:05.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "task_monitor_post_release",
+        "kind": "task",
+        "title": "Monitor post-release",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": { "estimate_minutes": 30 },
+        "extensions": {},
+        "created_at": "2026-04-01T00:00:00.000Z",
+        "updated_at": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_release_0007",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:06.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "event_release_live",
+        "kind": "event",
+        "title": "Release live",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-01T00:00:00.000Z",
+        "updated_at": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_release_0008",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:07.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "e1",
+        "type": "depends_on",
+        "source_id": "task_submit_store",
+        "target_id": "task_run_regression",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_release_0009",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:08.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "e2",
+        "type": "depends_on",
+        "source_id": "task_submit_store",
+        "target_id": "task_update_notes",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_release_0010",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:09.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "e3",
+        "type": "waits_for",
+        "source_id": "task_monitor_post_release",
+        "target_id": "event_release_live",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_release_0011",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:10.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "e4",
+        "type": "contributes_to",
+        "source_id": "task_run_regression",
+        "target_id": "goal_release_ready",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_release_0012",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:11.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "e5",
+        "type": "contributes_to",
+        "source_id": "task_update_notes",
+        "target_id": "goal_release_ready",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_release_0013",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:12.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "e6",
+        "type": "contributes_to",
+        "source_id": "task_submit_store",
+        "target_id": "goal_release_ready",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_release_0014",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:13.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "e7",
+        "type": "contributes_to",
+        "source_id": "task_monitor_post_release",
+        "target_id": "goal_release_ready",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_release_0015",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:14.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.state_changed",
+    "source": "cli",
+    "payload": {
+      "node_id": "task_run_regression",
+      "state": "done"
+    }
+  },
+  {
+    "event_id": "evt_release_0016",
+    "spec_version": "0.1-draft",
+    "case_id": "release-1.8.0",
+    "timestamp": "2026-04-01T00:00:15.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.state_changed",
+    "source": "cli",
+    "payload": {
+      "node_id": "task_update_notes",
+      "state": "done"
+    }
+  }
+]

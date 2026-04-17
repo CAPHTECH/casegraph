@@ -39,7 +39,12 @@
       "state": "todo",
       "metadata": { "estimate_minutes": 30 }
     },
-    { "node_id": "event_release_live", "kind": "event", "title": "Release live", "state": "todo" }
+    {
+      "node_id": "event_release_live",
+      "kind": "event",
+      "title": "Release live",
+      "state": "todo"
+    }
   ],
   "edges": [
     {
@@ -85,15 +90,30 @@
       "target_id": "goal_release_ready"
     }
   ],
-  "expected": {
-    "initial_frontier": ["task_run_regression", "task_update_notes"],
-    "initial_blockers": {
-      "task_submit_store": [
-        "depends_on:task_run_regression is not done",
-        "depends_on:task_update_notes is not done"
-      ],
-      "task_monitor_post_release": ["waits_for:event_release_live is not done"]
+  "scenarios": [
+    {
+      "name": "critical path on initial release graph",
+      "critical_path": {
+        "goal_node_id": "goal_release_ready",
+        "depth_path": ["task_run_regression", "task_submit_store"],
+        "duration_path": ["task_run_regression", "task_submit_store"],
+        "missing_estimate_node_ids": [],
+        "warnings": []
+      }
     },
-    "after_completion_frontier": ["task_submit_store", "task_monitor_post_release"]
-  }
+    {
+      "name": "impact after prerequisites complete",
+      "setup_actions": [
+        { "op": "change_state", "node_id": "task_run_regression", "state": "done" },
+        { "op": "change_state", "node_id": "task_update_notes", "state": "done" }
+      ],
+      "impact": {
+        "source_node_id": "task_run_regression",
+        "hard_impact": ["task_submit_store"],
+        "context_impact": ["goal_release_ready"],
+        "frontier_invalidations": ["task_submit_store"],
+        "warnings": []
+      }
+    }
+  ]
 }

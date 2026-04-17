@@ -22,7 +22,7 @@ describe("phase 2 patch engine", () => {
       patch_id: "patch_release_phase2",
       spec_version: "0.1-draft",
       case_id: releaseFixture.case.case_id,
-      base_revision: 10,
+      base_revision: 14,
       summary: "Mark regression done via patch",
       operations: [
         {
@@ -43,7 +43,7 @@ describe("phase 2 patch engine", () => {
     expect(review.valid).toBe(true);
 
     const nextState = await applyPatch(workspaceRoot, patch);
-    expect(nextState.caseRecord.case_revision.current).toBe(11);
+    expect(nextState.caseRecord.case_revision.current).toBe(15);
     expect(nextState.caseRecord.labels).toEqual(["phase2"]);
 
     const frontier = await getFrontierItems(workspaceRoot, releaseFixture.case.case_id);
@@ -59,7 +59,7 @@ describe("phase 2 patch engine", () => {
       patch_id: "patch_update_metadata_only",
       spec_version: "0.1-draft",
       case_id: releaseFixture.case.case_id,
-      base_revision: 10,
+      base_revision: 14,
       summary: "Bump priority on task_run_regression",
       operations: [
         {
@@ -85,7 +85,7 @@ describe("phase 2 patch engine", () => {
       patch_id: "patch_stale",
       spec_version: "0.1-draft",
       case_id: releaseFixture.case.case_id,
-      base_revision: 9,
+      base_revision: 13,
       summary: "Stale patch",
       operations: [
         {
@@ -109,7 +109,7 @@ describe("phase 2 patch engine", () => {
       patch_id: "patch_invalid_remove",
       spec_version: "0.1-draft",
       case_id: releaseFixture.case.case_id,
-      base_revision: 10,
+      base_revision: 14,
       summary: "Remove a node without its edges",
       operations: [
         {

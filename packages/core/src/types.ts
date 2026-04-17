@@ -173,6 +173,52 @@ export interface BlockedItem {
   reasons: BlockerReason[];
 }
 
+export interface ImpactedNodeSummary {
+  node_id: string;
+  kind: NodeKind;
+  state: NodeState;
+  title: string;
+  distance: number;
+  via_node_ids: string[];
+  via_edge_ids: string[];
+}
+
+export interface ImpactAnalysisResult {
+  case_id: string;
+  revision: RevisionSnapshot;
+  source_node_id: string;
+  hard_impact: ImpactedNodeSummary[];
+  context_impact: ImpactedNodeSummary[];
+  frontier_invalidations: ImpactedNodeSummary[];
+  warnings: string[];
+}
+
+export interface AnalysisTraceNode {
+  node_id: string;
+  kind: NodeKind;
+  state: NodeState;
+  title: string;
+  estimate_minutes: number | null;
+}
+
+export interface CriticalPathSummary {
+  node_ids: string[];
+  edge_ids: string[];
+  hop_count: number;
+  total_estimate_minutes: number | null;
+  steps: AnalysisTraceNode[];
+}
+
+export interface CriticalPathAnalysisResult {
+  case_id: string;
+  revision: RevisionSnapshot;
+  goal_node_id: string | null;
+  depth_path: CriticalPathSummary;
+  duration_path: CriticalPathSummary | null;
+  missing_estimate_node_ids: string[];
+  warnings: string[];
+}
+
 export interface WorkspaceContextOptions {
   workspaceOverride?: string;
   cwd?: string;

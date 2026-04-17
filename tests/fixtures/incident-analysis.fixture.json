@@ -1,0 +1,155 @@
+{
+  "case": {
+    "case_id": "incident-restore-2026-04",
+    "title": "Restore Production Service",
+    "description": "Major service incident"
+  },
+  "nodes": [
+    {
+      "node_id": "goal_restore_service",
+      "kind": "goal",
+      "title": "Restore service",
+      "state": "todo"
+    },
+    {
+      "node_id": "decision_choose_recovery_path",
+      "kind": "decision",
+      "title": "Choose recovery path",
+      "state": "todo",
+      "metadata": { "estimate_minutes": 10 }
+    },
+    {
+      "node_id": "task_triage_alert",
+      "kind": "task",
+      "title": "Triage alert",
+      "state": "todo",
+      "metadata": { "estimate_minutes": 15 }
+    },
+    {
+      "node_id": "task_prepare_rollback",
+      "kind": "task",
+      "title": "Prepare rollback",
+      "state": "todo",
+      "metadata": { "estimate_minutes": 20 }
+    },
+    {
+      "node_id": "task_execute_rollback",
+      "kind": "task",
+      "title": "Execute rollback",
+      "state": "todo",
+      "metadata": { "estimate_minutes": 5 }
+    },
+    {
+      "node_id": "task_verify_recovery",
+      "kind": "task",
+      "title": "Verify recovery",
+      "state": "todo",
+      "metadata": { "estimate_minutes": 25 }
+    },
+    {
+      "node_id": "event_metrics_stable",
+      "kind": "event",
+      "title": "Metrics stable",
+      "state": "todo"
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "e1",
+      "type": "depends_on",
+      "source_id": "task_prepare_rollback",
+      "target_id": "task_triage_alert"
+    },
+    {
+      "edge_id": "e2",
+      "type": "depends_on",
+      "source_id": "task_execute_rollback",
+      "target_id": "task_prepare_rollback"
+    },
+    {
+      "edge_id": "e3",
+      "type": "depends_on",
+      "source_id": "task_execute_rollback",
+      "target_id": "decision_choose_recovery_path"
+    },
+    {
+      "edge_id": "e4",
+      "type": "depends_on",
+      "source_id": "task_verify_recovery",
+      "target_id": "task_execute_rollback"
+    },
+    {
+      "edge_id": "e5",
+      "type": "waits_for",
+      "source_id": "task_verify_recovery",
+      "target_id": "event_metrics_stable"
+    },
+    {
+      "edge_id": "e6",
+      "type": "contributes_to",
+      "source_id": "task_triage_alert",
+      "target_id": "goal_restore_service"
+    },
+    {
+      "edge_id": "e7",
+      "type": "contributes_to",
+      "source_id": "task_prepare_rollback",
+      "target_id": "goal_restore_service"
+    },
+    {
+      "edge_id": "e8",
+      "type": "contributes_to",
+      "source_id": "task_execute_rollback",
+      "target_id": "goal_restore_service"
+    },
+    {
+      "edge_id": "e9",
+      "type": "contributes_to",
+      "source_id": "task_verify_recovery",
+      "target_id": "goal_restore_service"
+    },
+    {
+      "edge_id": "e10",
+      "type": "contributes_to",
+      "source_id": "decision_choose_recovery_path",
+      "target_id": "goal_restore_service"
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "critical path on incident recovery graph",
+      "critical_path": {
+        "goal_node_id": "goal_restore_service",
+        "depth_path": [
+          "task_triage_alert",
+          "task_prepare_rollback",
+          "task_execute_rollback",
+          "task_verify_recovery"
+        ],
+        "duration_path": [
+          "task_triage_alert",
+          "task_prepare_rollback",
+          "task_execute_rollback",
+          "task_verify_recovery"
+        ],
+        "missing_estimate_node_ids": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "impact after rollback becomes ready",
+      "setup_actions": [
+        { "op": "change_state", "node_id": "task_triage_alert", "state": "done" },
+        { "op": "change_state", "node_id": "task_prepare_rollback", "state": "done" },
+        { "op": "change_state", "node_id": "decision_choose_recovery_path", "state": "done" }
+      ],
+      "impact": {
+        "source_node_id": "task_prepare_rollback",
+        "hard_impact": ["task_execute_rollback", "task_verify_recovery"],
+        "context_impact": ["goal_restore_service"],
+        "frontier_invalidations": ["task_execute_rollback"],
+        "warnings": []
+      }
+    }
+  ]
+}

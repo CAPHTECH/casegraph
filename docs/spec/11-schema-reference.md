@@ -46,6 +46,7 @@ acceptance:
   - 主要導線が通る
 metadata:
   priority: high
+  estimate_minutes: 45
 extensions: {}
 created_at: 2026-04-15T00:00:00Z
 updated_at: 2026-04-15T00:00:00Z
@@ -66,6 +67,11 @@ updated_at: 2026-04-15T00:00:00Z
 - done
 - cancelled
 - failed
+
+### 代表 metadata
+- `priority`: `high` / `medium` / `low` または数値
+- `due_date`: ISO8601 date/time string
+- `estimate_minutes`: non-event node では `integer >= 0`、event は実装上 zero-duration とみなす
 
 ---
 
@@ -122,7 +128,8 @@ payload:
 - event.recorded
 - evidence.attached
 - patch.applied
-- projection.synced
+- projection.pushed
+- projection.pulled
 - worker.dispatched
 - worker.finished
 
@@ -222,9 +229,159 @@ dependency_satisfied_ratio: 0.0
 has_unverified_completion: false
 ```
 
+## 11.10 Impact analysis result
+
+```yaml
+case_id: release-1.8.0
+revision:
+  current: 14
+  last_event_id: evt_01J...
+source_node_id: task_run_regression
+hard_impact:
+  - node_id: task_submit_store
+    kind: task
+    state: todo
+    title: Submit to App Store
+    distance: 1
+    via_node_ids: [task_run_regression, task_submit_store]
+    via_edge_ids: [edge_submit_depends_regression]
+context_impact:
+  - node_id: goal_release_ready
+    kind: goal
+    state: todo
+    title: Release 1.8.0 ready
+    distance: 1
+    via_node_ids: [task_run_regression, goal_release_ready]
+    via_edge_ids: [edge_regression_goal]
+frontier_invalidations: []
+warnings: []
+```
+
 ---
 
-## 11.10 Revision model
+## 11.11 Critical path analysis result
+
+```yaml
+case_id: release-1.8.0
+revision:
+  current: 14
+  last_event_id: evt_01J...
+goal_node_id: goal_release_ready
+depth_path:
+  node_ids: [task_run_regression, task_submit_store]
+  edge_ids: [edge_submit_depends_regression]
+  hop_count: 1
+  total_estimate_minutes: 65
+  steps:
+    - node_id: task_run_regression
+      kind: task
+      state: todo
+      title: Run regression test
+      estimate_minutes: 45
+    - node_id: task_submit_store
+      kind: task
+      state: todo
+      title: Submit to App Store
+      estimate_minutes: 20
+duration_path:
+  node_ids: [task_run_regression, task_submit_store]
+  edge_ids: [edge_submit_depends_regression]
+  hop_count: 1
+  total_estimate_minutes: 65
+  steps:
+    - node_id: task_run_regression
+      kind: task
+      state: todo
+      title: Run regression test
+      estimate_minutes: 45
+    - node_id: task_submit_store
+      kind: task
+      state: todo
+      title: Submit to App Store
+      estimate_minutes: 20
+missing_estimate_node_ids: []
+warnings: []
+```
+
+---
+
+## 11.12 Slack analysis result
+
+```yaml
+case_id: release-1.8.0
+revision:
+  current: 14
+  last_event_id: evt_01J...
+goal_node_id: goal_release_ready
+projected_duration_minutes: 65
+nodes:
+  - node_id: task_run_regression
+    kind: task
+    state: todo
+    title: Run regression test
+    estimate_minutes: 45
+    earliest_start_minutes: 0
+    earliest_finish_minutes: 45
+    latest_start_minutes: 0
+    latest_finish_minutes: 45
+    slack_minutes: 0
+    is_critical: true
+missing_estimate_node_ids: []
+warnings: []
+```
+
+---
+
+## 11.13 Bottleneck analysis result
+
+```yaml
+case_id: release-1.8.0
+revision:
+  current: 14
+  last_event_id: evt_01J...
+goal_node_id: goal_release_ready
+nodes:
+  - node_id: task_run_regression
+    kind: task
+    state: todo
+    title: Run regression test
+    downstream_node_ids: [task_submit_store]
+    downstream_count: 1
+    frontier_invalidation_node_ids: []
+    frontier_invalidation_count: 0
+    goal_context_node_ids: [goal_release_ready]
+    goal_context_count: 1
+    max_distance: 1
+warnings: []
+```
+
+---
+
+## 11.14 Minimal unblock set result
+
+```yaml
+case_id: release-1.8.0
+revision:
+  current: 14
+  last_event_id: evt_01J...
+target_node_id: task_submit_store
+actionable_leaf_node_ids: [task_run_regression, task_update_notes]
+blockers:
+  - node_id: task_run_regression
+    kind: actionable_leaf
+    node_kind: task
+    state: todo
+    title: Run regression test
+    distance: 1
+    via_node_ids: [task_run_regression, task_submit_store]
+    via_edge_ids: [edge_submit_depends_regression]
+    actionable: true
+warnings: []
+```
+
+---
+
+## 11.15 Revision model
 
 CaseGraph は patch apply の整合性のため、case revision を持つことを推奨します。
 
@@ -241,7 +398,7 @@ case_revision:
 
 ---
 
-## 11.11 Extension namespacing
+## 11.16 Extension namespacing
 
 拡張は namespace を切ることを推奨します。
 

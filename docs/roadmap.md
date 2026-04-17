@@ -40,8 +40,16 @@
 - better error surfaces
 - TUI / graph view exploration
 
+## Phase 6: Topology and evaluation
+- current graph-topology docs consolidation
+- algebraic topology ADR for Betti-0 / Betti-1 on projections
+- mixed evaluation harness over golden corpus + event-export corpus
+- external real-data corpus loading via local manifest
+
 ## Deferred topics
 - multi-user collaboration
 - rich approval / compensation / resource graph
 - scheduling optimization
+- persistent homology as stable API
+- temporal topology as stable API
 - SaaS deployment model

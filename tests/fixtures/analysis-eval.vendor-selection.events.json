@@ -1,0 +1,156 @@
+[
+  {
+    "event_id": "evt_vendor_0001",
+    "spec_version": "0.1-draft",
+    "case_id": "vendor-selection-2026-06",
+    "timestamp": "2026-04-03T00:00:00.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "case.created",
+    "source": "cli",
+    "payload": {
+      "case": {
+        "case_id": "vendor-selection-2026-06",
+        "title": "Select Vendor",
+        "description": "Choose a vendor from incoming quotes",
+        "state": "open",
+        "labels": [],
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-03T00:00:00.000Z",
+        "updated_at": "2026-04-03T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_vendor_0002",
+    "spec_version": "0.1-draft",
+    "case_id": "vendor-selection-2026-06",
+    "timestamp": "2026-04-03T00:00:01.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "goal_vendor_selected",
+        "kind": "goal",
+        "title": "Vendor selected",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-03T00:00:00.000Z",
+        "updated_at": "2026-04-03T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_vendor_0003",
+    "spec_version": "0.1-draft",
+    "case_id": "vendor-selection-2026-06",
+    "timestamp": "2026-04-03T00:00:02.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "task_collect_quotes",
+        "kind": "task",
+        "title": "Collect quotes",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-03T00:00:00.000Z",
+        "updated_at": "2026-04-03T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_vendor_0004",
+    "spec_version": "0.1-draft",
+    "case_id": "vendor-selection-2026-06",
+    "timestamp": "2026-04-03T00:00:03.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "task_compare_quotes",
+        "kind": "task",
+        "title": "Compare quotes",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-03T00:00:00.000Z",
+        "updated_at": "2026-04-03T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_vendor_0005",
+    "spec_version": "0.1-draft",
+    "case_id": "vendor-selection-2026-06",
+    "timestamp": "2026-04-03T00:00:04.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "e1",
+        "type": "depends_on",
+        "source_id": "task_compare_quotes",
+        "target_id": "task_collect_quotes",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-03T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_vendor_0006",
+    "spec_version": "0.1-draft",
+    "case_id": "vendor-selection-2026-06",
+    "timestamp": "2026-04-03T00:00:05.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "e2",
+        "type": "contributes_to",
+        "source_id": "task_collect_quotes",
+        "target_id": "goal_vendor_selected",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-03T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_vendor_0007",
+    "spec_version": "0.1-draft",
+    "case_id": "vendor-selection-2026-06",
+    "timestamp": "2026-04-03T00:00:06.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "e3",
+        "type": "contributes_to",
+        "source_id": "task_compare_quotes",
+        "target_id": "goal_vendor_selected",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-03T00:00:00.000Z"
+      }
+    }
+  }
+]

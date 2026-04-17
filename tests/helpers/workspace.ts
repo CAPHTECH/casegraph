@@ -22,12 +22,35 @@ export async function removeTempWorkspace(root: string): Promise<void> {
   await rm(root, { recursive: true, force: true });
 }
 
+export type FixtureAction =
+  | {
+      op: "change_state";
+      node_id: string;
+      state: NodeState;
+    }
+  | {
+      op: "record_event";
+      node_id: string;
+    };
+
 export async function seedFixture(
   workspaceRoot: string,
   fixture: {
     case: { case_id: string; title: string; description: string };
-    nodes: Array<{ node_id: string; kind: NodeKind; title: string; state: NodeState }>;
-    edges: Array<{ edge_id: string; type: EdgeType; source_id: string; target_id: string }>;
+    nodes: Array<{
+      node_id: string;
+      kind: NodeKind;
+      title: string;
+      state: NodeState;
+      metadata?: Record<string, unknown>;
+    }>;
+    edges: Array<{
+      edge_id: string;
+      type: EdgeType;
+      source_id: string;
+      target_id: string;
+      metadata?: Record<string, unknown>;
+    }>;
   }
 ): Promise<void> {
   await createCase(workspaceRoot, fixture.case, createDefaultMutationContext());
@@ -45,7 +68,7 @@ export async function seedFixture(
           state: node.state,
           labels: [],
           acceptance: [],
-          metadata: {},
+          metadata: node.metadata ?? {},
           extensions: {}
         }
       },
@@ -63,7 +86,7 @@ export async function seedFixture(
           type: edge.type,
           source_id: edge.source_id,
           target_id: edge.target_id,
-          metadata: {},
+          metadata: edge.metadata ?? {},
           extensions: {}
         }
       },
@@ -73,35 +96,40 @@ export async function seedFixture(
 }
 
 export async function advanceReleaseFixture(workspaceRoot: string, caseId: string): Promise<void> {
-  for (const nodeId of ["task_run_regression", "task_update_notes"]) {
-    await changeNodeState(
-      workspaceRoot,
-      { caseId, nodeId, state: "done" },
-      createDefaultMutationContext()
-    );
-  }
-
-  await recordEventNode(
-    workspaceRoot,
-    { caseId, nodeId: "event_release_live" },
-    createDefaultMutationContext()
-  );
+  await applyFixtureActions(workspaceRoot, caseId, [
+    { op: "change_state", node_id: "task_run_regression", state: "done" },
+    { op: "change_state", node_id: "task_update_notes", state: "done" },
+    { op: "record_event", node_id: "event_release_live" }
+  ]);
 }
 
 export async function advanceMoveFixture(workspaceRoot: string, caseId: string): Promise<void> {
-  await changeNodeState(
-    workspaceRoot,
-    { caseId, nodeId: "decision_pick_move_date", state: "done" },
-    createDefaultMutationContext()
-  );
-  await recordEventNode(
-    workspaceRoot,
-    { caseId, nodeId: "event_mover_quote_returned" },
-    createDefaultMutationContext()
-  );
-  await recordEventNode(
-    workspaceRoot,
-    { caseId, nodeId: "event_lease_confirmed" },
-    createDefaultMutationContext()
-  );
+  await applyFixtureActions(workspaceRoot, caseId, [
+    { op: "change_state", node_id: "decision_pick_move_date", state: "done" },
+    { op: "record_event", node_id: "event_mover_quote_returned" },
+    { op: "record_event", node_id: "event_lease_confirmed" }
+  ]);
+}
+
+export async function applyFixtureActions(
+  workspaceRoot: string,
+  caseId: string,
+  actions: FixtureAction[]
+): Promise<void> {
+  for (const action of actions) {
+    if (action.op === "change_state") {
+      await changeNodeState(
+        workspaceRoot,
+        { caseId, nodeId: action.node_id, state: action.state },
+        createDefaultMutationContext()
+      );
+      continue;
+    }
+
+    await recordEventNode(
+      workspaceRoot,
+      { caseId, nodeId: action.node_id },
+      createDefaultMutationContext()
+    );
+  }
 }

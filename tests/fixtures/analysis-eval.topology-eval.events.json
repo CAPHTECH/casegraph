@@ -1,0 +1,400 @@
+[
+  {
+    "event_id": "evt_topology_0001",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:00.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "case.created",
+    "source": "cli",
+    "payload": {
+      "case": {
+        "case_id": "topology-eval",
+        "title": "Topology eval",
+        "description": "Topology analysis eval corpus",
+        "state": "open",
+        "labels": [],
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z",
+        "updated_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0002",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:01.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "goal_release_ready",
+        "kind": "goal",
+        "title": "Release ready",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z",
+        "updated_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0003",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:02.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "goal_archive_ready",
+        "kind": "goal",
+        "title": "Archive ready",
+        "description": "",
+        "state": "done",
+        "labels": [],
+        "acceptance": [],
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z",
+        "updated_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0004",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:03.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "task_prepare",
+        "kind": "task",
+        "title": "Prepare",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": { "estimate_minutes": 20 },
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z",
+        "updated_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0005",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:04.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "task_review",
+        "kind": "task",
+        "title": "Review",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": { "estimate_minutes": 10 },
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z",
+        "updated_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0006",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:05.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "task_publish",
+        "kind": "task",
+        "title": "Publish",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": { "estimate_minutes": 5 },
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z",
+        "updated_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0007",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:06.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "task_docs",
+        "kind": "task",
+        "title": "Docs",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": { "estimate_minutes": 5 },
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z",
+        "updated_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0008",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:07.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "task_cleanup",
+        "kind": "task",
+        "title": "Cleanup",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z",
+        "updated_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0009",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:08.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "task_archive",
+        "kind": "task",
+        "title": "Archive",
+        "description": "",
+        "state": "todo",
+        "labels": [],
+        "acceptance": [],
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z",
+        "updated_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0010",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:09.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "node.added",
+    "source": "cli",
+    "payload": {
+      "node": {
+        "node_id": "task_archived",
+        "kind": "task",
+        "title": "Archived",
+        "description": "",
+        "state": "done",
+        "labels": [],
+        "acceptance": [],
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z",
+        "updated_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0011",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:10.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "edge_review_prepare",
+        "type": "depends_on",
+        "source_id": "task_review",
+        "target_id": "task_prepare",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0012",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:11.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "edge_publish_review",
+        "type": "depends_on",
+        "source_id": "task_publish",
+        "target_id": "task_review",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0013",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:12.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "edge_prepare_publish",
+        "type": "depends_on",
+        "source_id": "task_prepare",
+        "target_id": "task_publish",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0014",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:13.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "edge_docs_prepare",
+        "type": "depends_on",
+        "source_id": "task_docs",
+        "target_id": "task_prepare",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0015",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:14.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "edge_archive_cleanup",
+        "type": "depends_on",
+        "source_id": "task_archive",
+        "target_id": "task_cleanup",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0016",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:15.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "edge_publish_goal",
+        "type": "contributes_to",
+        "source_id": "task_publish",
+        "target_id": "goal_release_ready",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0017",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:16.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "edge_docs_goal",
+        "type": "contributes_to",
+        "source_id": "task_docs",
+        "target_id": "goal_release_ready",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "event_id": "evt_topology_0018",
+    "spec_version": "0.1-draft",
+    "case_id": "topology-eval",
+    "timestamp": "2026-04-10T00:00:17.000Z",
+    "actor": { "kind": "user", "id": "fixture", "display_name": "Fixture" },
+    "type": "edge.added",
+    "source": "cli",
+    "payload": {
+      "edge": {
+        "edge_id": "edge_archived_goal",
+        "type": "contributes_to",
+        "source_id": "task_archived",
+        "target_id": "goal_archive_ready",
+        "metadata": {},
+        "extensions": {},
+        "created_at": "2026-04-10T00:00:00.000Z"
+      }
+    }
+  }
+]

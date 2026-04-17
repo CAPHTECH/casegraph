@@ -1,4 +1,6 @@
 import {
+  analyzeCriticalPath,
+  analyzeImpact,
   createEvent,
   defaultActor,
   type EdgeRecord,
@@ -65,6 +67,48 @@ const acyclicBlueprintArb: fc.Arbitrary<GraphBlueprint> = blueprintArb.map((blue
   ...blueprint,
   edges: blueprint.edges.filter((edge) => edge.source_id < edge.target_id)
 }));
+
+const analysisDagArb: fc.Arbitrary<GraphBlueprint> = fc
+  .integer({ min: 2, max: 6 })
+  .chain((count) =>
+    fc
+      .uniqueArray(fc.integer({ min: 1, max: 999 }), { minLength: count, maxLength: count })
+      .map((values) => values.sort((left, right) => left - right).map((value) => `d${value}`))
+  )
+  .chain((ids) =>
+    fc
+      .array(
+        fc
+          .tuple(
+            fc.integer({ min: 0, max: ids.length - 1 }),
+            fc.integer({ min: 0, max: ids.length - 1 })
+          )
+          .filter(([targetIndex, sourceIndex]) => targetIndex < sourceIndex),
+        { minLength: 0, maxLength: ids.length * 2 }
+      )
+      .map((pairs) => {
+        const uniquePairs = [
+          ...new Set(pairs.map(([targetIndex, sourceIndex]) => `${targetIndex}:${sourceIndex}`))
+        ];
+        return {
+          caseId: "prop-analysis",
+          nodes: ids.map((id) => ({
+            node_id: id,
+            kind: "task" as NodeKind,
+            state: "todo" as NodeState
+          })),
+          edges: uniquePairs.map((pair, index) => {
+            const [targetIndex, sourceIndex] = pair.split(":").map((value) => Number(value));
+            return {
+              edge_id: `ae${index}`,
+              type: "depends_on" as EdgeType,
+              source_id: ids[sourceIndex] as string,
+              target_id: ids[targetIndex] as string
+            };
+          })
+        };
+      })
+  );
 
 describe("property: reducer & validation invariants", () => {
   it("P1 replay is deterministic across repeated calls", () => {
@@ -169,6 +213,36 @@ describe("property: reducer & validation invariants", () => {
       { numRuns: 40 }
     );
   });
+
+  it("P6 impact hard_impact matches reverse hard reachability", () => {
+    fc.assert(
+      fc.property(blueprintArb, fc.integer({ min: 0, max: 20 }), (blueprint, pick) => {
+        const state = replayCaseEvents(eventsFromBlueprint(blueprint));
+        const sourceNode = blueprint.nodes[pick % blueprint.nodes.length];
+        if (!sourceNode) {
+          return;
+        }
+        const sourceNodeId = sourceNode.node_id;
+        const result = analyzeImpact(state, sourceNodeId);
+        expect(result.hard_impact.map((node) => node.node_id)).toEqual(
+          reverseReachableNodeIds(blueprint.edges, sourceNodeId)
+        );
+      }),
+      { numRuns: 40 }
+    );
+  });
+
+  it("P7 critical path hop count matches the longest path of an acyclic hard graph", () => {
+    fc.assert(
+      fc.property(analysisDagArb, (blueprint) => {
+        const state = replayCaseEvents(eventsFromBlueprint(blueprint));
+        const result = analyzeCriticalPath(state);
+        expect(isValidNormalizedPath(blueprint.edges, result.depth_path.node_ids)).toBe(true);
+        expect(result.depth_path.hop_count).toBe(longestHopCount(blueprint.edges, blueprint.nodes));
+      }),
+      { numRuns: 40 }
+    );
+  });
 });
 
 function eventsFromBlueprint(blueprint: GraphBlueprint): EventEnvelope[] {
@@ -255,4 +329,107 @@ function snapshot(state: ReturnType<typeof replayCaseEvents>) {
     derived: Array.from(state.derived.entries()),
     validation: state.validation
   };
+}
+
+function reverseReachableNodeIds(edges: GraphBlueprint["edges"], sourceNodeId: string): string[] {
+  const adjacency = new Map<string, Set<string>>();
+  for (const edge of edges) {
+    if (!adjacency.has(edge.target_id)) {
+      adjacency.set(edge.target_id, new Set());
+    }
+    adjacency.get(edge.target_id)?.add(edge.source_id);
+  }
+
+  const visited = new Set<string>([sourceNodeId]);
+  const queue = [sourceNodeId];
+  while (queue.length > 0) {
+    const currentNodeId = queue.shift() as string;
+    const nextIds = [...(adjacency.get(currentNodeId) ?? new Set())].sort((left, right) =>
+      left.localeCompare(right)
+    );
+    for (const nextNodeId of nextIds) {
+      if (visited.has(nextNodeId)) {
+        continue;
+      }
+      visited.add(nextNodeId);
+      queue.push(nextNodeId);
+    }
+  }
+
+  const distances = new Map<string, number>([[sourceNodeId, 0]]);
+  const queueForDistance = [sourceNodeId];
+  while (queueForDistance.length > 0) {
+    const currentNodeId = queueForDistance.shift() as string;
+    const nextIds = [...(adjacency.get(currentNodeId) ?? new Set())].sort((left, right) =>
+      left.localeCompare(right)
+    );
+    for (const nextNodeId of nextIds) {
+      if (distances.has(nextNodeId)) {
+        continue;
+      }
+      distances.set(nextNodeId, (distances.get(currentNodeId) ?? 0) + 1);
+      queueForDistance.push(nextNodeId);
+    }
+  }
+
+  return [...visited]
+    .filter((nodeId) => nodeId !== sourceNodeId)
+    .sort((left, right) => {
+      const leftDistance = distances.get(left) ?? Number.MAX_SAFE_INTEGER;
+      const rightDistance = distances.get(right) ?? Number.MAX_SAFE_INTEGER;
+      if (leftDistance !== rightDistance) {
+        return leftDistance - rightDistance;
+      }
+      return left.localeCompare(right);
+    });
+}
+
+function isValidNormalizedPath(edges: GraphBlueprint["edges"], nodeIds: string[]): boolean {
+  if (nodeIds.length <= 1) {
+    return true;
+  }
+
+  const normalizedEdges = new Set(edges.map((edge) => `${edge.target_id}->${edge.source_id}`));
+  for (let index = 0; index < nodeIds.length - 1; index += 1) {
+    const key = `${nodeIds[index]}->${nodeIds[index + 1]}`;
+    if (!normalizedEdges.has(key)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function longestHopCount(edges: GraphBlueprint["edges"], nodes: GraphBlueprint["nodes"]): number {
+  const adjacency = new Map<string, string[]>(nodes.map((node) => [node.node_id, [] as string[]]));
+  const indegree = new Map<string, number>(nodes.map((node) => [node.node_id, 0]));
+
+  for (const edge of edges) {
+    adjacency.get(edge.target_id)?.push(edge.source_id);
+    indegree.set(edge.source_id, (indegree.get(edge.source_id) ?? 0) + 1);
+  }
+
+  for (const [nodeId, nextIds] of adjacency.entries()) {
+    nextIds.sort((left, right) => left.localeCompare(right));
+    adjacency.set(nodeId, nextIds);
+  }
+
+  const available = [...nodes.map((node) => node.node_id)]
+    .filter((nodeId) => (indegree.get(nodeId) ?? 0) === 0)
+    .sort((left, right) => left.localeCompare(right));
+  const best = new Map<string, number>(nodes.map((node) => [node.node_id, 0]));
+
+  while (available.length > 0) {
+    const nodeId = available.shift() as string;
+    for (const nextNodeId of adjacency.get(nodeId) ?? []) {
+      best.set(nextNodeId, Math.max(best.get(nextNodeId) ?? 0, (best.get(nodeId) ?? 0) + 1));
+      indegree.set(nextNodeId, (indegree.get(nextNodeId) ?? 0) - 1);
+      if ((indegree.get(nextNodeId) ?? 0) === 0) {
+        available.push(nextNodeId);
+        available.sort((left, right) => left.localeCompare(right));
+      }
+    }
+  }
+
+  return Math.max(0, ...best.values());
 }

@@ -221,21 +221,133 @@ impact analysis は later-phase の分析能力で、次の問いに答える機
 - 逆向きの `depends_on` / `waits_for` を辿る
 - 必要なら `contributes_to` を補助的に表示する
 - 影響は「hard impact」と「context impact」を分けて返す
+- `frontier` に載っている node のうち、hard impact に含まれるものは `frontier_invalidations` として返す
+
+### 現行参照実装の計算
+- `hard impact`: source node から逆向き hard dependency を辿って到達できる node
+- `context impact`: `{source} ∪ hard impact` から `contributes_to` を辿って到達できる node
+- trace は shortest path を返し、`via_node_ids` / `via_edge_ids` で説明可能にする
 
 Phase 0 では、この能力の CLI 名は凍結しません。
 
 ---
 
-## 3.13 代表コマンド
+## 3.13 Critical path analysis
+
+critical path analysis は later-phase の分析能力で、次の問いに答える機能です。
+
+- この case で未解決 hard dependency の最長鎖はどれか
+- 特定 goal を達成するための支配的な prerequisite 鎖はどれか
+- 見積りが揃っているとき、総所要時間が最も長い経路はどれか
+
+### 現行参照実装の計算
+- 対象 graph は unresolved node のみで作る
+- unresolved とみなす state は `todo`, `doing`, `waiting`, `failed`
+- `depends_on` / `waits_for` は prerequisite 順に正規化して longest path を計算する
+- `--goal` 指定時は、goal に `contributes_to` でぶら下がる node と、その hard prerequisite closure を対象にする
+- `depth_path` は hop 数最大の path
+- `duration_path` は `metadata.estimate_minutes` が揃った path のみを対象にし、総見積り時間最大の path
+- `event` は zero-duration milestone として扱う
+- scope 内に hard cycle がある場合は safety 側に倒して失敗にする
+
+### `estimate_minutes`
+- task / decision / goal など任意 node の metadata に置ける
+- 現行参照実装では non-event node について `integer >= 0` のみ有効
+- 無効値は validation warning (`invalid_estimate_minutes`) を返す
+
+---
+
+## 3.14 Slack analysis
+
+slack analysis は later-phase の分析能力で、次の問いに答える機能です。
+
+- どの node が critical path 上にあるか
+- どの node にどれだけ余裕があるか
+- goal scope の projected duration は何分か
+
+### 現行参照実装の計算
+- scope は critical path analysis と同じ unresolved hard graph を使う
+- non-event node に有効な `estimate_minutes` が揃っている場合のみ forward / backward pass を行う
+- node ごとに `earliest_*`, `latest_*`, `slack_minutes`, `is_critical` を返す
+- event は zero-duration milestone として扱う
+- 見積り欠損がある場合は `missing_estimates_present` と `slack_unavailable_due_to_missing_estimates` を返す
+
+---
+
+## 3.15 Bottleneck analysis
+
+bottleneck analysis は later-phase の分析能力で、次の問いに答える機能です。
+
+- 今止まると downstream に何件波及するか
+- ready node の無効化候補をどれだけ抱えているか
+- 特定 goal 文脈で支配的な prerequisite はどれか
+
+### 現行参照実装の計算
+- scope は critical path analysis と同じ unresolved hard graph を使う
+- 各 node について hard dependency の downstream 到達集合を計算する
+- `frontier_invalidation_count` は downstream と current frontier の共通部分を返す
+- `goal_context_count` は `{node} ∪ downstream` から `contributes_to` を辿って到達する goal 文脈数を返す
+- rank は `frontier_invalidation_count desc`, `downstream_count desc`, `goal_context_count desc`, `max_distance desc`, `node_id asc`
+
+---
+
+## 3.16 Minimal unblock set
+
+minimal unblock set analysis は later-phase の分析能力で、次の問いに答える機能です。
+
+- この blocked node を ready にするには、何を最小限動かせばよいか
+- 再帰的な prerequisite chain の末端にある actionable leaf はどれか
+- event 待ちや explicit waiting がどこに残っているか
+
+### 現行参照実装の計算
+- target node から `depends_on` / `waits_for` を再帰的に辿る
+- ready な未完了 prerequisite は `actionable_leaf` として返す
+- pending event は `wait_leaf` として返す
+- それ以上掘れない waiting / failed / non-ready node は `state_leaf` として返す
+- blocker ごとに leaf から target までの `via_node_ids` / `via_edge_ids` を返す
+- target がすでに ready なら `target_already_ready` を返す
+
+---
+
+## 3.17 Topology projections (deferred design)
+
+現在の `impact` / `critical-path` / `slack` / `bottlenecks` / `unblock` は、
+依存グラフに対する実務分析であり、まだ代数トポロジー API ではありません。
+
+将来の topology 拡張では、まず次の projection 名だけを使います。
+
+### `hard_unresolved`
+
+- 対象 node: `todo`, `doing`, `waiting`, `failed`
+- 対象 edge: `depends_on`, `waits_for`
+- direction を持つ hard dependency graph から、位相計算用には undirected graph を作る
+
+### `hard_goal_scope(goal_node_id)`
+
+- goal に `contributes_to` で到達する unresolved node を集める
+- そこから hard prerequisite closure を足す
+- 位相計算に渡す graph 自体は `hard_unresolved` と同じ規則で undirected 化する
+
+この projection は Betti number や cycle witness を計算するための設計用語であり、
+参照実装には experimental core API があるが、現行の stable schema / CLI にはまだ入れない。
+
+---
+
+## 3.18 代表コマンド
 
 ```bash
 cg frontier --case release-1.8.0
 cg blockers --case move-2026-05
+cg analyze impact --case release-1.8.0 --node task_run_regression
+cg analyze critical-path --case release-1.8.0 --goal goal_release_ready
+cg analyze slack --case release-1.8.0 --goal goal_release_ready
+cg analyze bottlenecks --case release-1.8.0 --goal goal_release_ready
+cg analyze unblock --case release-1.8.0 --node task_submit_store
 ```
 
 ---
 
-## 3.14 明示的な再開
+## 3.19 明示的な再開
 
 `waiting` は明示的な hold なので、待機 event が完了しても自動的に `todo` へ戻すとは限りません。  
 v0.1 では、再開はユーザーまたは patch / automation が行います。
@@ -248,11 +360,12 @@ cg task resume --case move-2026-05 task_book_mover
 
 ---
 
-## 3.15 v0.1 でやりすぎないこと
+## 3.20 v0.1 でやりすぎないこと
 
 - 自動スケジューリング最適化
 - 確率的な risk ranking
 - choice / compensation / approval の複雑な推論
+- persistent homology や temporal topology の stable 化
 - goal 自動完了の強い論理
 
 CaseGraph の核は、まず **ready / blocked / why** を正確に出すことです。

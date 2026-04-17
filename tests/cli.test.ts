@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createTempWorkspace, removeTempWorkspace } from "./helpers/workspace.js";
 
 const createdWorkspaces: string[] = [];
+type NodeLike = { node_id: string };
+type ReasonLike = { message: string };
 
 afterEach(async () => {
   while (createdWorkspaces.length > 0) {
@@ -96,7 +98,7 @@ describe("cli phase 1 acceptance", () => {
     const frontier = await runJsonCommand(workspaceRoot, ["frontier", "--case", "release-1.8.0"]);
     expect(frontier.code).toBe(0);
     expect(frontier.json.ok).toBe(true);
-    expect(frontier.json.data.nodes.map((node: any) => node.node_id)).toEqual([
+    expect(nodeIds(frontier.json.data.nodes as NodeLike[])).toEqual([
       "task_run_regression",
       "task_update_notes"
     ]);
@@ -105,7 +107,7 @@ describe("cli phase 1 acceptance", () => {
     expect(blockers.code).toBe(0);
     expect(blockers.json.data.items).toHaveLength(1);
     expect(blockers.json.data.items[0].node.node_id).toBe("task_submit_store");
-    expect(blockers.json.data.items[0].reasons.map((reason: any) => reason.message)).toEqual([
+    expect(messages(blockers.json.data.items[0].reasons as ReasonLike[])).toEqual([
       "depends_on:task_run_regression is not done",
       "depends_on:task_update_notes is not done"
     ]);
@@ -130,9 +132,7 @@ describe("cli phase 1 acceptance", () => {
       "--case",
       "release-1.8.0"
     ]);
-    expect(nextFrontier.json.data.nodes.map((node: any) => node.node_id)).toEqual([
-      "task_submit_store"
-    ]);
+    expect(nodeIds(nextFrontier.json.data.nodes as NodeLike[])).toEqual(["task_submit_store"]);
   });
 
   it("rebuilds cache and verifies events through CLI", async () => {
@@ -240,9 +240,565 @@ describe("cli phase 1 acceptance", () => {
     expect(applied.json.revision.current).toBe(2);
 
     const frontier = await runJsonCommand(workspaceRoot, ["frontier", "--case", "release-1.8.0"]);
-    expect(frontier.json.data.nodes.map((node: any) => node.node_id)).toEqual([
+    expect(nodeIds(frontier.json.data.nodes as NodeLike[])).toEqual([
       "task_update_release_notes_l3"
     ]);
+  });
+
+  it("returns impact and critical path analysis in JSON", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-cli-");
+    createdWorkspaces.push(workspaceRoot);
+
+    await runJsonCommand(workspaceRoot, [
+      "case",
+      "new",
+      "--id",
+      "release-1.8.0",
+      "--title",
+      "Release 1.8.0",
+      "--description",
+      "May release"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "release-1.8.0",
+      "--id",
+      "goal_release_ready",
+      "--kind",
+      "goal",
+      "--title",
+      "Release 1.8.0 ready"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "release-1.8.0",
+      "--id",
+      "task_run_regression",
+      "--kind",
+      "task",
+      "--title",
+      "Run regression test",
+      "--metadata",
+      '{"estimate_minutes":45}'
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "release-1.8.0",
+      "--id",
+      "task_update_notes",
+      "--kind",
+      "task",
+      "--title",
+      "Update release notes",
+      "--metadata",
+      '{"estimate_minutes":15}'
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "release-1.8.0",
+      "--id",
+      "task_submit_store",
+      "--kind",
+      "task",
+      "--title",
+      "Submit to App Store",
+      "--metadata",
+      '{"estimate_minutes":20}'
+    ]);
+
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "release-1.8.0",
+      "--id",
+      "edge_submit_depends_regression",
+      "--type",
+      "depends_on",
+      "--from",
+      "task_submit_store",
+      "--to",
+      "task_run_regression"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "release-1.8.0",
+      "--id",
+      "edge_submit_depends_notes",
+      "--type",
+      "depends_on",
+      "--from",
+      "task_submit_store",
+      "--to",
+      "task_update_notes"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "release-1.8.0",
+      "--id",
+      "edge_regression_goal",
+      "--type",
+      "contributes_to",
+      "--from",
+      "task_run_regression",
+      "--to",
+      "goal_release_ready"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "release-1.8.0",
+      "--id",
+      "edge_notes_goal",
+      "--type",
+      "contributes_to",
+      "--from",
+      "task_update_notes",
+      "--to",
+      "goal_release_ready"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "release-1.8.0",
+      "--id",
+      "edge_submit_goal",
+      "--type",
+      "contributes_to",
+      "--from",
+      "task_submit_store",
+      "--to",
+      "goal_release_ready"
+    ]);
+
+    const criticalPath = await runJsonCommand(workspaceRoot, [
+      "analyze",
+      "critical-path",
+      "--case",
+      "release-1.8.0",
+      "--goal",
+      "goal_release_ready"
+    ]);
+    expect(criticalPath.code).toBe(0);
+    expect(criticalPath.json.data.depth_path.node_ids).toEqual([
+      "task_run_regression",
+      "task_submit_store"
+    ]);
+    expect(criticalPath.json.data.duration_path.node_ids).toEqual([
+      "task_run_regression",
+      "task_submit_store"
+    ]);
+
+    await runJsonCommand(workspaceRoot, [
+      "task",
+      "done",
+      "task_run_regression",
+      "--case",
+      "release-1.8.0"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "task",
+      "done",
+      "task_update_notes",
+      "--case",
+      "release-1.8.0"
+    ]);
+
+    const impact = await runJsonCommand(workspaceRoot, [
+      "analyze",
+      "impact",
+      "--case",
+      "release-1.8.0",
+      "--node",
+      "task_run_regression"
+    ]);
+    expect(impact.code).toBe(0);
+    expect(nodeIds(impact.json.data.hard_impact as NodeLike[])).toEqual(["task_submit_store"]);
+    expect(nodeIds(impact.json.data.context_impact as NodeLike[])).toEqual(["goal_release_ready"]);
+    expect(nodeIds(impact.json.data.frontier_invalidations as NodeLike[])).toEqual([
+      "task_submit_store"
+    ]);
+  });
+
+  it("returns path, structure, and unblock analysis in JSON", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-cli-");
+    createdWorkspaces.push(workspaceRoot);
+
+    await runJsonCommand(workspaceRoot, [
+      "case",
+      "new",
+      "--id",
+      "release-topology",
+      "--title",
+      "Release topology",
+      "--description",
+      "Topology analysis"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "goal_release_ready",
+      "--kind",
+      "goal",
+      "--title",
+      "Release ready"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "task_prepare",
+      "--kind",
+      "task",
+      "--title",
+      "Prepare build",
+      "--metadata",
+      '{"estimate_minutes":20}'
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "task_review",
+      "--kind",
+      "task",
+      "--title",
+      "Review build",
+      "--metadata",
+      '{"estimate_minutes":10}'
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "task_docs",
+      "--kind",
+      "task",
+      "--title",
+      "Write docs",
+      "--metadata",
+      '{"estimate_minutes":5}'
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "task_publish",
+      "--kind",
+      "task",
+      "--title",
+      "Publish release",
+      "--metadata",
+      '{"estimate_minutes":5}'
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "event_release_window",
+      "--kind",
+      "event",
+      "--title",
+      "Release window"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "task_monitor",
+      "--kind",
+      "task",
+      "--title",
+      "Monitor release",
+      "--metadata",
+      '{"estimate_minutes":5}'
+    ]);
+
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "edge_review_prepare",
+      "--type",
+      "depends_on",
+      "--from",
+      "task_review",
+      "--to",
+      "task_prepare"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "edge_docs_prepare",
+      "--type",
+      "depends_on",
+      "--from",
+      "task_docs",
+      "--to",
+      "task_prepare"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "edge_publish_review",
+      "--type",
+      "depends_on",
+      "--from",
+      "task_publish",
+      "--to",
+      "task_review"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "edge_monitor_publish",
+      "--type",
+      "depends_on",
+      "--from",
+      "task_monitor",
+      "--to",
+      "task_publish"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "edge_monitor_window",
+      "--type",
+      "waits_for",
+      "--from",
+      "task_monitor",
+      "--to",
+      "event_release_window"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "edge_publish_goal",
+      "--type",
+      "contributes_to",
+      "--from",
+      "task_publish",
+      "--to",
+      "goal_release_ready"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "edge_docs_goal",
+      "--type",
+      "contributes_to",
+      "--from",
+      "task_docs",
+      "--to",
+      "goal_release_ready"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "release-topology",
+      "--id",
+      "edge_monitor_goal",
+      "--type",
+      "contributes_to",
+      "--from",
+      "task_monitor",
+      "--to",
+      "goal_release_ready"
+    ]);
+
+    const slack = await runJsonCommand(workspaceRoot, [
+      "analyze",
+      "slack",
+      "--case",
+      "release-topology",
+      "--goal",
+      "goal_release_ready"
+    ]);
+    expect(slack.code).toBe(0);
+    expect(slack.json.data.projected_duration_minutes).toBe(40);
+    expect(slack.json.data.nodes.map((node: { node_id: string }) => node.node_id)).toEqual([
+      "task_prepare",
+      "task_review",
+      "task_publish",
+      "task_monitor",
+      "task_docs",
+      "event_release_window"
+    ]);
+    const docsNode = slack.json.data.nodes.find(
+      (node: { node_id: string; slack_minutes: number }) => node.node_id === "task_docs"
+    );
+    expect(docsNode?.slack_minutes).toBe(15);
+
+    const bottlenecks = await runJsonCommand(workspaceRoot, [
+      "analyze",
+      "bottlenecks",
+      "--case",
+      "release-topology",
+      "--goal",
+      "goal_release_ready"
+    ]);
+    expect(bottlenecks.code).toBe(0);
+    expect(bottlenecks.json.data.nodes[0]).toMatchObject({
+      node_id: "task_prepare",
+      downstream_count: 4,
+      goal_context_count: 1
+    });
+
+    const unblock = await runJsonCommand(workspaceRoot, [
+      "analyze",
+      "unblock",
+      "--case",
+      "release-topology",
+      "--node",
+      "task_monitor"
+    ]);
+    expect(unblock.code).toBe(0);
+    expect(unblock.json.data.actionable_leaf_node_ids).toEqual(["task_prepare"]);
+    expect(unblock.json.data.blockers).toEqual([
+      expect.objectContaining({
+        node_id: "task_prepare",
+        actionable: true
+      }),
+      expect.objectContaining({
+        node_id: "event_release_window",
+        actionable: false
+      })
+    ]);
+
+    const cycles = await runJsonCommand(workspaceRoot, [
+      "analyze",
+      "cycles",
+      "--case",
+      "release-topology",
+      "--goal",
+      "goal_release_ready"
+    ]);
+    expect(cycles.code).toBe(0);
+    expect(cycles.json.data.cycle_count).toBe(0);
+
+    const components = await runJsonCommand(workspaceRoot, [
+      "analyze",
+      "components",
+      "--case",
+      "release-topology",
+      "--goal",
+      "goal_release_ready"
+    ]);
+    expect(components.code).toBe(0);
+    expect(components.json.data.components).toEqual([
+      {
+        edge_count: 5,
+        node_count: 6,
+        node_ids: [
+          "event_release_window",
+          "task_docs",
+          "task_monitor",
+          "task_prepare",
+          "task_publish",
+          "task_review"
+        ]
+      }
+    ]);
+
+    const bridges = await runJsonCommand(workspaceRoot, [
+      "analyze",
+      "bridges",
+      "--case",
+      "release-topology",
+      "--goal",
+      "goal_release_ready"
+    ]);
+    expect(bridges.code).toBe(0);
+    expect(
+      bridges.json.data.bridges.map(
+        (bridge: { source_id: string; target_id: string }) =>
+          `${bridge.source_id}::${bridge.target_id}`
+      )
+    ).toEqual([
+      "event_release_window::task_monitor",
+      "task_docs::task_prepare",
+      "task_monitor::task_publish",
+      "task_prepare::task_review",
+      "task_publish::task_review"
+    ]);
+
+    const cutpoints = await runJsonCommand(workspaceRoot, [
+      "analyze",
+      "cutpoints",
+      "--case",
+      "release-topology",
+      "--goal",
+      "goal_release_ready"
+    ]);
+    expect(cutpoints.code).toBe(0);
+    expect(
+      cutpoints.json.data.cutpoints.map((cutpoint: { node_id: string }) => cutpoint.node_id)
+    ).toEqual(["task_monitor", "task_prepare", "task_publish", "task_review"]);
+
+    const fragility = await runJsonCommand(workspaceRoot, [
+      "analyze",
+      "fragility",
+      "--case",
+      "release-topology",
+      "--goal",
+      "goal_release_ready"
+    ]);
+    expect(fragility.code).toBe(0);
+    expect(fragility.json.data.nodes[0]).toMatchObject({
+      node_id: "task_prepare",
+      reason_tags: ["cutpoint", "bridge", "bottleneck"]
+    });
+    expect(fragility.json.data.warnings).toEqual([]);
   });
 });
 
@@ -266,4 +822,12 @@ async function runJsonCommand(workspaceRoot: string, args: string[]) {
     stderr: errorOutput,
     json: payload.length > 0 ? JSON.parse(payload) : null
   };
+}
+
+function nodeIds(nodes: NodeLike[]): string[] {
+  return nodes.map((node) => node.node_id);
+}
+
+function messages(reasons: ReasonLike[]): string[] {
+  return reasons.map((reason) => reason.message);
 }

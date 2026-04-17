@@ -1,6 +1,20 @@
 import { access, appendFile, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
+import { analyzeCriticalPath, analyzeImpact } from "./analysis.js";
+import { analyzeBottlenecks, type BottleneckAnalysisResult } from "./analysis-bottleneck.js";
+import { analyzeBridges, type BridgeAnalysisResult } from "./analysis-bridges.js";
+import { analyzeComponents, type ComponentAnalysisResult } from "./analysis-components.js";
+import { analyzeCutpoints, type CutpointAnalysisResult } from "./analysis-cutpoints.js";
+import { analyzeCycles, type CycleAnalysisResult } from "./analysis-cycles.js";
+import { analyzeFragility, type FragilityAnalysisResult } from "./analysis-fragility.js";
+import { analyzeSlack, type SlackAnalysisResult } from "./analysis-slack.js";
+import {
+  analyzeTopology,
+  type TopologyAnalysisOptions,
+  type TopologyAnalysisResult
+} from "./analysis-topology.js";
+import { analyzeMinimalUnblockSet, type MinimalUnblockSetResult } from "./analysis-unblock.js";
 import { DEFAULT_WORKSPACE_TITLE, SPEC_VERSION } from "./constants.js";
 import { CaseGraphError } from "./errors.js";
 import {
@@ -36,9 +50,11 @@ import type {
   CaseStateView,
   ChangeNodeStateInput,
   ConfigRecord,
+  CriticalPathAnalysisResult,
   EventEnvelope,
   FrontierItem,
   GraphPatch,
+  ImpactAnalysisResult,
   MutationContext,
   PatchReview,
   RevisionSnapshot,
@@ -762,6 +778,105 @@ export async function listBlockedItems(
     revision: state.caseRecord.case_revision,
     items: getReducerBlockedItems(state)
   };
+}
+
+export async function analyzeImpactForCase(
+  workspaceRoot: string,
+  caseId: string,
+  nodeId: string
+): Promise<ImpactAnalysisResult> {
+  const state = await loadCaseState(workspaceRoot, caseId);
+  return analyzeImpact(state, nodeId);
+}
+
+export async function analyzeCriticalPathForCase(
+  workspaceRoot: string,
+  caseId: string,
+  goalNodeId?: string
+): Promise<CriticalPathAnalysisResult> {
+  const state = await loadCaseState(workspaceRoot, caseId);
+  return analyzeCriticalPath(state, goalNodeId);
+}
+
+export async function analyzeSlackForCase(
+  workspaceRoot: string,
+  caseId: string,
+  goalNodeId?: string
+): Promise<SlackAnalysisResult> {
+  const state = await loadCaseState(workspaceRoot, caseId);
+  return analyzeSlack(state, goalNodeId);
+}
+
+export async function analyzeBottlenecksForCase(
+  workspaceRoot: string,
+  caseId: string,
+  goalNodeId?: string
+): Promise<BottleneckAnalysisResult> {
+  const state = await loadCaseState(workspaceRoot, caseId);
+  return analyzeBottlenecks(state, goalNodeId);
+}
+
+export async function analyzeCyclesForCase(
+  workspaceRoot: string,
+  caseId: string,
+  options: TopologyAnalysisOptions = {}
+): Promise<CycleAnalysisResult> {
+  const state = await loadCaseState(workspaceRoot, caseId);
+  return analyzeCycles(state, options);
+}
+
+export async function analyzeComponentsForCase(
+  workspaceRoot: string,
+  caseId: string,
+  options: TopologyAnalysisOptions = {}
+): Promise<ComponentAnalysisResult> {
+  const state = await loadCaseState(workspaceRoot, caseId);
+  return analyzeComponents(state, options);
+}
+
+export async function analyzeBridgesForCase(
+  workspaceRoot: string,
+  caseId: string,
+  options: TopologyAnalysisOptions = {}
+): Promise<BridgeAnalysisResult> {
+  const state = await loadCaseState(workspaceRoot, caseId);
+  return analyzeBridges(state, options);
+}
+
+export async function analyzeCutpointsForCase(
+  workspaceRoot: string,
+  caseId: string,
+  options: TopologyAnalysisOptions = {}
+): Promise<CutpointAnalysisResult> {
+  const state = await loadCaseState(workspaceRoot, caseId);
+  return analyzeCutpoints(state, options);
+}
+
+export async function analyzeFragilityForCase(
+  workspaceRoot: string,
+  caseId: string,
+  options: TopologyAnalysisOptions = {}
+): Promise<FragilityAnalysisResult> {
+  const state = await loadCaseState(workspaceRoot, caseId);
+  return analyzeFragility(state, options);
+}
+
+export async function analyzeTopologyForCase(
+  workspaceRoot: string,
+  caseId: string,
+  options: TopologyAnalysisOptions = {}
+): Promise<TopologyAnalysisResult> {
+  const state = await loadCaseState(workspaceRoot, caseId);
+  return analyzeTopology(state, options);
+}
+
+export async function analyzeMinimalUnblockSetForCase(
+  workspaceRoot: string,
+  caseId: string,
+  nodeId: string
+): Promise<MinimalUnblockSetResult> {
+  const state = await loadCaseState(workspaceRoot, caseId);
+  return analyzeMinimalUnblockSet(state, nodeId);
 }
 
 export async function appendCaseEvents(

@@ -1,0 +1,84 @@
+{
+  "case": {
+    "case_id": "vendor-selection-2026-06",
+    "title": "Select Vendor",
+    "description": "Choose a vendor from incoming quotes"
+  },
+  "nodes": [
+    {
+      "node_id": "goal_vendor_selected",
+      "kind": "goal",
+      "title": "Vendor selected",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_collect_quotes",
+      "kind": "task",
+      "title": "Collect quotes",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_compare_quotes",
+      "kind": "task",
+      "title": "Compare quotes",
+      "state": "todo"
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "e1",
+      "type": "depends_on",
+      "source_id": "task_compare_quotes",
+      "target_id": "task_collect_quotes"
+    },
+    {
+      "edge_id": "e2",
+      "type": "contributes_to",
+      "source_id": "task_collect_quotes",
+      "target_id": "goal_vendor_selected"
+    },
+    {
+      "edge_id": "e3",
+      "type": "contributes_to",
+      "source_id": "task_compare_quotes",
+      "target_id": "goal_vendor_selected"
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "critical path with missing estimates",
+      "critical_path": {
+        "goal_node_id": "goal_vendor_selected",
+        "depth_path": ["task_collect_quotes", "task_compare_quotes"],
+        "duration_path": null,
+        "missing_estimate_node_ids": ["task_collect_quotes", "task_compare_quotes"],
+        "warnings": [
+          "missing_estimates_present",
+          "duration_path_unavailable_due_to_missing_estimates"
+        ]
+      }
+    },
+    {
+      "name": "slack unavailable with missing estimates",
+      "slack": {
+        "goal_node_id": "goal_vendor_selected",
+        "projected_duration_minutes": null,
+        "node_ids": [],
+        "critical_node_ids": [],
+        "slack_minutes_by_node": {},
+        "missing_estimate_node_ids": ["task_collect_quotes", "task_compare_quotes"],
+        "warnings": ["missing_estimates_present", "slack_unavailable_due_to_missing_estimates"]
+      }
+    },
+    {
+      "name": "impact before quote comparison starts",
+      "impact": {
+        "source_node_id": "task_collect_quotes",
+        "hard_impact": ["task_compare_quotes"],
+        "context_impact": ["goal_vendor_selected"],
+        "frontier_invalidations": [],
+        "warnings": []
+      }
+    }
+  ]
+}

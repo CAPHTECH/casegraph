@@ -1,10 +1,20 @@
 import path from "node:path";
-import type { EdgeType, NodeKind, NodeState } from "@casegraph/core";
+import type { EdgeType, GraphPatch, MutationContext, NodeKind, NodeState } from "@casegraph/core";
 
 import {
   addEdge,
   addEvidence,
   addNode,
+  analyzeBottlenecksForCase,
+  analyzeBridgesForCase,
+  analyzeComponentsForCase,
+  analyzeCriticalPathForCase,
+  analyzeCutpointsForCase,
+  analyzeCyclesForCase,
+  analyzeFragilityForCase,
+  analyzeImpactForCase,
+  analyzeMinimalUnblockSetForCase,
+  analyzeSlackForCase,
   applyPatch,
   CaseGraphError,
   changeNodeState,
@@ -46,7 +56,16 @@ import {
   runWorkspaceCommand
 } from "./runtime.js";
 import { runSinkPull, runSinkPush } from "./sink-host.js";
-import { runWorkerExecute } from "./worker-host.js";
+import { runWorkerExecute, type WorkerRunResult } from "./worker-host.js";
+
+interface WorkerRunCommandOptions {
+  worker: string;
+  case: string;
+  node: string;
+  approve?: boolean;
+  output?: string;
+  timeout?: string;
+}
 
 export async function runCli(
   argv: string[],
@@ -450,6 +469,141 @@ export async function runCli(
       });
     });
 
+  const analyzeCommand = program.command("analyze");
+  analyzeCommand
+    .command("impact")
+    .requiredOption("--case <caseId>")
+    .requiredOption("--node <nodeId>")
+    .action(async (_, command) => {
+      const options = command.opts() as { case: string; node: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const data = await analyzeImpactForCase(workspaceRoot, options.case, options.node);
+        return successResult("analyze impact", data, data.revision);
+      });
+    });
+
+  analyzeCommand
+    .command("critical-path")
+    .requiredOption("--case <caseId>")
+    .option("--goal <goalNodeId>")
+    .action(async (_, command) => {
+      const options = command.opts() as { case: string; goal?: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const data = await analyzeCriticalPathForCase(workspaceRoot, options.case, options.goal);
+        return successResult("analyze critical-path", data, data.revision);
+      });
+    });
+
+  analyzeCommand
+    .command("slack")
+    .requiredOption("--case <caseId>")
+    .option("--goal <goalNodeId>")
+    .action(async (_, command) => {
+      const options = command.opts() as { case: string; goal?: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const data = await analyzeSlackForCase(workspaceRoot, options.case, options.goal);
+        return successResult("analyze slack", data, data.revision);
+      });
+    });
+
+  analyzeCommand
+    .command("bottlenecks")
+    .requiredOption("--case <caseId>")
+    .option("--goal <goalNodeId>")
+    .action(async (_, command) => {
+      const options = command.opts() as { case: string; goal?: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const data = await analyzeBottlenecksForCase(workspaceRoot, options.case, options.goal);
+        return successResult("analyze bottlenecks", data, data.revision);
+      });
+    });
+
+  analyzeCommand
+    .command("unblock")
+    .requiredOption("--case <caseId>")
+    .requiredOption("--node <nodeId>")
+    .action(async (_, command) => {
+      const options = command.opts() as { case: string; node: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const data = await analyzeMinimalUnblockSetForCase(
+          workspaceRoot,
+          options.case,
+          options.node
+        );
+        return successResult("analyze unblock", data, data.revision);
+      });
+    });
+
+  analyzeCommand
+    .command("cycles")
+    .requiredOption("--case <caseId>")
+    .option("--goal <goalNodeId>")
+    .action(async (_, command) => {
+      const options = command.opts() as { case: string; goal?: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const data = await analyzeCyclesForCase(workspaceRoot, options.case, {
+          goalNodeId: options.goal
+        });
+        return successResult("analyze cycles", data, data.revision);
+      });
+    });
+
+  analyzeCommand
+    .command("components")
+    .requiredOption("--case <caseId>")
+    .option("--goal <goalNodeId>")
+    .action(async (_, command) => {
+      const options = command.opts() as { case: string; goal?: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const data = await analyzeComponentsForCase(workspaceRoot, options.case, {
+          goalNodeId: options.goal
+        });
+        return successResult("analyze components", data, data.revision);
+      });
+    });
+
+  analyzeCommand
+    .command("bridges")
+    .requiredOption("--case <caseId>")
+    .option("--goal <goalNodeId>")
+    .action(async (_, command) => {
+      const options = command.opts() as { case: string; goal?: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const data = await analyzeBridgesForCase(workspaceRoot, options.case, {
+          goalNodeId: options.goal
+        });
+        return successResult("analyze bridges", data, data.revision);
+      });
+    });
+
+  analyzeCommand
+    .command("cutpoints")
+    .requiredOption("--case <caseId>")
+    .option("--goal <goalNodeId>")
+    .action(async (_, command) => {
+      const options = command.opts() as { case: string; goal?: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const data = await analyzeCutpointsForCase(workspaceRoot, options.case, {
+          goalNodeId: options.goal
+        });
+        return successResult("analyze cutpoints", data, data.revision);
+      });
+    });
+
+  analyzeCommand
+    .command("fragility")
+    .requiredOption("--case <caseId>")
+    .option("--goal <goalNodeId>")
+    .action(async (_, command) => {
+      const options = command.opts() as { case: string; goal?: string };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
+        const data = await analyzeFragilityForCase(workspaceRoot, options.case, {
+          goalNodeId: options.goal
+        });
+        return successResult("analyze fragility", data, data.revision);
+      });
+    });
+
   const validateCommand = program.command("validate");
   validateCommand.command("storage").action(async (_, command) => {
     await runWorkspaceCommand(runtime, command, async (workspaceRoot) =>
@@ -663,61 +817,7 @@ export async function runCli(
     .option("--output <path>")
     .option("--timeout <seconds>", "worker execution timeout in seconds")
     .action(async (_, command) => {
-      const options = command.opts() as {
-        worker: string;
-        case: string;
-        node: string;
-        approve?: boolean;
-        output?: string;
-        timeout?: string;
-      };
-      await runMutationCommand(
-        runtime,
-        command,
-        async (workspaceRoot, _globals, mutationContext) => {
-          const timeoutSeconds =
-            typeof options.timeout === "string" ? Number.parseInt(options.timeout, 10) : undefined;
-
-          const result = await runWorkerExecute({
-            workspaceRoot,
-            caseId: options.case,
-            nodeId: options.node,
-            workerName: options.worker,
-            env: runtime.env,
-            approve: options.approve === true,
-            mutationContext,
-            timeoutSeconds:
-              typeof timeoutSeconds === "number" &&
-              Number.isFinite(timeoutSeconds) &&
-              timeoutSeconds > 0
-                ? timeoutSeconds
-                : undefined
-          });
-
-          const outputPath = options.output ? path.resolve(runtime.cwd, options.output) : undefined;
-          if (outputPath && result.patch) {
-            await writeStructuredFile(outputPath, result.patch);
-          }
-
-          return successResult(
-            "worker run",
-            {
-              worker_name: result.worker_name,
-              node_id: result.node_id,
-              status: result.status,
-              summary: result.summary,
-              artifacts: result.artifacts,
-              observations: result.observations,
-              warnings: result.warnings,
-              exit_code: result.exit_code,
-              approval: result.approval,
-              patch: result.patch,
-              output_file: outputPath && result.patch ? outputPath : null
-            },
-            result.revision
-          );
-        }
-      );
+      await runWorkerRunCommand(runtime, command);
     });
 
   try {
@@ -780,4 +880,75 @@ function addTaskStateCommand(
       }
     );
   });
+}
+
+async function runWorkerRunCommand(runtime: CliRuntime, command: Command): Promise<void> {
+  const options = command.opts() as WorkerRunCommandOptions;
+  await runMutationCommand(runtime, command, async (workspaceRoot, _globals, mutationContext) =>
+    executeWorkerRunMutation(runtime, workspaceRoot, mutationContext, options)
+  );
+}
+
+async function executeWorkerRunMutation(
+  runtime: CliRuntime,
+  workspaceRoot: string,
+  mutationContext: MutationContext,
+  options: WorkerRunCommandOptions
+) {
+  const result = await runWorkerExecute({
+    workspaceRoot,
+    caseId: options.case,
+    nodeId: options.node,
+    workerName: options.worker,
+    env: runtime.env,
+    approve: options.approve === true,
+    mutationContext,
+    timeoutSeconds: parseWorkerTimeoutSeconds(options.timeout)
+  });
+
+  const outputFile = await writeWorkerRunPatchOutput(runtime.cwd, options.output, result.patch);
+  return successResult("worker run", buildWorkerRunPayload(result, outputFile), result.revision);
+}
+
+function parseWorkerTimeoutSeconds(timeout?: string): number | undefined {
+  if (typeof timeout !== "string") {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(timeout, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
+async function writeWorkerRunPatchOutput(
+  cwd: string,
+  output: string | undefined,
+  patch: GraphPatch | null
+): Promise<string | null> {
+  if (!(output && patch)) {
+    return null;
+  }
+
+  const outputPath = path.resolve(cwd, output);
+  await writeStructuredFile(outputPath, patch);
+  return outputPath;
+}
+
+function buildWorkerRunPayload(result: WorkerRunResult, outputFile: string | null) {
+  return {
+    worker_name: result.worker_name,
+    node_id: result.node_id,
+    status: result.status,
+    summary: result.summary,
+    artifacts: result.artifacts,
+    observations: result.observations,
+    warnings: result.warnings,
+    exit_code: result.exit_code,
+    approval: result.approval,
+    patch: result.patch,
+    output_file: outputFile
+  };
 }

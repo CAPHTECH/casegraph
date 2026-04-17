@@ -1,0 +1,190 @@
+{
+  "case": {
+    "case_id": "release-topology",
+    "title": "Release topology",
+    "description": "Topology analysis"
+  },
+  "nodes": [
+    {
+      "node_id": "goal_release_ready",
+      "kind": "goal",
+      "title": "Release ready",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_prepare",
+      "kind": "task",
+      "title": "Prepare build",
+      "state": "todo",
+      "metadata": { "estimate_minutes": 20 }
+    },
+    {
+      "node_id": "task_review",
+      "kind": "task",
+      "title": "Review build",
+      "state": "todo",
+      "metadata": { "estimate_minutes": 10 }
+    },
+    {
+      "node_id": "task_docs",
+      "kind": "task",
+      "title": "Write docs",
+      "state": "todo",
+      "metadata": { "estimate_minutes": 5 }
+    },
+    {
+      "node_id": "task_publish",
+      "kind": "task",
+      "title": "Publish release",
+      "state": "todo",
+      "metadata": { "estimate_minutes": 5 }
+    },
+    {
+      "node_id": "event_release_window",
+      "kind": "event",
+      "title": "Release window",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_monitor",
+      "kind": "task",
+      "title": "Monitor release",
+      "state": "todo",
+      "metadata": { "estimate_minutes": 5 }
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "edge_review_prepare",
+      "type": "depends_on",
+      "source_id": "task_review",
+      "target_id": "task_prepare"
+    },
+    {
+      "edge_id": "edge_docs_prepare",
+      "type": "depends_on",
+      "source_id": "task_docs",
+      "target_id": "task_prepare"
+    },
+    {
+      "edge_id": "edge_publish_review",
+      "type": "depends_on",
+      "source_id": "task_publish",
+      "target_id": "task_review"
+    },
+    {
+      "edge_id": "edge_monitor_publish",
+      "type": "depends_on",
+      "source_id": "task_monitor",
+      "target_id": "task_publish"
+    },
+    {
+      "edge_id": "edge_monitor_window",
+      "type": "waits_for",
+      "source_id": "task_monitor",
+      "target_id": "event_release_window"
+    },
+    {
+      "edge_id": "edge_publish_goal",
+      "type": "contributes_to",
+      "source_id": "task_publish",
+      "target_id": "goal_release_ready"
+    },
+    {
+      "edge_id": "edge_docs_goal",
+      "type": "contributes_to",
+      "source_id": "task_docs",
+      "target_id": "goal_release_ready"
+    },
+    {
+      "edge_id": "edge_monitor_goal",
+      "type": "contributes_to",
+      "source_id": "task_monitor",
+      "target_id": "goal_release_ready"
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "slack on goal-scoped release topology",
+      "slack": {
+        "goal_node_id": "goal_release_ready",
+        "projected_duration_minutes": 40,
+        "node_ids": [
+          "task_prepare",
+          "task_review",
+          "task_publish",
+          "task_monitor",
+          "task_docs",
+          "event_release_window"
+        ],
+        "critical_node_ids": ["task_prepare", "task_review", "task_publish", "task_monitor"],
+        "slack_minutes_by_node": {
+          "task_prepare": 0,
+          "task_review": 0,
+          "task_publish": 0,
+          "task_monitor": 0,
+          "task_docs": 15,
+          "event_release_window": 35
+        },
+        "missing_estimate_node_ids": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "bottlenecks on goal-scoped release topology",
+      "bottlenecks": {
+        "goal_node_id": "goal_release_ready",
+        "node_ids": [
+          "task_prepare",
+          "task_review",
+          "event_release_window",
+          "task_publish",
+          "task_docs",
+          "task_monitor"
+        ],
+        "downstream_count_by_node": {
+          "task_prepare": 4,
+          "task_review": 2,
+          "event_release_window": 1,
+          "task_publish": 1,
+          "task_docs": 0,
+          "task_monitor": 0
+        },
+        "frontier_invalidation_count_by_node": {
+          "task_prepare": 0,
+          "task_review": 0,
+          "event_release_window": 0,
+          "task_publish": 0,
+          "task_docs": 0,
+          "task_monitor": 0
+        },
+        "goal_context_count_by_node": {
+          "task_prepare": 1,
+          "task_review": 1,
+          "event_release_window": 1,
+          "task_publish": 1,
+          "task_docs": 1,
+          "task_monitor": 1
+        },
+        "warnings": []
+      }
+    },
+    {
+      "name": "minimal unblock set for monitor task",
+      "unblock": {
+        "target_node_id": "task_monitor",
+        "actionable_leaf_node_ids": ["task_prepare"],
+        "blocker_node_ids": ["task_prepare", "event_release_window"],
+        "blocker_kinds_by_node": {
+          "task_prepare": "actionable_leaf",
+          "event_release_window": "wait_leaf"
+        },
+        "blocker_actionable_by_node": {
+          "task_prepare": true,
+          "event_release_window": false
+        },
+        "warnings": []
+      }
+    }
+  ]
+}

@@ -73,6 +73,7 @@ CaseGraph が対象にするのは、次のような仕事です。
 - [ADR-0003: Patch-mediated AI integration](docs/adr/0003-patch-mediated-ai.md)
 - [ADR-0004: External tools are projections](docs/adr/0004-external-tools-are-projections.md)
 - [ADR-0005: JSON-RPC over stdio plugin protocol](docs/adr/0005-jsonrpc-stdio-plugin-protocol.md)
+- [ADR-0006: Topology projections and Betti-v1 design](docs/adr/0006-topology-projections-and-betti-v1.md)
 
 ### 例
 - [Release case](docs/examples/release-case.md)
@@ -116,6 +117,7 @@ flowchart LR
 - node / edge 管理
 - event log
 - frontier / blocker 計算
+- graph structure / path analysis (`impact`, `critical-path`, `slack`, `bottlenecks`, `unblock`, `cycles`, `components`, `bridges`, `cutpoints`, `fragility`)
 - GraphPatch
 - CLI
 - importer / sink / worker の基本プロトコル
@@ -135,7 +137,54 @@ flowchart LR
 
 ---
 
-## 6. 推奨リポジトリ構成
+## 6. Topology Today
+
+CaseGraph が今持っている topology は、**依存グラフに対する内部計算の仕組み** です。
+ユーザーに見せる面は、raw topology そのものではなく、仕事の構造を説明する analysis surface です。
+
+- `impact`: 変更や失敗の波及先
+- `critical-path`: 未解決 hard dependency の最長鎖
+- `slack`: 余裕時間と critical node
+- `bottlenecks`: downstream 影響の大きい node
+- `unblock`: blocked node を ready にする最小 leaf 集合
+- `cycles`: hard graph に循環があるか
+- `components`: 未解決 hard graph の分断
+- `bridges`: 一本切れると分断する依存
+- `cutpoints`: 一点欠けると分断する node
+- `fragility`: 橋・切断点・downstream 影響をまとめた脆さ順位
+
+これらは `depends_on` / `waits_for` / `contributes_to` を使う決定論的解析で、
+現在の参照実装と golden corpus で継続検証されています。
+`topology` 自体は core / eval 用の experimental mechanism として残し、
+安定した user-facing command surface には直接出しません。
+
+---
+
+## 7. Deferred Algebraic Topology
+
+一方で、CaseGraph には将来的に **projection 後の代数トポロジー計算** を入れる余地があります。
+
+現時点では experimental core surface として、次を v1 の対象に固定しています。
+
+- undirected projection 上の `Betti-0`
+- undirected projection 上の `Betti-1`
+- component / cycle witness の説明 surface
+
+非対象:
+
+- persistent homology
+- temporal topology の first-class API
+- high-dimensional simplex / Betti-2+
+- stable CLI / public schema の追加
+
+参照実装では `packages/core` に experimental API が入り、
+`analysis-eval` harness で `beta_0` / `beta_1` / component set を継続検証しています。
+
+詳細は [ADR-0006](docs/adr/0006-topology-projections-and-betti-v1.md) を参照。
+
+---
+
+## 8. 推奨リポジトリ構成
 
 ```text
 /docs
@@ -152,6 +201,6 @@ flowchart LR
 
 ---
 
-## 7. 一文要約
+## 9. 一文要約
 
 **CaseGraph は、ケースを依存・待機・代替・証跡つきのグラフとして管理し、決定論的コアの上に AI 補助と外部ツール連携を載せる local-first CLI 基盤である。**
