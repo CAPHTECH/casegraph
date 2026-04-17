@@ -105,3 +105,5 @@ tests/      unit, integration, conformance, property, e2e
 ## License
 
 This repository is licensed under the Apache License 2.0. See [LICENSE](LICENSE).
+
+Copyright 2026 CAPH TECH Inc.
