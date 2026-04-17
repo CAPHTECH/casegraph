@@ -2,8 +2,8 @@
 
 ## 8.1 前提
 
-この章は **optional integration** の設計を述べる。
-CaseGraph の core 採用に sink は必須ではなく、外部 sync が不要な運用でも成立する。
+この章は built-in な **markdown sync** と、optional な external integration の設計を述べる。
+CaseGraph の core 採用に SaaS sink は必須ではないが、markdown sync は reference integration として含める。
 
 CaseGraph の内部 graph は、外部ツールのデータモデルより豊かです。  
 そのため同期は「対等な mirror」ではなく、**内部 graph から外部表現への投影** と考えるべきです。

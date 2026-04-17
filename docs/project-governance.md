@@ -76,7 +76,7 @@ v0.x では急激な変更を許容しつつも、次は守るべきです。
 1. core の正しさ
 2. CLI の安定性
 3. spec の明確さ
-4. markdown / todoist / taskwarrior など代表 sink の品質
+4. markdown sink の品質と optional external integration の境界
 5. worker protocol の簡潔さ
 
 ## 8. やらないこと

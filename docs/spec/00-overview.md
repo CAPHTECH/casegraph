@@ -175,4 +175,4 @@ v0.1 の成功条件は、次の 4 点です。
 1. 複雑な case を最小のノード/辺で表現できる
 2. `frontier` と `blockers` が実務的に使える
 3. patch を介して AI を安全に補助利用できる
-4. 外部ツールへ actionables を投影できる
+4. actionables / summary を markdown に投影できる

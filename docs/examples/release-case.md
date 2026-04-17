@@ -74,9 +74,9 @@ event が発生するまで ready ではない。
 ### 3. 証跡
 ストア申請後、スクリーンショットや submission URL を evidence として添付できる。
 
-### 4. optional projection
-- 外部 task list が必要なら ready な tasks のみ出す
-- summary 出力が必要なら goals / waiting events も含める
+### 4. markdown projection
+- markdown checklist には ready な tasks を出す
+- markdown summary には goals / waiting events も含める
 
 ## Normative Acceptance
 

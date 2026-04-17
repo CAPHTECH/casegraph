@@ -282,8 +282,8 @@ event log の envelope shape と replay 前提の整合性を確認する。
 
 ### Phase 3 参照実装の working surface
 
-Phase 3 の sync surface は optional integration track であり、core roadmap completion の必須条件ではない。
-必要な運用がある場合にだけ projection sink 向けに次の command surface を使う。
+Phase 3 では built-in markdown sync を reference integration として含める。
+より広い external sink support は optional integration track とし、core roadmap completion の必須条件には含めない。
 
 - `cg sync push --sink <name> --case <caseId> [--apply]`
   - 既定は dry-run として plan を表示のみ。`--apply` で `sink.applyProjection` を実行し `projection.pushed` event を追記する。
