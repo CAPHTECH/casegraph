@@ -79,6 +79,14 @@ CaseGraph が対象にするのは、次のような仕事です。
 - [Release case](docs/examples/release-case.md)
 - [Move case](docs/examples/move-case.md)
 
+### Guides
+- [Quickstart (EN)](docs/guides/quickstart.en.md)
+- [Quickstart (JA)](docs/guides/quickstart.ja.md)
+- [v0.1 Release Checklist (EN)](docs/guides/release-checklist.en.md)
+- [v0.1 Release Checklist (JA)](docs/guides/release-checklist.ja.md)
+- [Manual Acceptance (EN)](docs/guides/manual-acceptance.en.md)
+- [Manual Acceptance (JA)](docs/guides/manual-acceptance.ja.md)
+
 ### 補足
 - [Project governance](docs/project-governance.md)
 - [Roadmap](docs/roadmap.md)
