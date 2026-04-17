@@ -1,23 +1,18 @@
 import {
   type ApprovalDecision,
-  appendCaseEvents,
   CaseGraphError,
   type CaseStateView,
-  createEvent,
-  defaultActor,
-  type EventEnvelope,
   type GraphPatch,
   generateId,
+  type JsonRpcStdioClient,
   loadCaseState,
   loadConfigRecord,
   type MutationContext,
   type NodeRecord,
-  nowUtc,
   resolveApprovalDecision,
   validatePatchDocument,
   type WorkerAttachmentRef,
   type WorkerCapabilities,
-  type WorkerDispatchedPayload,
   type WorkerExecuteResult,
   type WorkerFinishedPayload,
   type WorkerRelatedNode,
@@ -25,9 +20,15 @@ import {
   type WorkerTaskSnapshot
 } from "@casegraph/core";
 
-import { builtInPluginCommand, closePluginClient, openPluginClient } from "./plugin-client.js";
+import {
+  appendPluginAuditEvent,
+  type BuiltInPluginEntry,
+  closePluginClient,
+  openPluginClient,
+  resolvePluginHost
+} from "./plugin-client.js";
 
-const BUILT_IN_WORKERS: Record<string, { entryFromImport: URL; requiredMethod: string }> = {
+const BUILT_IN_WORKERS: Record<string, BuiltInPluginEntry> = {
   shell: {
     entryFromImport: new URL("../../worker-shell/src/index.ts", import.meta.url),
     requiredMethod: "worker.execute"
@@ -62,17 +63,26 @@ export interface WorkerRunResult {
   revision: CaseStateView["caseRecord"]["case_revision"];
 }
 
+interface ApprovalOutcome {
+  capabilities: WorkerCapabilities;
+  decision: ApprovalDecision;
+}
+
+interface PatchReview {
+  patch: GraphPatch | null;
+  patchError: unknown;
+}
+
 export async function runWorkerExecute(options: WorkerRunOptions): Promise<WorkerRunResult> {
   const config = await loadConfigRecord(options.workspaceRoot);
-  const builtIn = BUILT_IN_WORKERS[options.workerName];
-  const workerConfig = config.workers?.[options.workerName];
-  if (!(workerConfig || builtIn)) {
-    throw new CaseGraphError(
-      "worker_not_configured",
-      `Worker ${options.workerName} is not configured`,
-      { exitCode: 3 }
-    );
-  }
+  const resolved = resolvePluginHost({
+    name: options.workerName,
+    config: config.workers?.[options.workerName],
+    builtIn: BUILT_IN_WORKERS[options.workerName],
+    fallbackRequiredMethod: "worker.execute",
+    notConfiguredCode: "worker_not_configured",
+    notConfiguredMessage: `Worker ${options.workerName} is not configured`
+  });
 
   const state = await loadCaseState(options.workspaceRoot, options.caseId);
   const targetNode = state.nodes.get(options.nodeId);
@@ -87,146 +97,85 @@ export async function runWorkerExecute(options: WorkerRunOptions): Promise<Worke
   const client = await openPluginClient({
     workspaceRoot: options.workspaceRoot,
     env: options.env,
-    config: workerConfig,
-    defaultCommand: builtIn ? builtInPluginCommand(builtIn.entryFromImport) : [],
+    config: resolved.config,
+    defaultCommand: resolved.defaultCommand,
     peerName: "worker",
-    requiredMethod: builtIn?.requiredMethod ?? "worker.execute",
+    requiredMethod: resolved.requiredMethod,
     capabilityErrorCode: "worker_capability_missing"
   });
 
   try {
-    const initResponse = await client.request<{ capabilities?: WorkerCapabilities }>("initialize", {
-      client: { name: "cg", version: "0.1.0" }
-    });
-    const capabilities: WorkerCapabilities = initResponse.capabilities ?? { effectful: true };
-
-    const decision = resolveApprovalDecision(
-      config.approval_policy,
-      options.workerName,
-      capabilities.effectful
-    );
-
-    if (decision === "deny") {
-      throw new CaseGraphError(
-        "worker_approval_denied",
-        `Approval policy denies worker ${options.workerName}`,
-        { exitCode: 2, details: { approval_policy: config.approval_policy } }
-      );
-    }
-
-    if (decision === "require" && !options.approve) {
-      throw new CaseGraphError(
-        "worker_approval_required",
-        `Worker ${options.workerName} is effectful; pass --approve to run it`,
-        { exitCode: 2, details: { capabilities } }
-      );
-    }
-
+    const { capabilities, decision } = await negotiateApprovalDecision(client, options, config);
     const commandId = options.mutationContext.commandId ?? generateId();
     const timeoutSeconds = options.timeoutSeconds ?? DEFAULT_WORKER_TIMEOUT_SECONDS;
 
-    const dispatchedState = await appendWorkerEvent(options, "worker.dispatched", {
-      worker_name: options.workerName,
-      node_id: options.nodeId,
-      command_id: commandId,
+    const dispatchedState = await appendPluginAuditEvent({
+      workspaceRoot: options.workspaceRoot,
+      caseId: options.caseId,
+      mutationContext: options.mutationContext,
+      type: "worker.dispatched",
+      source: "worker",
+      payload: {
+        worker_name: options.workerName,
+        node_id: options.nodeId,
+        command_id: commandId,
+        capabilities,
+        approval: decision
+      } as unknown as Record<string, unknown>,
+      fallbackCommandId: commandId
+    });
+
+    const executeResult = await invokeWorkerExecute({
+      client,
+      options,
       capabilities,
-      approval: decision
-    } satisfies WorkerDispatchedPayload);
+      decision,
+      commandId,
+      timeoutSeconds,
+      dispatchedState,
+      state,
+      targetNode
+    });
 
-    const taskSnapshot = buildTaskSnapshot(targetNode);
-    const taskContext = buildWorkerTaskContext(state, options.nodeId);
-
-    let executeResult: WorkerExecuteResult;
-    try {
-      executeResult = await requestWithTimeout(
-        client.request<WorkerExecuteResult>("worker.execute", {
-          case: {
-            case_id: state.caseRecord.case_id,
-            title: state.caseRecord.title,
-            base_revision: dispatchedState.caseRecord.case_revision.current
-          },
-          task: taskSnapshot,
-          context: taskContext,
-          execution_policy: {
-            effectful: capabilities.effectful,
-            approval:
-              decision === "auto" ? "not_required" : decision === "require" ? "required" : "auto",
-            timeout_seconds: timeoutSeconds,
-            command_id: commandId
-          }
-        }),
-        timeoutSeconds
-      );
-    } catch (error) {
-      if (isWorkerTimeoutError(error)) {
-        await appendWorkerEvent(options, "worker.finished", {
-          worker_name: options.workerName,
-          node_id: options.nodeId,
-          command_id: commandId,
-          status: "failed",
-          summary: `Worker timed out after ${timeoutSeconds}s`,
-          artifacts: [],
-          observations: [`Worker did not respond within ${timeoutSeconds}s; client aborted.`],
-          patch_id: null,
-          patch_path: null,
-          exit_code: null
-        } satisfies WorkerFinishedPayload);
-        throw new CaseGraphError(
-          "worker_timeout",
-          `Worker ${options.workerName} did not respond within ${timeoutSeconds}s`,
-          { exitCode: 2, details: { timeout_seconds: timeoutSeconds } }
-        );
-      }
-      throw error;
-    }
-
-    let patch: GraphPatch | null = null;
-    let patchError: unknown = null;
-    if (executeResult.patch) {
-      const validation = validatePatchDocument(executeResult.patch);
-      if (validation.valid && validation.patch) {
-        patch = validation.patch;
-      } else {
-        patchError = validation;
-      }
-    }
-
-    const finishedStatus: WorkerExecuteResult["status"] = patchError
+    const review = reviewReturnedPatch(executeResult);
+    const observations = buildObservations(executeResult, review.patchError);
+    const exitCode = typeof executeResult.exit_code === "number" ? executeResult.exit_code : null;
+    const finishedStatus: WorkerExecuteResult["status"] = review.patchError
       ? "failed"
       : executeResult.status;
-    const finishedObservations = [...(executeResult.observations ?? [])];
-    if (patchError) {
-      finishedObservations.push(
-        `Worker returned an invalid GraphPatch; rejected: ${JSON.stringify(patchError)}`
-      );
-    }
 
-    const exitCode = typeof executeResult.exit_code === "number" ? executeResult.exit_code : null;
+    const finishedState = await appendPluginAuditEvent({
+      workspaceRoot: options.workspaceRoot,
+      caseId: options.caseId,
+      mutationContext: options.mutationContext,
+      type: "worker.finished",
+      source: "worker",
+      payload: {
+        worker_name: options.workerName,
+        node_id: options.nodeId,
+        command_id: commandId,
+        status: finishedStatus,
+        summary: executeResult.summary ?? "",
+        artifacts: executeResult.artifacts ?? [],
+        observations,
+        patch_id: review.patch?.patch_id ?? null,
+        patch_path: null,
+        exit_code: exitCode
+      } as unknown as Record<string, unknown>,
+      fallbackCommandId: commandId
+    });
 
-    const finishedState = await appendWorkerEvent(options, "worker.finished", {
-      worker_name: options.workerName,
-      node_id: options.nodeId,
-      command_id: commandId,
-      status: finishedStatus,
-      summary: executeResult.summary ?? "",
-      artifacts: executeResult.artifacts ?? [],
-      observations: finishedObservations,
-      patch_id: patch?.patch_id ?? null,
-      patch_path: null,
-      exit_code: exitCode
-    } satisfies WorkerFinishedPayload);
-
-    if (patch) {
-      patch = { ...patch, base_revision: finishedState.caseRecord.case_revision.current };
-    }
-
-    if (patchError) {
+    if (review.patchError) {
       throw new CaseGraphError(
         "worker_patch_invalid",
         `Worker ${options.workerName} returned an invalid patch`,
-        { exitCode: 2, details: patchError }
+        { exitCode: 2, details: review.patchError }
       );
     }
+
+    const patch = review.patch
+      ? { ...review.patch, base_revision: finishedState.caseRecord.case_revision.current }
+      : null;
 
     return {
       worker_name: options.workerName,
@@ -234,7 +183,7 @@ export async function runWorkerExecute(options: WorkerRunOptions): Promise<Worke
       status: finishedStatus,
       summary: executeResult.summary ?? "",
       artifacts: executeResult.artifacts ?? [],
-      observations: finishedObservations,
+      observations,
       warnings: executeResult.warnings ?? [],
       exit_code: exitCode,
       patch,
@@ -244,6 +193,136 @@ export async function runWorkerExecute(options: WorkerRunOptions): Promise<Worke
   } finally {
     await closePluginClient(client);
   }
+}
+
+async function negotiateApprovalDecision(
+  client: JsonRpcStdioClient,
+  options: WorkerRunOptions,
+  config: Awaited<ReturnType<typeof loadConfigRecord>>
+): Promise<ApprovalOutcome> {
+  const initResponse = await client.request<{ capabilities?: WorkerCapabilities }>("initialize", {
+    client: { name: "cg", version: "0.1.0" }
+  });
+  const capabilities: WorkerCapabilities = initResponse.capabilities ?? { effectful: true };
+  const decision = resolveApprovalDecision(
+    config.approval_policy,
+    options.workerName,
+    capabilities.effectful
+  );
+
+  if (decision === "deny") {
+    throw new CaseGraphError(
+      "worker_approval_denied",
+      `Approval policy denies worker ${options.workerName}`,
+      { exitCode: 2, details: { approval_policy: config.approval_policy } }
+    );
+  }
+
+  if (decision === "require" && !options.approve) {
+    throw new CaseGraphError(
+      "worker_approval_required",
+      `Worker ${options.workerName} is effectful; pass --approve to run it`,
+      { exitCode: 2, details: { capabilities } }
+    );
+  }
+
+  return { capabilities, decision };
+}
+
+interface InvokeWorkerExecuteInput {
+  client: JsonRpcStdioClient;
+  options: WorkerRunOptions;
+  capabilities: WorkerCapabilities;
+  decision: ApprovalDecision;
+  commandId: string;
+  timeoutSeconds: number;
+  dispatchedState: CaseStateView;
+  state: CaseStateView;
+  targetNode: NodeRecord;
+}
+
+async function invokeWorkerExecute(input: InvokeWorkerExecuteInput): Promise<WorkerExecuteResult> {
+  const executionApproval =
+    input.decision === "auto" ? "not_required" : input.decision === "require" ? "required" : "auto";
+  try {
+    return await requestWithTimeout(
+      input.client.request<WorkerExecuteResult>("worker.execute", {
+        case: {
+          case_id: input.state.caseRecord.case_id,
+          title: input.state.caseRecord.title,
+          base_revision: input.dispatchedState.caseRecord.case_revision.current
+        },
+        task: buildTaskSnapshot(input.targetNode),
+        context: buildWorkerTaskContext(input.state, input.options.nodeId),
+        execution_policy: {
+          effectful: input.capabilities.effectful,
+          approval: executionApproval,
+          timeout_seconds: input.timeoutSeconds,
+          command_id: input.commandId
+        }
+      }),
+      input.timeoutSeconds
+    );
+  } catch (error) {
+    if (!isWorkerTimeoutError(error)) {
+      throw error;
+    }
+    await recordWorkerTimeoutFinished(input.options, input.commandId, input.timeoutSeconds);
+    throw new CaseGraphError(
+      "worker_timeout",
+      `Worker ${input.options.workerName} did not respond within ${input.timeoutSeconds}s`,
+      { exitCode: 2, details: { timeout_seconds: input.timeoutSeconds } }
+    );
+  }
+}
+
+async function recordWorkerTimeoutFinished(
+  options: WorkerRunOptions,
+  commandId: string,
+  timeoutSeconds: number
+): Promise<void> {
+  const payload: WorkerFinishedPayload = {
+    worker_name: options.workerName,
+    node_id: options.nodeId,
+    command_id: commandId,
+    status: "failed",
+    summary: `Worker timed out after ${timeoutSeconds}s`,
+    artifacts: [],
+    observations: [`Worker did not respond within ${timeoutSeconds}s; client aborted.`],
+    patch_id: null,
+    patch_path: null,
+    exit_code: null
+  };
+  await appendPluginAuditEvent({
+    workspaceRoot: options.workspaceRoot,
+    caseId: options.caseId,
+    mutationContext: options.mutationContext,
+    type: "worker.finished",
+    source: "worker",
+    payload: payload as unknown as Record<string, unknown>,
+    fallbackCommandId: commandId
+  });
+}
+
+function reviewReturnedPatch(executeResult: WorkerExecuteResult): PatchReview {
+  if (!executeResult.patch) {
+    return { patch: null, patchError: null };
+  }
+  const validation = validatePatchDocument(executeResult.patch);
+  if (validation.valid && validation.patch) {
+    return { patch: validation.patch, patchError: null };
+  }
+  return { patch: null, patchError: validation };
+}
+
+function buildObservations(executeResult: WorkerExecuteResult, patchError: unknown): string[] {
+  const observations = [...(executeResult.observations ?? [])];
+  if (patchError) {
+    observations.push(
+      `Worker returned an invalid GraphPatch; rejected: ${JSON.stringify(patchError)}`
+    );
+  }
+  return observations;
 }
 
 function buildTaskSnapshot(node: NodeRecord): WorkerTaskSnapshot {
@@ -303,12 +382,6 @@ export function buildWorkerTaskContext(state: CaseStateView, nodeId: string): Wo
   };
 }
 
-interface WorkerEventContext {
-  workspaceRoot: string;
-  caseId: string;
-  mutationContext: MutationContext;
-}
-
 async function requestWithTimeout<T>(promise: Promise<T>, timeoutSeconds: number): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
   try {
@@ -327,21 +400,4 @@ async function requestWithTimeout<T>(promise: Promise<T>, timeoutSeconds: number
 
 function isWorkerTimeoutError(error: unknown): boolean {
   return typeof error === "object" && error !== null && WORKER_TIMEOUT_MARKER in error;
-}
-
-async function appendWorkerEvent(
-  context: WorkerEventContext,
-  type: "worker.dispatched" | "worker.finished",
-  payload: WorkerDispatchedPayload | WorkerFinishedPayload
-): Promise<CaseStateView> {
-  const event: EventEnvelope = createEvent({
-    case_id: context.caseId,
-    timestamp: context.mutationContext.now ?? nowUtc(),
-    type,
-    source: "worker",
-    command_id: context.mutationContext.commandId ?? payload.command_id,
-    actor: context.mutationContext.actor ?? defaultActor(),
-    payload: payload as unknown as Record<string, unknown>
-  });
-  return appendCaseEvents(context.workspaceRoot, context.caseId, [event]);
 }

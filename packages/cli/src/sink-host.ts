@@ -1,19 +1,12 @@
 import {
-  appendCaseEvents,
   CaseGraphError,
   type CaseStateView,
-  createEvent,
-  defaultActor,
   deriveProjectionMappings,
-  type EventEnvelope,
-  type EventType,
   type GraphPatch,
-  generateId,
   type JsonRpcStdioClient,
   loadCaseState,
   loadConfigRecord,
   type MutationContext,
-  nowUtc,
   type ProjectionMapping,
   type ProjectionPulledPayload,
   type ProjectionPushedPayload,
@@ -27,9 +20,15 @@ import {
   validatePatchDocument
 } from "@casegraph/core";
 
-import { builtInPluginCommand, closePluginClient, openPluginClient } from "./plugin-client.js";
+import {
+  appendPluginAuditEvent,
+  type BuiltInPluginEntry,
+  closePluginClient,
+  openPluginClient,
+  resolvePluginHost
+} from "./plugin-client.js";
 
-const BUILT_IN_SINKS: Record<string, { entryFromImport: URL; requiredMethod: string }> = {
+const BUILT_IN_SINKS: Record<string, BuiltInPluginEntry> = {
   markdown: {
     entryFromImport: new URL("../../sink-markdown/src/index.ts", import.meta.url),
     requiredMethod: "sink.planProjection"
@@ -113,7 +112,14 @@ export async function runSinkPush(options: SinkPushOptions): Promise<SinkPushRes
       mapping_deltas: applyResult.mapping_deltas,
       capabilities: capabilities.capabilities ?? { push: true, pull: false, dry_run: false }
     };
-    const nextState = await appendSinkEvent(options, "projection.pushed", pushedPayload);
+    const nextState = await appendPluginAuditEvent({
+      workspaceRoot: options.workspaceRoot,
+      caseId: options.caseId,
+      mutationContext: options.mutationContext,
+      type: "projection.pushed",
+      source: "sync",
+      payload: pushedPayload as unknown as Record<string, unknown>
+    });
 
     return {
       sink_name: options.sinkName,
@@ -159,7 +165,14 @@ export async function runSinkPull(options: SinkPullOptions): Promise<SinkPullRes
       patch_id: patch?.patch_id ?? "",
       mapping_deltas: pullResult.mapping_deltas
     };
-    const nextState = await appendSinkEvent(options, "projection.pulled", pulledPayload);
+    const nextState = await appendPluginAuditEvent({
+      workspaceRoot: options.workspaceRoot,
+      caseId: options.caseId,
+      mutationContext: options.mutationContext,
+      type: "projection.pulled",
+      source: "sync",
+      payload: pulledPayload as unknown as Record<string, unknown>
+    });
 
     if (patch) {
       patch = { ...patch, base_revision: nextState.caseRecord.case_revision.current };
@@ -186,21 +199,22 @@ async function withSinkClient<T>(
   run: (client: JsonRpcStdioClient) => Promise<T>
 ): Promise<T> {
   const config = await loadConfigRecord(options.workspaceRoot);
-  const builtIn = BUILT_IN_SINKS[options.sinkName];
-  const sinkConfig = config.sinks?.[options.sinkName];
-  if (!(sinkConfig || builtIn)) {
-    throw new CaseGraphError("sink_not_configured", `Sink ${options.sinkName} is not configured`, {
-      exitCode: 3
-    });
-  }
+  const resolved = resolvePluginHost({
+    name: options.sinkName,
+    config: config.sinks?.[options.sinkName],
+    builtIn: BUILT_IN_SINKS[options.sinkName],
+    fallbackRequiredMethod: "sink.planProjection",
+    notConfiguredCode: "sink_not_configured",
+    notConfiguredMessage: `Sink ${options.sinkName} is not configured`
+  });
 
   const client = await openPluginClient({
     workspaceRoot: options.workspaceRoot,
     env: options.env,
-    config: sinkConfig,
-    defaultCommand: builtIn ? builtInPluginCommand(builtIn.entryFromImport) : [],
+    config: resolved.config,
+    defaultCommand: resolved.defaultCommand,
     peerName: "sink",
-    requiredMethod: builtIn?.requiredMethod ?? "sink.planProjection",
+    requiredMethod: resolved.requiredMethod,
     capabilityErrorCode: "sink_capability_missing"
   });
 
@@ -209,29 +223,6 @@ async function withSinkClient<T>(
   } finally {
     await closePluginClient(client);
   }
-}
-
-interface SinkEventContext {
-  workspaceRoot: string;
-  caseId: string;
-  mutationContext: MutationContext;
-}
-
-async function appendSinkEvent(
-  context: SinkEventContext,
-  type: Extract<EventType, "projection.pushed" | "projection.pulled">,
-  payload: ProjectionPushedPayload | ProjectionPulledPayload
-): Promise<CaseStateView> {
-  const event: EventEnvelope = createEvent({
-    case_id: context.caseId,
-    timestamp: context.mutationContext.now ?? nowUtc(),
-    type,
-    source: "sync",
-    command_id: context.mutationContext.commandId ?? generateId(),
-    actor: context.mutationContext.actor ?? defaultActor(),
-    payload: payload as unknown as Record<string, unknown>
-  });
-  return appendCaseEvents(context.workspaceRoot, context.caseId, [event]);
 }
 
 function filterMappingsForSink(
