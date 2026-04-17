@@ -11,43 +11,44 @@ Estimated time: 10 to 15 minutes.
 ```bash
 pnpm install
 pnpm build
+export WORKSPACE="$(mktemp -d /tmp/casegraph-acceptance.XXXXXX)"
 ```
 
-Run the commands below in an empty temporary directory.
+Run the commands below from the repository root while targeting the empty temporary directory in `WORKSPACE`.
 
 ## 1. Initialize a workspace
 
 ```bash
-pnpm cg init --title "Acceptance Workspace"
+pnpm run cg --workspace "$WORKSPACE" init --title "Acceptance Workspace"
 ```
 
 ## 2. Create the release example
 
 ```bash
-pnpm cg case new --id release-1.8.0 --title "Release 1.8.0" --description "May release"
+pnpm run cg --workspace "$WORKSPACE" case new --id release-1.8.0 --title "Release 1.8.0" --description "May release"
 
-pnpm cg node add --case release-1.8.0 --id goal_release_ready --kind goal --title "Release 1.8.0 ready"
-pnpm cg node add --case release-1.8.0 --id task_run_regression --kind task --title "Run regression test" --state todo --metadata '{"estimate_minutes":45}'
-pnpm cg node add --case release-1.8.0 --id task_update_notes --kind task --title "Update release notes" --state todo --metadata '{"estimate_minutes":15}'
-pnpm cg node add --case release-1.8.0 --id task_submit_store --kind task --title "Submit to App Store" --state todo --metadata '{"estimate_minutes":20}'
-pnpm cg node add --case release-1.8.0 --id task_monitor_post_release --kind task --title "Monitor post-release" --state todo --metadata '{"estimate_minutes":30}'
-pnpm cg node add --case release-1.8.0 --id event_release_live --kind event --title "Release live" --state todo
+pnpm run cg --workspace "$WORKSPACE" node add --case release-1.8.0 --id goal_release_ready --kind goal --title "Release 1.8.0 ready"
+pnpm run cg --workspace "$WORKSPACE" node add --case release-1.8.0 --id task_run_regression --kind task --title "Run regression test" --state todo --metadata '{"estimate_minutes":45}'
+pnpm run cg --workspace "$WORKSPACE" node add --case release-1.8.0 --id task_update_notes --kind task --title "Update release notes" --state todo --metadata '{"estimate_minutes":15}'
+pnpm run cg --workspace "$WORKSPACE" node add --case release-1.8.0 --id task_submit_store --kind task --title "Submit to App Store" --state todo --metadata '{"estimate_minutes":20}'
+pnpm run cg --workspace "$WORKSPACE" node add --case release-1.8.0 --id task_monitor_post_release --kind task --title "Monitor post-release" --state todo --metadata '{"estimate_minutes":30}'
+pnpm run cg --workspace "$WORKSPACE" node add --case release-1.8.0 --id event_release_live --kind event --title "Release live" --state todo
 
-pnpm cg edge add --case release-1.8.0 --id e1 --type depends_on --from task_submit_store --to task_run_regression
-pnpm cg edge add --case release-1.8.0 --id e2 --type depends_on --from task_submit_store --to task_update_notes
-pnpm cg edge add --case release-1.8.0 --id e3 --type waits_for --from task_monitor_post_release --to event_release_live
-pnpm cg edge add --case release-1.8.0 --id e4 --type contributes_to --from task_run_regression --to goal_release_ready
-pnpm cg edge add --case release-1.8.0 --id e5 --type contributes_to --from task_update_notes --to goal_release_ready
-pnpm cg edge add --case release-1.8.0 --id e6 --type contributes_to --from task_submit_store --to goal_release_ready
-pnpm cg edge add --case release-1.8.0 --id e7 --type contributes_to --from task_monitor_post_release --to goal_release_ready
+pnpm run cg --workspace "$WORKSPACE" edge add --case release-1.8.0 --id e1 --type depends_on --from task_submit_store --to task_run_regression
+pnpm run cg --workspace "$WORKSPACE" edge add --case release-1.8.0 --id e2 --type depends_on --from task_submit_store --to task_update_notes
+pnpm run cg --workspace "$WORKSPACE" edge add --case release-1.8.0 --id e3 --type waits_for --from task_monitor_post_release --to event_release_live
+pnpm run cg --workspace "$WORKSPACE" edge add --case release-1.8.0 --id e4 --type contributes_to --from task_run_regression --to goal_release_ready
+pnpm run cg --workspace "$WORKSPACE" edge add --case release-1.8.0 --id e5 --type contributes_to --from task_update_notes --to goal_release_ready
+pnpm run cg --workspace "$WORKSPACE" edge add --case release-1.8.0 --id e6 --type contributes_to --from task_submit_store --to goal_release_ready
+pnpm run cg --workspace "$WORKSPACE" edge add --case release-1.8.0 --id e7 --type contributes_to --from task_monitor_post_release --to goal_release_ready
 ```
 
 ## 3. Check the initial state
 
 ```bash
-pnpm cg frontier --case release-1.8.0
-pnpm cg blockers --case release-1.8.0
-pnpm cg case view --case release-1.8.0
+pnpm run cg --workspace "$WORKSPACE" frontier --case release-1.8.0
+pnpm run cg --workspace "$WORKSPACE" blockers --case release-1.8.0
+pnpm run cg --workspace "$WORKSPACE" case view --case release-1.8.0
 ```
 
 Expected result:
@@ -59,13 +60,13 @@ Expected result:
 ## 4. Push the markdown projection
 
 ```bash
-pnpm cg sync push --sink markdown --case release-1.8.0 --apply
+pnpm run cg --workspace "$WORKSPACE" sync push --sink markdown --case release-1.8.0 --apply
 ```
 
 This creates:
 
 ```text
-.casegraph/cases/release-1.8.0/projections/markdown.md
+$WORKSPACE/.casegraph/cases/release-1.8.0/projections/markdown.md
 ```
 
 ## 5. Complete two tasks in markdown
@@ -80,9 +81,9 @@ Edit the projection file and check both of these items:
 ## 6. Pull, review, and apply the sync patch
 
 ```bash
-pnpm cg sync pull --sink markdown --case release-1.8.0 --output ./release-sync.patch.json
-pnpm cg patch review --file ./release-sync.patch.json
-pnpm cg patch apply --file ./release-sync.patch.json
+pnpm run cg --workspace "$WORKSPACE" sync pull --sink markdown --case release-1.8.0 --output "$WORKSPACE/release-sync.patch.json"
+pnpm run cg --workspace "$WORKSPACE" patch review --file "$WORKSPACE/release-sync.patch.json"
+pnpm run cg --workspace "$WORKSPACE" patch apply --file "$WORKSPACE/release-sync.patch.json"
 ```
 
 Expected result:
@@ -94,7 +95,7 @@ Expected result:
 ## 7. Confirm the next frontier item
 
 ```bash
-pnpm cg frontier --case release-1.8.0
+pnpm run cg --workspace "$WORKSPACE" frontier --case release-1.8.0
 ```
 
 Expected result:
@@ -104,9 +105,9 @@ Expected result:
 ## 8. Finish the remaining release gate
 
 ```bash
-pnpm cg task done --case release-1.8.0 task_submit_store
-pnpm cg event record --case release-1.8.0 event_release_live
-pnpm cg frontier --case release-1.8.0
+pnpm run cg --workspace "$WORKSPACE" task done --case release-1.8.0 task_submit_store
+pnpm run cg --workspace "$WORKSPACE" event record --case release-1.8.0 event_release_live
+pnpm run cg --workspace "$WORKSPACE" frontier --case release-1.8.0
 ```
 
 Expected result:
@@ -116,8 +117,8 @@ Expected result:
 ## 9. Run one analysis surface
 
 ```bash
-pnpm cg analyze critical-path --case release-1.8.0 --goal goal_release_ready
-pnpm cg analyze slack --case release-1.8.0 --goal goal_release_ready
+pnpm run cg --workspace "$WORKSPACE" analyze critical-path --case release-1.8.0 --goal goal_release_ready
+pnpm run cg --workspace "$WORKSPACE" analyze slack --case release-1.8.0 --goal goal_release_ready
 ```
 
 Expected result:
@@ -128,9 +129,9 @@ Expected result:
 ## 10. Verify storage integrity
 
 ```bash
-pnpm cg validate storage
-pnpm cg events verify --case release-1.8.0
-pnpm cg cache rebuild
+pnpm run cg --workspace "$WORKSPACE" validate storage
+pnpm run cg --workspace "$WORKSPACE" events verify --case release-1.8.0
+pnpm run cg --workspace "$WORKSPACE" cache rebuild
 ```
 
 Expected result:

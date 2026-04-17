@@ -4,6 +4,8 @@ Japanese: [release-checklist.ja.md](release-checklist.ja.md)
 
 Use this checklist when calling the current tree a `v0.1` release candidate.
 
+When verifying a temporary workspace from the repository root, set `WORKSPACE=/path/to/temp-dir` and use `pnpm run cg --workspace "$WORKSPACE" ...`.
+
 ## Scope and surface
 
 - [ ] The stable core remains the Phase 1 CLI surface plus storage recovery/admin commands
@@ -26,8 +28,8 @@ Optional diagnostics when analyzing failures:
 
 - [ ] The [Quickstart](quickstart.en.md) completes end to end
 - [ ] The [Manual Acceptance](manual-acceptance.en.md) flow completes end to end
-- [ ] `cg migrate check` reports the expected status on a current workspace
-- [ ] `cg case view` renders a non-empty tree for the release example
+- [ ] `pnpm run cg --workspace "$WORKSPACE" migrate check` reports the expected status on the checked workspace
+- [ ] `pnpm run cg --workspace "$WORKSPACE" case view --case release-1.8.0` renders a non-empty tree for the release example
 
 ## Documentation review
 

@@ -4,6 +4,8 @@ English: [release-checklist.en.md](release-checklist.en.md)
 
 現在の tree を `v0.1` の release candidate と呼ぶ前に、このチェックリストを使います。
 
+repository root から一時 workspace を検証する場合は、`WORKSPACE=/path/to/temp-dir` を設定し、`pnpm run cg --workspace "$WORKSPACE" ...` を使います。
+
 ## スコープと surface
 
 - [ ] stable core が Phase 1 の CLI surface と storage recovery/admin command のままである
@@ -26,8 +28,8 @@ English: [release-checklist.en.md](release-checklist.en.md)
 
 - [ ] [Quickstart](quickstart.ja.md) が end-to-end で通る
 - [ ] [Manual Acceptance](manual-acceptance.ja.md) が end-to-end で通る
-- [ ] current workspace に対して `cg migrate check` が期待どおりの状態を返す
-- [ ] release example に対して `cg case view` が空でない tree を返す
+- [ ] 検証対象 workspace に対して `pnpm run cg --workspace "$WORKSPACE" migrate check` が期待どおりの状態を返す
+- [ ] release example に対して `pnpm run cg --workspace "$WORKSPACE" case view --case release-1.8.0` が空でない tree を返す
 
 ## ドキュメント確認
 
