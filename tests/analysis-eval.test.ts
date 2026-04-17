@@ -36,4 +36,34 @@ describe("analysis evaluation harness", () => {
     expect(metrics.event_eval.invariant.overall.hit_rate).toBe(1);
     expect(metrics.event_eval.partial_labels.overall.hit_rate).toBe(1);
   });
+
+  it("loads external JSONL corpora from a local manifest fixture", async () => {
+    const builtinManifestPath = path.resolve(
+      process.cwd(),
+      "tests/fixtures/analysis-eval-manifest.fixture.json"
+    );
+    const externalManifestPath = path.resolve(
+      process.cwd(),
+      "tests/fixtures/analysis-eval.external-local-manifest.fixture.json"
+    );
+
+    const eventEval = await collectEventEvalMetrics({
+      builtinManifestPath,
+      externalManifestPath
+    });
+
+    expect(eventEval.external_manifest).toEqual({
+      path: externalManifestPath,
+      loaded: true,
+      skipped: false
+    });
+    expect(eventEval.invariant.overall.hit_rate).toBe(1);
+    expect(eventEval.partial_labels.overall.hit_rate).toBe(1);
+    expect(eventEval.queries.some((query) => query.corpus_id === "ai-workers-v02-local")).toBe(
+      true
+    );
+    expect(eventEval.queries.some((query) => query.corpus_id === "sqlite-bind-fix-local")).toBe(
+      true
+    );
+  });
 });

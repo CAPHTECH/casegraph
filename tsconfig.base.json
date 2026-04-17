@@ -15,6 +15,7 @@
     "composite": true,
     "paths": {
       "@casegraph/core": ["./packages/core/src/index.ts"],
+      "@casegraph/core/experimental": ["./packages/core/src/experimental.ts"],
       "@casegraph/core/plugin-server": ["./packages/core/src/plugin-server.ts"]
     }
   }

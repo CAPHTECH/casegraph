@@ -36,15 +36,15 @@
 ## Phase 5: Hardening
 - conformance suite
 - property tests
-- migration tool
-- better error surfaces
+- migration tool ✅ (current-version scan + no-op runner)
+- better error surfaces ✅ (analysis / migration structured issues)
 - TUI / graph view exploration
 
 ## Phase 6: Topology and evaluation
 - current graph-topology docs consolidation
 - algebraic topology ADR for Betti-0 / Betti-1 on projections
-- mixed evaluation harness over golden corpus + event-export corpus
-- external real-data corpus loading via local manifest
+- mixed evaluation harness over golden corpus + event-export corpus ✅
+- external real-data corpus loading via local manifest ✅ (JSON array + JSONL)
 
 ## Deferred topics
 - multi-user collaboration

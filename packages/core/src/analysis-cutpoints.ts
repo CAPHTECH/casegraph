@@ -1,3 +1,4 @@
+import { collectStructuralCutpoints } from "./analysis-structural.js";
 import {
   collectTopologyComponents,
   projectTopologyGraph,
@@ -34,33 +35,11 @@ export function analyzeCutpoints(
     warnings.add("scope_has_no_unresolved_nodes");
   }
 
-  const cutpoints: CutpointSummary[] = [];
-
-  for (const component of baseComponents) {
-    if (component.node_ids.length < 3) {
-      continue;
-    }
-
-    const componentNodeIds = new Set(component.node_ids);
-    for (const nodeId of component.node_ids) {
-      const splitComponents = collectTopologyComponents(projected.graph, {
-        allowedNodeIds: componentNodeIds,
-        omitNodeIds: new Set([nodeId])
-      });
-
-      if (splitComponents.length <= 1) {
-        continue;
-      }
-
-      cutpoints.push({
-        node_id: nodeId,
-        separated_component_count: splitComponents.length,
-        separated_component_node_sets: splitComponents
-          .map((splitComponent) => splitComponent.node_ids)
-          .sort(compareNodeSetArrays)
-      });
-    }
-  }
+  const cutpoints = collectStructuralCutpoints(projected.graph, baseComponents).map((cutpoint) => ({
+    node_id: cutpoint.node_id,
+    separated_component_count: cutpoint.separated_component_node_sets.length,
+    separated_component_node_sets: cutpoint.separated_component_node_sets
+  }));
 
   cutpoints.sort((left, right) => left.node_id.localeCompare(right.node_id));
 
@@ -73,8 +52,4 @@ export function analyzeCutpoints(
     cutpoints,
     warnings: [...warnings].sort((left, right) => left.localeCompare(right))
   };
-}
-
-function compareNodeSetArrays(left: string[], right: string[]): number {
-  return (left[0] ?? "").localeCompare(right[0] ?? "");
 }

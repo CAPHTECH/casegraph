@@ -11,7 +11,6 @@ import {
   analyzeImpact,
   analyzeMinimalUnblockSet,
   analyzeSlack,
-  analyzeTopology,
   type BottleneckAnalysisResult,
   type BridgeAnalysisResult,
   type ComponentAnalysisResult,
@@ -24,9 +23,9 @@ import {
   type MinimalUnblockSetResult,
   replayCaseEvents,
   type SlackAnalysisResult,
-  type TopologyAnalysisResult,
   type TopologyProjection
 } from "@casegraph/core";
+import { analyzeTopology, type TopologyAnalysisResult } from "@casegraph/core/experimental";
 
 export type EvalQueryKind =
   | "impact"
@@ -187,7 +186,19 @@ async function loadEventsFile(
   relativeEventsPath: string
 ): Promise<EventEnvelope[]> {
   const resolvedPath = path.resolve(path.dirname(manifestPath), relativeEventsPath);
-  return JSON.parse(await readFile(resolvedPath, "utf8")) as EventEnvelope[];
+  const contents = await readFile(resolvedPath, "utf8");
+  const trimmed = contents.trim();
+  if (trimmed.length === 0) {
+    return [];
+  }
+  if (trimmed.startsWith("[")) {
+    return JSON.parse(trimmed) as EventEnvelope[];
+  }
+
+  return trimmed
+    .split(/\r?\n/)
+    .filter((line) => line.trim().length > 0)
+    .map((line) => JSON.parse(line) as EventEnvelope);
 }
 
 async function evaluateQueryMetric(

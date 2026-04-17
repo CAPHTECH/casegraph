@@ -10,6 +10,8 @@ import type {
   FragilityAnalysisResult,
   FrontierItem,
   ImpactAnalysisResult,
+  MigrationCheckData,
+  MigrationRunData,
   MinimalUnblockSetResult,
   MutationContext,
   ShowCaseData,
@@ -261,6 +263,8 @@ const textRenderers: Record<string, (result: CommandSuccess<unknown>) => string>
   "analyze unblock": renderAnalyzeUnblockText,
   validate: renderValidationText,
   "validate storage": renderValidationText,
+  "migrate check": renderMigrateCheckText,
+  "migrate run": renderMigrateRunText,
   "patch validate": renderPatchValidateText,
   "patch review": renderPatchReviewText,
   "patch apply": renderPatchApplyText,
@@ -432,6 +436,18 @@ function renderAnalyzeUnblockText(result: CommandSuccess<unknown>): string {
 function renderValidationText(result: CommandSuccess<unknown>): string {
   const data = (result as CommandSuccess<{ valid: boolean; errors: unknown[] }>).data;
   return data.valid ? "VALID" : `INVALID (${data.errors.length} errors)`;
+}
+
+function renderMigrateCheckText(result: CommandSuccess<unknown>): string {
+  const data = (result as CommandSuccess<MigrationCheckData>).data;
+  const status = data.supported ? "SUPPORTED" : "UNSUPPORTED";
+  return `${status} current=${data.current_spec_version} pending=${data.pending_steps.length} issues=${data.issues.length}`;
+}
+
+function renderMigrateRunText(result: CommandSuccess<unknown>): string {
+  const data = (result as CommandSuccess<MigrationRunData>).data;
+  const mode = data.dry_run ? "DRY-RUN" : "MIGRATION";
+  return `${mode} changed=${data.changed ? "yes" : "no"} applied=${data.applied_steps.length}`;
 }
 
 function renderPatchValidateText(result: CommandSuccess<unknown>): string {

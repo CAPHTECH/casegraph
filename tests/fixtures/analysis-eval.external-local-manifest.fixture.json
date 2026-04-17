@@ -1,0 +1,36 @@
+{
+  "corpora": [
+    {
+      "corpus_id": "ai-workers-v02-local",
+      "events_file": "../../.casegraph/cases/ai-workers-v02/events.jsonl",
+      "queries": [
+        {
+          "name": "completed worker rollout has no unresolved hard topology",
+          "kind": "topology",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_beta_0": 0,
+            "expected_beta_1": 0,
+            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+          }
+        }
+      ]
+    },
+    {
+      "corpus_id": "sqlite-bind-fix-local",
+      "events_file": "../../.casegraph/cases/sqlite-bind-fix/events.jsonl",
+      "queries": [
+        {
+          "name": "completed fix case also collapses to empty unresolved topology",
+          "kind": "topology",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_beta_0": 0,
+            "expected_beta_1": 0,
+            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+          }
+        }
+      ]
+    }
+  ]
+}

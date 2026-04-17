@@ -127,6 +127,8 @@ golden harness では replay-only fixture として純粋 replay 経路で評価
 raw topology query は `pnpm test:analysis-eval` の event-export corpus に載せる。
 ここでは `projection`, `beta_0`, `beta_1`, component set, warning を
 partial-label / invariant で継続検証する。
+raw topology API import は `@casegraph/core/experimental` に限定し、
+root public API からは見えないことも regression test に含める。
 
 ---
 
@@ -144,8 +146,10 @@ Phase 6 では `pnpm test:analysis-eval` を追加し、analysis の評価を二
 ### 2. Event-export corpus
 
 - event stream JSON (`cg events export` 相当) を replay して analysis を走らせる
+- event stream JSON array と `events.jsonl` の両方を読める loader を使う
 - in-tree の匿名 sample corpus と、ローカルの external corpus を同じ harness で回す
 - external corpus は `CASEGRAPH_ANALYSIS_EVAL_MANIFEST=<path>` で追加ロードする
+- local fixture manifest から repo 内 `.casegraph/cases/*/events.jsonl` を直接評価する回帰も持つ
 
 manifest の最小 shape:
 
@@ -222,6 +226,10 @@ Phase 1 core では、以下は回帰テスト必須です。
 
 - mixed patch / sync / worker events
 - migration across spec versions
+
+Phase 5 hardening では migration check / run の回帰を追加した。
+現行版では current workspace が no-op になること、
+unsupported workspace / case / event version が structured issue とともに拒否されることを確認する。
 
 Phase 2 では次を reducer / replay 回帰に追加する。
 

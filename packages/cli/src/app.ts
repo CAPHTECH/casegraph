@@ -18,6 +18,7 @@ import {
   applyPatch,
   CaseGraphError,
   changeNodeState,
+  checkWorkspaceMigrations,
   createCase,
   decideNode,
   exportEvents,
@@ -31,6 +32,7 @@ import {
   recordEventNode,
   removeEdge,
   reviewPatch,
+  runWorkspaceMigrations,
   showCase,
   updateNode,
   validateCase,
@@ -632,6 +634,28 @@ export async function runCli(
       successResult("cache rebuild", await rebuildCache(workspaceRoot))
     );
   });
+
+  const migrateCommand = program.command("migrate");
+  migrateCommand.command("check").action(async (_, command) => {
+    await runWorkspaceCommand(runtime, command, async (workspaceRoot) =>
+      successResult("migrate check", await checkWorkspaceMigrations(workspaceRoot))
+    );
+  });
+
+  migrateCommand
+    .command("run")
+    .option("--dry-run")
+    .action(async (_, command) => {
+      const options = command.opts() as { dryRun?: boolean };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) =>
+        successResult(
+          "migrate run",
+          await runWorkspaceMigrations(workspaceRoot, {
+            dryRun: options.dryRun === true
+          })
+        )
+      );
+    });
 
   const eventsCommand = program.command("events");
   eventsCommand

@@ -1,3 +1,4 @@
+import { collectStructuralBridges } from "./analysis-structural.js";
 import {
   collectTopologyComponents,
   projectTopologyGraph,
@@ -35,42 +36,12 @@ export function analyzeBridges(
     warnings.add("scope_has_no_unresolved_nodes");
   }
 
-  const bridges: BridgeSummary[] = [];
-
-  for (const component of baseComponents) {
-    if (component.node_ids.length < 2) {
-      continue;
-    }
-
-    const componentNodeIds = new Set(component.node_ids);
-    const componentEdges = projected.graph.edges.filter(
-      (edge) => componentNodeIds.has(edge.source_id) && componentNodeIds.has(edge.target_id)
-    );
-
-    for (const edge of componentEdges) {
-      const splitComponents = collectTopologyComponents(projected.graph, {
-        allowedNodeIds: componentNodeIds,
-        omitEdgeKeys: new Set([edge.key])
-      });
-
-      if (splitComponents.length <= 1) {
-        continue;
-      }
-
-      const sortedComponents = [...splitComponents].sort(compareNodeSets);
-      const [leftComponent, rightComponent] = sortedComponents;
-      if (!(leftComponent && rightComponent)) {
-        continue;
-      }
-
-      bridges.push({
-        source_id: edge.source_id,
-        target_id: edge.target_id,
-        left_node_ids: leftComponent.node_ids,
-        right_node_ids: rightComponent.node_ids
-      });
-    }
-  }
+  const bridges = collectStructuralBridges(projected.graph, baseComponents).map((bridge) => ({
+    source_id: bridge.edge.source_id,
+    target_id: bridge.edge.target_id,
+    left_node_ids: bridge.left_node_ids,
+    right_node_ids: bridge.right_node_ids
+  }));
 
   bridges.sort(compareBridges);
 
@@ -83,10 +54,6 @@ export function analyzeBridges(
     bridges,
     warnings: [...warnings].sort((left, right) => left.localeCompare(right))
   };
-}
-
-function compareNodeSets(left: { node_ids: string[] }, right: { node_ids: string[] }): number {
-  return (left.node_ids[0] ?? "").localeCompare(right.node_ids[0] ?? "");
 }
 
 function compareBridges(left: BridgeSummary, right: BridgeSummary): number {

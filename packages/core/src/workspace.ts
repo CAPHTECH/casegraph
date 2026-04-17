@@ -9,11 +9,7 @@ import { analyzeCutpoints, type CutpointAnalysisResult } from "./analysis-cutpoi
 import { analyzeCycles, type CycleAnalysisResult } from "./analysis-cycles.js";
 import { analyzeFragility, type FragilityAnalysisResult } from "./analysis-fragility.js";
 import { analyzeSlack, type SlackAnalysisResult } from "./analysis-slack.js";
-import {
-  analyzeTopology,
-  type TopologyAnalysisOptions,
-  type TopologyAnalysisResult
-} from "./analysis-topology.js";
+import type { TopologyAnalysisOptions } from "./analysis-topology.js";
 import { analyzeMinimalUnblockSet, type MinimalUnblockSetResult } from "./analysis-unblock.js";
 import { DEFAULT_WORKSPACE_TITLE, SPEC_VERSION } from "./constants.js";
 import { CaseGraphError } from "./errors.js";
@@ -859,15 +855,6 @@ export async function analyzeFragilityForCase(
 ): Promise<FragilityAnalysisResult> {
   const state = await loadCaseState(workspaceRoot, caseId);
   return analyzeFragility(state, options);
-}
-
-export async function analyzeTopologyForCase(
-  workspaceRoot: string,
-  caseId: string,
-  options: TopologyAnalysisOptions = {}
-): Promise<TopologyAnalysisResult> {
-  const state = await loadCaseState(workspaceRoot, caseId);
-  return analyzeTopology(state, options);
 }
 
 export async function analyzeMinimalUnblockSetForCase(
