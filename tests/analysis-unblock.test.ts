@@ -3,7 +3,7 @@ import {
   createEvent,
   defaultActor,
   replayCaseEvents
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 import { describe, expect, it } from "vitest";
 
 describe("minimal unblock analysis", () => {

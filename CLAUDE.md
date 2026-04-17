@@ -17,22 +17,24 @@ Package manager is pnpm 10 (declared in `package.json`). Node must support `node
 - Run a single test file: `pnpm exec vitest run tests/cli.test.ts`.
 - Filter by name: `pnpm exec vitest run -t "creates a release case"`.
 - `pnpm lint` / `pnpm lint:fix` — Biome check (lint + format + import sort + complexity) over `packages/` and `tests/`. A PostToolUse hook at `.claude/hooks/biome-check.sh` automatically runs `biome check --write` against every file Claude edits via Edit/Write/MultiEdit; unfixable errors come back as hook feedback (exit 2), so manual `pnpm lint` is mainly a pre-commit sanity check.
-- CLI entry during development: `node packages/cli/dist/index.js <args>` after building (the published `bin` is `cg`). The importer plugin is launched via `node --experimental-strip-types packages/importer-markdown/src/index.ts`.
+- CLI entry during development: `node packages/cli/dist/index.js <args>` after building (the published `bin` is `cg`). Built-in plugins resolve local `packages/*/src/index.ts` entrypoints first during repository development and fall back to installed package entrypoints in published installs, so keep both paths working.
 
 ## Architecture
 
 ### Layering
 
 ```
-@casegraph/core  ← pure domain + storage + validation + JSON-RPC client
+@caphtech/casegraph-core  ← pure domain + storage + validation + JSON-RPC client
       ↑
-@casegraph/cli   ← commander-based `cg` CLI, thin wrappers over core
-@casegraph/importer-markdown ← out-of-process JSON-RPC over stdio plugin (importer)
-@casegraph/sink-markdown     ← out-of-process JSON-RPC over stdio plugin (sink)
-@casegraph/worker-shell      ← out-of-process JSON-RPC over stdio plugin (worker)
+@caphtech/casegraph-cli   ← commander-based `cg` CLI, thin wrappers over core
+@caphtech/casegraph-importer-markdown ← out-of-process JSON-RPC over stdio plugin (importer)
+@caphtech/casegraph-sink-markdown     ← out-of-process JSON-RPC over stdio plugin (sink)
+@caphtech/casegraph-worker-shell      ← out-of-process JSON-RPC over stdio plugin (worker)
+@caphtech/casegraph-worker-code-agent ← out-of-process JSON-RPC over stdio plugin (worker)
+@caphtech/casegraph-worker-local-llm  ← out-of-process JSON-RPC over stdio plugin (worker)
 ```
 
-Aliases in `vitest.config.ts` resolve `@casegraph/core` to `packages/core/src/index.ts` and `@casegraph/cli/app` to the CLI's `app.ts` so tests run against TypeScript sources without a build step. `tsconfig.base.json` mirrors this for `tsc`.
+Aliases in `vitest.config.ts` resolve `@caphtech/casegraph-core` to `packages/core/src/index.ts` and `@caphtech/casegraph-cli/app` to the CLI's `app.ts` so tests run against TypeScript sources without a build step. `tsconfig.base.json` mirrors this for `tsc`.
 
 ### Event-sourced core
 
@@ -70,7 +72,7 @@ Out-of-process plugins (markdown importer, markdown sink, shell worker, code-age
 ## Gotchas
 
 - `node:sqlite` requires Node 22+ — this is not guarded in code.
-- The importer package's `bin` and self-test both use `node --experimental-strip-types` to run `.ts` directly; don't "fix" this by compiling unless you also change the spawn command in `importer-host.ts`.
+- In the repository, built-in plugins run from local `.ts` sources via `node --experimental-strip-types`; in published packages they resolve to installed package entrypoints in `dist/`. If you change plugin resolution, keep both development and published paths working.
 - `rebuildCaseCacheForState` runs on every mutation; if you add a new event type, extend `replayCaseEvents` and the SQLite `rebuildCaseCache` together or the cache will silently drift.
 - `projection_mappings` is a projection of `projection.pushed` / `projection.pulled` events (via `deriveProjectionMappings`), not a separately maintained table. Never mutate it outside `rebuildCaseCache`.
 - `cg sync pull` appends `projection.pulled` before returning its patch, so the emitted patch's `base_revision` is rewritten to the post-append revision; don't reorder this or the subsequent `cg patch apply` will be stale.

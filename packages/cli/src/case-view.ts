@@ -6,7 +6,7 @@ import type {
   NodeRecord,
   RevisionSnapshot,
   ValidationIssue
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 
 const CHILD_EDGE_TYPES: ReadonlySet<EdgeType> = new Set(["depends_on", "waits_for"]);
 

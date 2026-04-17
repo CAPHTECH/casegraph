@@ -1,5 +1,5 @@
-import { createEvent, defaultActor, replayCaseEvents } from "@casegraph/core";
-import { analyzeTopology, analyzeTopologyForCase } from "@casegraph/core/experimental";
+import { createEvent, defaultActor, replayCaseEvents } from "@caphtech/casegraph-core";
+import { analyzeTopology, analyzeTopologyForCase } from "@caphtech/casegraph-core/experimental";
 import { afterEach, describe, expect, it } from "vitest";
 
 import topologyFixture from "./fixtures/topology-analysis.fixture.json";
@@ -273,8 +273,8 @@ describe("analyzeTopology", () => {
   });
 
   it("keeps raw topology off the root public API", async () => {
-    const core = await import("@casegraph/core");
-    const experimental = await import("@casegraph/core/experimental");
+    const core = await import("@caphtech/casegraph-core");
+    const experimental = await import("@caphtech/casegraph-core/experimental");
 
     expect("analyzeTopology" in core).toBe(false);
     expect("analyzeTopologyForCase" in core).toBe(false);

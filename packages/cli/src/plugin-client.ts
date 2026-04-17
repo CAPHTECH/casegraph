@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
+import { extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   appendCaseEvents,
@@ -13,17 +16,33 @@ import {
   type JsonRpcStdioClient,
   type MutationContext,
   nowUtc
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 
+const require = createRequire(import.meta.url);
 const BASE_ENV_KEYS = ["PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "TMP", "TEMP"];
 
-export function builtInPluginCommand(entryFromImport: URL): string[] {
-  return [process.execPath, "--experimental-strip-types", fileURLToPath(entryFromImport)];
+export function builtInPluginCommand(entryFile: string): string[] {
+  return extname(entryFile) === ".ts"
+    ? [process.execPath, "--experimental-strip-types", entryFile]
+    : [process.execPath, entryFile];
 }
 
 export interface BuiltInPluginEntry {
-  entryFromImport: URL;
+  localEntryFromImport: URL;
+  packageName: string;
   requiredMethod: string;
+}
+
+function resolveBuiltInEntryPath(entry: BuiltInPluginEntry): string {
+  const localPath = fileURLToPath(entry.localEntryFromImport);
+  if (existsSync(localPath)) {
+    return localPath;
+  }
+  return require.resolve(entry.packageName);
+}
+
+export function resolveBuiltInPluginCommand(entry: BuiltInPluginEntry): string[] {
+  return builtInPluginCommand(resolveBuiltInEntryPath(entry));
 }
 
 export interface ResolvedPluginHost {
@@ -49,7 +68,7 @@ export function resolvePluginHost(options: ResolvePluginHostOptions): ResolvedPl
   }
   return {
     config: options.config,
-    defaultCommand: options.builtIn ? builtInPluginCommand(options.builtIn.entryFromImport) : [],
+    defaultCommand: options.builtIn ? resolveBuiltInPluginCommand(options.builtIn) : [],
     requiredMethod: options.builtIn?.requiredMethod ?? options.fallbackRequiredMethod
   };
 }

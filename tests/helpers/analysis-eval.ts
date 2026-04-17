@@ -24,8 +24,11 @@ import {
   replayCaseEvents,
   type SlackAnalysisResult,
   type TopologyProjection
-} from "@casegraph/core";
-import { analyzeTopology, type TopologyAnalysisResult } from "@casegraph/core/experimental";
+} from "@caphtech/casegraph-core";
+import {
+  analyzeTopology,
+  type TopologyAnalysisResult
+} from "@caphtech/casegraph-core/experimental";
 
 export type EvalQueryKind =
   | "impact"

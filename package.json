@@ -17,7 +17,9 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
-    "cg": "NODE_NO_WARNINGS=1 node packages/cli/dist/index.js"
+    "cg": "NODE_NO_WARNINGS=1 node packages/cli/dist/index.js",
+    "pack:release": "pnpm --filter @caphtech/casegraph-core pack --dry-run && pnpm --filter @caphtech/casegraph-importer-markdown pack --dry-run && pnpm --filter @caphtech/casegraph-sink-markdown pack --dry-run && pnpm --filter @caphtech/casegraph-worker-shell pack --dry-run && pnpm --filter @caphtech/casegraph-worker-code-agent pack --dry-run && pnpm --filter @caphtech/casegraph-worker-local-llm pack --dry-run && pnpm --filter @caphtech/casegraph-cli pack --dry-run",
+    "publish:release:dry-run": "pnpm --filter @caphtech/casegraph-core publish --dry-run --access public --no-git-checks && pnpm --filter @caphtech/casegraph-importer-markdown publish --dry-run --access public --no-git-checks && pnpm --filter @caphtech/casegraph-sink-markdown publish --dry-run --access public --no-git-checks && pnpm --filter @caphtech/casegraph-worker-shell publish --dry-run --access public --no-git-checks && pnpm --filter @caphtech/casegraph-worker-code-agent publish --dry-run --access public --no-git-checks && pnpm --filter @caphtech/casegraph-worker-local-llm publish --dry-run --access public --no-git-checks && pnpm --filter @caphtech/casegraph-cli publish --dry-run --access public --no-git-checks"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.12",

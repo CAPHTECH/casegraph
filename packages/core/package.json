@@ -1,7 +1,8 @@
 {
-  "name": "@casegraph/core",
+  "name": "@caphtech/casegraph-core",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "description": "Deterministic core for CaseGraph: replay, validation, frontier, patch, and analysis.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -19,6 +20,34 @@
       "types": "./dist/plugin-server.d.ts",
       "import": "./dist/plugin-server.js"
     }
+  },
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "README.md"
+  ],
+  "homepage": "https://github.com/CAPHTECH/casegraph",
+  "bugs": {
+    "url": "https://github.com/CAPHTECH/casegraph/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CAPHTECH/casegraph.git",
+    "directory": "packages/core"
+  },
+  "keywords": [
+    "casegraph",
+    "workflow",
+    "graph",
+    "deterministic",
+    "planning"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "ulid": "^2.4.0",

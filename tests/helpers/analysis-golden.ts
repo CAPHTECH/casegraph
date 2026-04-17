@@ -18,7 +18,7 @@ import {
   type NodeKind,
   type NodeState,
   replayCaseEvents
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 
 import incidentAnalysisFixture from "../fixtures/incident-analysis.fixture.json";
 import releaseAnalysisFixture from "../fixtures/release-analysis.fixture.json";

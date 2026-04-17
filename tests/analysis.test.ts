@@ -5,7 +5,7 @@ import {
   createEvent,
   defaultActor,
   replayCaseEvents
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 import { afterEach, describe, expect, it } from "vitest";
 
 import releaseFixture from "./fixtures/release-case.fixture.json";

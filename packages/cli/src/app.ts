@@ -1,5 +1,11 @@
 import path from "node:path";
-import type { EdgeType, GraphPatch, MutationContext, NodeKind, NodeState } from "@casegraph/core";
+import type {
+  EdgeType,
+  GraphPatch,
+  MutationContext,
+  NodeKind,
+  NodeState
+} from "@caphtech/casegraph-core";
 
 import {
   addEdge,
@@ -39,7 +45,7 @@ import {
   validateStorage,
   verifyEvents,
   waitTask
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 import { Command } from "commander";
 import { buildCaseViewData } from "./case-view.js";
 import { ingestMarkdownPatch } from "./importer-host.js";

@@ -1,16 +1,60 @@
 {
-  "name": "@casegraph/cli",
+  "name": "@caphtech/casegraph-cli",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "description": "CLI for CaseGraph local-first case graphs.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./app": {
+      "types": "./dist/app.d.ts",
+      "import": "./dist/app.js"
+    }
+  },
   "bin": {
     "cg": "./dist/index.js"
   },
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "README.md"
+  ],
+  "homepage": "https://github.com/CAPHTECH/casegraph",
+  "bugs": {
+    "url": "https://github.com/CAPHTECH/casegraph/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CAPHTECH/casegraph.git",
+    "directory": "packages/cli"
+  },
+  "keywords": [
+    "casegraph",
+    "cli",
+    "workflow",
+    "planning",
+    "graph"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "@casegraph/core": "workspace:*",
+    "@caphtech/casegraph-core": "workspace:*",
+    "@caphtech/casegraph-importer-markdown": "workspace:*",
+    "@caphtech/casegraph-sink-markdown": "workspace:*",
+    "@caphtech/casegraph-worker-code-agent": "workspace:*",
+    "@caphtech/casegraph-worker-local-llm": "workspace:*",
+    "@caphtech/casegraph-worker-shell": "workspace:*",
     "commander": "^14.0.1"
   }
 }

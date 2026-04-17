@@ -19,6 +19,8 @@ repository root から一時 workspace を検証する場合は、`WORKSPACE=/pa
 - [ ] `pnpm typecheck`
 - [ ] `pnpm test`
 - [ ] `pnpm test:e2e`
+- [ ] `pnpm pack:release`
+- [ ] `pnpm publish:release:dry-run`
 
 障害解析用の補助コマンド:
 
@@ -45,6 +47,8 @@ repository root から一時 workspace を検証する場合は、`WORKSPACE=/pa
 - [ ] 検証日を残す
 - [ ] 通過したコマンドをそのまま残す
 - [ ] optional surface と deferred item を明示する
+- [ ] npm scope が `@caphtech` であることを確認する
+- [ ] publish 順序が [npm Release Guide](npm-release.ja.md) と一致していることを確認する
 
 ## 最低限のリリース宣言
 

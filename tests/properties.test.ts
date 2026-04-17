@@ -13,7 +13,7 @@ import {
   replayCaseEvents,
   reviewGraphPatch,
   SPEC_VERSION
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 

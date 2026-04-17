@@ -18,7 +18,7 @@ import {
   type SinkPullChangesResult,
   selectProjectionTargets,
   validatePatchDocument
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 
 import {
   appendPluginAuditEvent,
@@ -30,7 +30,8 @@ import {
 
 const BUILT_IN_SINKS: Record<string, BuiltInPluginEntry> = {
   markdown: {
-    entryFromImport: new URL("../../sink-markdown/src/index.ts", import.meta.url),
+    localEntryFromImport: new URL("../../sink-markdown/src/index.ts", import.meta.url),
+    packageName: "@caphtech/casegraph-sink-markdown",
     requiredMethod: "sink.planProjection"
   }
 };

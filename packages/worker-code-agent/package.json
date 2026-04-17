@@ -1,15 +1,43 @@
 {
-  "name": "@casegraph/worker-code-agent",
+  "name": "@caphtech/casegraph-worker-code-agent",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "description": "Code-agent worker plugin for CaseGraph.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "bin": {
-    "casegraph-worker-code-agent": "./src/index.ts"
+    "casegraph-worker-code-agent": "./dist/index.js"
+  },
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "README.md"
+  ],
+  "homepage": "https://github.com/CAPHTECH/casegraph",
+  "bugs": {
+    "url": "https://github.com/CAPHTECH/casegraph/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CAPHTECH/casegraph.git",
+    "directory": "packages/worker-code-agent"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
-    "@casegraph/core": "workspace:*"
+    "@caphtech/casegraph-core": "workspace:*"
   }
 }

@@ -3,8 +3,12 @@
 import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { WorkerArtifact, WorkerExecuteParams, WorkerExecuteResult } from "@casegraph/core";
-import { isRecord, runPluginStdioServer } from "@casegraph/core/plugin-server";
+import type {
+  WorkerArtifact,
+  WorkerExecuteParams,
+  WorkerExecuteResult
+} from "@caphtech/casegraph-core";
+import { isRecord, runPluginStdioServer } from "@caphtech/casegraph-core/plugin-server";
 
 const WORKER_NAME = "shell";
 const WORKER_VERSION = "0.1.0";

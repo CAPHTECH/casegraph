@@ -19,6 +19,8 @@ When verifying a temporary workspace from the repository root, set `WORKSPACE=/p
 - [ ] `pnpm typecheck`
 - [ ] `pnpm test`
 - [ ] `pnpm test:e2e`
+- [ ] `pnpm pack:release`
+- [ ] `pnpm publish:release:dry-run`
 
 Optional diagnostics when analyzing failures:
 
@@ -45,6 +47,8 @@ Optional diagnostics when analyzing failures:
 - [ ] Record the verification date
 - [ ] Record the exact commands that passed
 - [ ] Note any known optional surfaces or deferred items explicitly
+- [ ] Confirm the npm scope is `@caphtech`
+- [ ] Confirm the publish order matches [npm Release Guide](npm-release.en.md)
 
 ## Minimum release statement
 

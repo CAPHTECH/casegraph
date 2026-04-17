@@ -14,9 +14,11 @@
     "sourceMap": true,
     "composite": true,
     "paths": {
-      "@casegraph/core": ["./packages/core/src/index.ts"],
-      "@casegraph/core/experimental": ["./packages/core/src/experimental.ts"],
-      "@casegraph/core/plugin-server": ["./packages/core/src/plugin-server.ts"]
+      "@caphtech/casegraph-cli": ["./packages/cli/src/index.ts"],
+      "@caphtech/casegraph-cli/app": ["./packages/cli/src/app.ts"],
+      "@caphtech/casegraph-core": ["./packages/core/src/index.ts"],
+      "@caphtech/casegraph-core/experimental": ["./packages/core/src/experimental.ts"],
+      "@caphtech/casegraph-core/plugin-server": ["./packages/core/src/plugin-server.ts"]
     }
   }
 }

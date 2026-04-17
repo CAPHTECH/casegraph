@@ -6,7 +6,7 @@ import {
   createDefaultMutationContext,
   runWorkspaceMigrations,
   SPEC_VERSION
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createTempWorkspace, removeTempWorkspace } from "./helpers/workspace.js";

@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { runCli } from "@casegraph/cli/app";
+import { runCli } from "@caphtech/casegraph-cli/app";
 import {
   addNode,
   createCase,
@@ -10,7 +10,7 @@ import {
   exportEvents,
   loadCaseState,
   selectProjectionTargets
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createTempWorkspace, removeTempWorkspace } from "./helpers/workspace.js";

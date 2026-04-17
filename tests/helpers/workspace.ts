@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { EdgeType, NodeKind, NodeState } from "@casegraph/core";
+import type { EdgeType, NodeKind, NodeState } from "@caphtech/casegraph-core";
 import {
   addEdge,
   addNode,
@@ -10,7 +10,7 @@ import {
   createDefaultMutationContext,
   initWorkspace,
   recordEventNode
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 
 export async function createTempWorkspace(prefix = "casegraph-"): Promise<string> {
   const root = await mkdtemp(path.join(tmpdir(), prefix));

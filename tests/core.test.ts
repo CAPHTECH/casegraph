@@ -8,7 +8,7 @@ import {
   showCase,
   validateCase,
   validateStorage
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 import { afterEach, describe, expect, it } from "vitest";
 
 import moveFixture from "./fixtures/move-case.fixture.json";

@@ -1,4 +1,4 @@
-import { createJsonRpcStdioClient, type JsonRpcStdioClient } from "@casegraph/core";
+import { createJsonRpcStdioClient, type JsonRpcStdioClient } from "@caphtech/casegraph-core";
 import { expect } from "vitest";
 
 export type PluginRole = "importer" | "sink" | "worker";

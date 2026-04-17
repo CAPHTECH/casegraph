@@ -1,4 +1,4 @@
-import { runCli } from "@casegraph/cli/app";
+import { runCli } from "@caphtech/casegraph-cli/app";
 import { afterEach, describe, expect, it } from "vitest";
 
 import releaseFixture from "./fixtures/release-case.fixture.json";

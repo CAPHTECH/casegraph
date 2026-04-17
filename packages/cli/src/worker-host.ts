@@ -18,7 +18,7 @@ import {
   type WorkerRelatedNode,
   type WorkerTaskContext,
   type WorkerTaskSnapshot
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 
 import {
   appendPluginAuditEvent,
@@ -30,15 +30,18 @@ import {
 
 const BUILT_IN_WORKERS: Record<string, BuiltInPluginEntry> = {
   shell: {
-    entryFromImport: new URL("../../worker-shell/src/index.ts", import.meta.url),
+    localEntryFromImport: new URL("../../worker-shell/src/index.ts", import.meta.url),
+    packageName: "@caphtech/casegraph-worker-shell",
     requiredMethod: "worker.execute"
   },
   "code-agent": {
-    entryFromImport: new URL("../../worker-code-agent/src/index.ts", import.meta.url),
+    localEntryFromImport: new URL("../../worker-code-agent/src/index.ts", import.meta.url),
+    packageName: "@caphtech/casegraph-worker-code-agent",
     requiredMethod: "worker.execute"
   },
   "local-llm": {
-    entryFromImport: new URL("../../worker-local-llm/src/index.ts", import.meta.url),
+    localEntryFromImport: new URL("../../worker-local-llm/src/index.ts", import.meta.url),
+    packageName: "@caphtech/casegraph-worker-local-llm",
     requiredMethod: "worker.execute"
   }
 };

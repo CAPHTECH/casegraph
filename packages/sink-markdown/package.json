@@ -1,15 +1,43 @@
 {
-  "name": "@casegraph/sink-markdown",
+  "name": "@caphtech/casegraph-sink-markdown",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "description": "Built-in markdown sink plugin for CaseGraph.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "bin": {
-    "casegraph-sink-markdown": "./src/index.ts"
+    "casegraph-sink-markdown": "./dist/index.js"
+  },
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "README.md"
+  ],
+  "homepage": "https://github.com/CAPHTECH/casegraph",
+  "bugs": {
+    "url": "https://github.com/CAPHTECH/casegraph/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CAPHTECH/casegraph.git",
+    "directory": "packages/sink-markdown"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
-    "@casegraph/core": "workspace:*"
+    "@caphtech/casegraph-core": "workspace:*"
   }
 }

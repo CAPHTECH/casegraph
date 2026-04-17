@@ -4,8 +4,18 @@ import {
   loadCaseState,
   loadConfigRecord,
   validatePatchDocument
-} from "@casegraph/core";
-import { builtInPluginCommand, closePluginClient, openPluginClient } from "./plugin-client.js";
+} from "@caphtech/casegraph-core";
+import {
+  closePluginClient,
+  openPluginClient,
+  resolveBuiltInPluginCommand
+} from "./plugin-client.js";
+
+const BUILT_IN_IMPORTER = {
+  localEntryFromImport: new URL("../../importer-markdown/src/index.ts", import.meta.url),
+  packageName: "@caphtech/casegraph-importer-markdown",
+  requiredMethod: "importer.ingest"
+} as const;
 
 export async function ingestMarkdownPatch(options: {
   workspaceRoot: string;
@@ -18,9 +28,7 @@ export async function ingestMarkdownPatch(options: {
     workspaceRoot: options.workspaceRoot,
     env: options.env,
     config: config.importers?.markdown,
-    defaultCommand: builtInPluginCommand(
-      new URL("../../importer-markdown/src/index.ts", import.meta.url)
-    ),
+    defaultCommand: resolveBuiltInPluginCommand(BUILT_IN_IMPORTER),
     peerName: "importer",
     requiredMethod: "importer.ingest",
     capabilityErrorCode: "importer_capability_missing"

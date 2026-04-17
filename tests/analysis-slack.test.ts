@@ -7,7 +7,7 @@ import {
   type NodeKind,
   type NodeState,
   replayCaseEvents
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 import { describe, expect, it } from "vitest";
 
 interface TestNode {

@@ -40,7 +40,7 @@ cg import markdown --case <case_id> --input <path.md> --output <patch.json>
 - Feed the output through the **casegraph-patch** skill: `cg patch validate → review → apply`.
 - The current importer supports `mode: "append"` only. Checkboxes and bullets become node candidates.
 - Duplicate detection is done inside the importer; collisions are surfaced as warnings.
-- The binary runs as `node --experimental-strip-types packages/importer-markdown/src/index.ts`. Do not "fix" this by compiling to JS unless you also update the spawn command in `packages/cli/src/importer-host.ts`.
+- In the repository, the built-in importer resolves `packages/importer-markdown/src/index.ts` and runs it via `node --experimental-strip-types`. In a published install, the CLI resolves the installed `@caphtech/casegraph-importer-markdown` package entrypoint instead. Keep both paths working when changing plugin resolution.
 
 ## Sink: markdown (built-in reference integration)
 

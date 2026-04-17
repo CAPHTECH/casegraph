@@ -1,4 +1,9 @@
-import { applyPatch, getFrontierItems, reviewPatch, validatePatchDocument } from "@casegraph/core";
+import {
+  applyPatch,
+  getFrontierItems,
+  reviewPatch,
+  validatePatchDocument
+} from "@caphtech/casegraph-core";
 import { afterEach, describe, expect, it } from "vitest";
 
 import releaseFixture from "./fixtures/release-case.fixture.json";

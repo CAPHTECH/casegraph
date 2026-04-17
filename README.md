@@ -54,6 +54,25 @@ For the full walkthrough:
 - [Quickstart (EN)](docs/guides/quickstart.en.md)
 - [Quickstart (JA)](docs/guides/quickstart.ja.md)
 
+## Install
+
+Global CLI install:
+
+```bash
+npm install -g @caphtech/casegraph-cli
+cg --help
+```
+
+Published package set:
+
+- `@caphtech/casegraph-core`
+- `@caphtech/casegraph-cli`
+- `@caphtech/casegraph-importer-markdown`
+- `@caphtech/casegraph-sink-markdown`
+- `@caphtech/casegraph-worker-shell`
+- `@caphtech/casegraph-worker-code-agent`
+- `@caphtech/casegraph-worker-local-llm`
+
 ## Documentation
 
 - [Docs index](docs/README.md)
@@ -67,6 +86,8 @@ Release and verification guides:
 
 - [Release checklist (EN)](docs/guides/release-checklist.en.md)
 - [Release checklist (JA)](docs/guides/release-checklist.ja.md)
+- [npm release guide (EN)](docs/guides/npm-release.en.md)
+- [npm release guide (JA)](docs/guides/npm-release.ja.md)
 - [Manual acceptance (EN)](docs/guides/manual-acceptance.en.md)
 - [Manual acceptance (JA)](docs/guides/manual-acceptance.ja.md)
 

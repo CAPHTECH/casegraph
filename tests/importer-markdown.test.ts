@@ -1,7 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { createJsonRpcStdioClient, type ImporterIngestResult } from "@casegraph/core";
+import { createJsonRpcStdioClient, type ImporterIngestResult } from "@caphtech/casegraph-core";
 import { afterEach, describe, expect, it } from "vitest";
 
 const createdDirs: string[] = [];

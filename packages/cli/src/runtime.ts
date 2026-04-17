@@ -16,14 +16,14 @@ import type {
   MutationContext,
   ShowCaseData,
   SlackAnalysisResult
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 
 import {
   createDefaultMutationContext,
   generateId,
   normalizeUnknownError,
   resolveWorkspaceContext
-} from "@casegraph/core";
+} from "@caphtech/casegraph-core";
 import type { Command } from "commander";
 
 import type { CommandResult, CommandSuccess } from "./result.js";

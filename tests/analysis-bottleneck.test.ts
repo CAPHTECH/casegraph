@@ -1,4 +1,9 @@
-import { analyzeBottlenecks, createEvent, defaultActor, replayCaseEvents } from "@casegraph/core";
+import {
+  analyzeBottlenecks,
+  createEvent,
+  defaultActor,
+  replayCaseEvents
+} from "@caphtech/casegraph-core";
 import { describe, expect, it } from "vitest";
 
 interface TestNodeInput {

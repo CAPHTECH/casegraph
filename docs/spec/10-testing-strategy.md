@@ -139,7 +139,7 @@ golden harness では replay-only fixture として純粋 replay 経路で評価
 raw topology query は `pnpm test:analysis-eval` の event-export corpus に載せる。
 ここでは `projection`, `beta_0`, `beta_1`, component set, warning を
 partial-label / invariant で継続検証する。
-raw topology API import は `@casegraph/core/experimental` に限定し、
+raw topology API import は `@caphtech/casegraph-core/experimental` に限定し、
 root public API からは見えないことも regression test に含める。
 
 ---
