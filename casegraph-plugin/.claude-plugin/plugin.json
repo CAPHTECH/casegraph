@@ -1,0 +1,9 @@
+{
+  "name": "casegraph-plugin",
+  "description": "CaseGraph CLI integration for Claude Code. Skills for workspace reading/authoring/analysis, GraphPatch proposals, and external integrations.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Ryoichi Izumita"
+  },
+  "skills": "./skills/"
+}

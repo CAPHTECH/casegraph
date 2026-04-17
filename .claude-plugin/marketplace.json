@@ -1,0 +1,30 @@
+{
+  "name": "casegraph-marketplace",
+  "owner": {
+    "name": "Ryoichi Izumita",
+    "email": "r.izumita@caph.jp"
+  },
+  "metadata": {
+    "description": "CaseGraph plugin marketplace for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "casegraph-plugin",
+      "source": "./casegraph-plugin",
+      "description": "CaseGraph CLI integration for Claude Code. Skills for workspace reading/authoring/analysis, GraphPatch proposals, and external integrations (importer / sink / worker / storage recovery).",
+      "version": "0.1.0",
+      "author": {
+        "name": "Ryoichi Izumita"
+      },
+      "keywords": [
+        "casegraph",
+        "cli",
+        "graph",
+        "local-first",
+        "graphpatch",
+        "event-sourced"
+      ],
+      "category": "development"
+    }
+  ]
+}
