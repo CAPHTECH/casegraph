@@ -57,7 +57,7 @@ describe("workspace migration checks", () => {
     });
   });
 
-  it("plans and applies supported legacy workspace, case, event-log, and patch migrations", async () => {
+  it("plans and applies supported legacy workspace, case, event-log, and JSON/YAML patch migrations", async () => {
     const workspaceRoot = await createTempWorkspace("casegraph-migration-");
     createdWorkspaces.push(workspaceRoot);
 
@@ -87,6 +87,7 @@ describe("workspace migration checks", () => {
       "events.jsonl"
     );
     const patchFile = path.join(workspaceRoot, "legacy.patch.json");
+    const yamlPatchFile = path.join(workspaceRoot, "legacy.patch.yaml");
 
     await writeFile(
       patchFile,
@@ -121,6 +122,32 @@ describe("workspace migration checks", () => {
       )}\n`,
       "utf8"
     );
+    await writeFile(
+      yamlPatchFile,
+      [
+        "patch_id: patch_legacy_yaml",
+        "spec_version: 0.0.9",
+        "case_id: migration-legacy",
+        "base_revision: 1",
+        "summary: Legacy YAML patch",
+        "operations:",
+        "  - op: add_node",
+        "    node:",
+        "      node_id: task_from_yaml_patch",
+        "      kind: task",
+        "      title: From YAML patch",
+        "      state: todo",
+        "      description: ''",
+        "      labels: []",
+        "      acceptance: []",
+        "      metadata: {}",
+        "      extensions: {}",
+        "notes: []",
+        "risks: []",
+        ""
+      ].join("\n"),
+      "utf8"
+    );
 
     await replaceInFile(workspaceFile, "spec_version: 0.1-draft", "spec_version: 0.0.9");
     const caseContents = await readFile(caseFile, "utf8");
@@ -128,7 +155,7 @@ describe("workspace migration checks", () => {
     await replaceInFile(eventsFile, '"spec_version":"0.1-draft"', '"spec_version":"0.0.9"');
 
     const check = await checkWorkspaceMigrations(workspaceRoot, {
-      patchFiles: [patchFile]
+      patchFiles: [patchFile, yamlPatchFile]
     });
     expect(check).toMatchObject({
       supported: true,
@@ -140,38 +167,49 @@ describe("workspace migration checks", () => {
         { step_id: "patch-spec-0.0.9-to-0.1-draft" }
       ]
     });
-    expect(check.targets).toEqual([
-      expect.objectContaining({
-        target: "workspace",
-        from_version: "0.0.9",
-        action: "rewrite_spec_version",
-        status: "pending"
-      }),
-      expect.objectContaining({
-        target: "case",
-        from_version: "0.0.9",
-        action: "rewrite_spec_version",
-        status: "pending",
-        case_id: "migration-legacy"
-      }),
-      expect.objectContaining({
-        target: "event_log",
-        from_version: "0.0.9",
-        action: "reader_compatible",
-        status: "pending",
-        case_id: "migration-legacy"
-      }),
-      expect.objectContaining({
-        target: "patch_file",
-        from_version: "0.0.9",
-        action: "rewrite_spec_version",
-        status: "pending"
-      })
-    ]);
+    expect(check.targets).toHaveLength(5);
+    expect(check.targets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target: "workspace",
+          from_version: "0.0.9",
+          action: "rewrite_spec_version",
+          status: "pending"
+        }),
+        expect.objectContaining({
+          target: "case",
+          from_version: "0.0.9",
+          action: "rewrite_spec_version",
+          status: "pending",
+          case_id: "migration-legacy"
+        }),
+        expect.objectContaining({
+          target: "event_log",
+          from_version: "0.0.9",
+          action: "reader_compatible",
+          status: "pending",
+          case_id: "migration-legacy"
+        }),
+        expect.objectContaining({
+          target: "patch_file",
+          from_version: "0.0.9",
+          action: "rewrite_spec_version",
+          status: "pending",
+          path: "legacy.patch.json"
+        }),
+        expect.objectContaining({
+          target: "patch_file",
+          from_version: "0.0.9",
+          action: "rewrite_spec_version",
+          status: "pending",
+          path: "legacy.patch.yaml"
+        })
+      ])
+    );
 
     const dryRun = await runWorkspaceMigrations(workspaceRoot, {
       dryRun: true,
-      patchFiles: [patchFile]
+      patchFiles: [patchFile, yamlPatchFile]
     });
     expect(dryRun).toMatchObject({
       dry_run: true,
@@ -182,7 +220,7 @@ describe("workspace migration checks", () => {
     expect(dryRun.targets.every((target) => target.status === "dry_run")).toBe(true);
 
     const run = await runWorkspaceMigrations(workspaceRoot, {
-      patchFiles: [patchFile]
+      patchFiles: [patchFile, yamlPatchFile]
     });
     expect(run).toMatchObject({
       dry_run: false,
@@ -195,33 +233,44 @@ describe("workspace migration checks", () => {
         { step_id: "patch-spec-0.0.9-to-0.1-draft" }
       ]
     });
-    expect(run.targets).toEqual([
-      expect.objectContaining({
-        target: "workspace",
-        status: "applied",
-        changed: true
-      }),
-      expect.objectContaining({
-        target: "case",
-        status: "applied",
-        changed: true
-      }),
-      expect.objectContaining({
-        target: "event_log",
-        status: "applied",
-        changed: false
-      }),
-      expect.objectContaining({
-        target: "patch_file",
-        status: "applied",
-        changed: true
-      })
-    ]);
+    expect(run.targets).toHaveLength(5);
+    expect(run.targets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target: "workspace",
+          status: "applied",
+          changed: true
+        }),
+        expect.objectContaining({
+          target: "case",
+          status: "applied",
+          changed: true
+        }),
+        expect.objectContaining({
+          target: "event_log",
+          status: "applied",
+          changed: false
+        }),
+        expect.objectContaining({
+          target: "patch_file",
+          status: "applied",
+          changed: true,
+          path: "legacy.patch.json"
+        }),
+        expect.objectContaining({
+          target: "patch_file",
+          status: "applied",
+          changed: true,
+          path: "legacy.patch.yaml"
+        })
+      ])
+    );
 
     expect(await readFile(workspaceFile, "utf8")).toContain(`spec_version: ${SPEC_VERSION}`);
     expect(await readFile(caseFile, "utf8")).not.toContain("spec_version:");
     expect(await readFile(eventsFile, "utf8")).toContain('"spec_version":"0.0.9"');
     expect(await readFile(patchFile, "utf8")).toContain(`"spec_version": "${SPEC_VERSION}"`);
+    expect(await readFile(yamlPatchFile, "utf8")).toContain(`spec_version: ${SPEC_VERSION}`);
   });
 
   it("fails on unknown workspace, case, and event versions", async () => {

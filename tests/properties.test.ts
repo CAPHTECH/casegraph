@@ -332,45 +332,9 @@ function snapshot(state: ReturnType<typeof replayCaseEvents>) {
 }
 
 function reverseReachableNodeIds(edges: GraphBlueprint["edges"], sourceNodeId: string): string[] {
-  const adjacency = new Map<string, Set<string>>();
-  for (const edge of edges) {
-    if (!adjacency.has(edge.target_id)) {
-      adjacency.set(edge.target_id, new Set());
-    }
-    adjacency.get(edge.target_id)?.add(edge.source_id);
-  }
-
-  const visited = new Set<string>([sourceNodeId]);
-  const queue = [sourceNodeId];
-  while (queue.length > 0) {
-    const currentNodeId = queue.shift() as string;
-    const nextIds = [...(adjacency.get(currentNodeId) ?? new Set())].sort((left, right) =>
-      left.localeCompare(right)
-    );
-    for (const nextNodeId of nextIds) {
-      if (visited.has(nextNodeId)) {
-        continue;
-      }
-      visited.add(nextNodeId);
-      queue.push(nextNodeId);
-    }
-  }
-
-  const distances = new Map<string, number>([[sourceNodeId, 0]]);
-  const queueForDistance = [sourceNodeId];
-  while (queueForDistance.length > 0) {
-    const currentNodeId = queueForDistance.shift() as string;
-    const nextIds = [...(adjacency.get(currentNodeId) ?? new Set())].sort((left, right) =>
-      left.localeCompare(right)
-    );
-    for (const nextNodeId of nextIds) {
-      if (distances.has(nextNodeId)) {
-        continue;
-      }
-      distances.set(nextNodeId, (distances.get(currentNodeId) ?? 0) + 1);
-      queueForDistance.push(nextNodeId);
-    }
-  }
+  const adjacency = buildReverseAdjacency(edges);
+  const visited = collectReachableNodeIds(adjacency, sourceNodeId);
+  const distances = collectReachableDistances(adjacency, sourceNodeId);
 
   return [...visited]
     .filter((nodeId) => nodeId !== sourceNodeId)
@@ -382,6 +346,62 @@ function reverseReachableNodeIds(edges: GraphBlueprint["edges"], sourceNodeId: s
       }
       return left.localeCompare(right);
     });
+}
+
+function buildReverseAdjacency(edges: GraphBlueprint["edges"]): Map<string, Set<string>> {
+  const adjacency = new Map<string, Set<string>>();
+  for (const edge of edges) {
+    const targetSources = adjacency.get(edge.target_id) ?? new Set<string>();
+    targetSources.add(edge.source_id);
+    adjacency.set(edge.target_id, targetSources);
+  }
+  return adjacency;
+}
+
+function collectReachableNodeIds(
+  adjacency: Map<string, Set<string>>,
+  sourceNodeId: string
+): Set<string> {
+  const visited = new Set<string>([sourceNodeId]);
+  const queue = [sourceNodeId];
+
+  while (queue.length > 0) {
+    const currentNodeId = queue.shift() as string;
+    for (const nextNodeId of sortedAdjacentNodeIds(adjacency, currentNodeId)) {
+      if (visited.has(nextNodeId)) {
+        continue;
+      }
+      visited.add(nextNodeId);
+      queue.push(nextNodeId);
+    }
+  }
+
+  return visited;
+}
+
+function collectReachableDistances(
+  adjacency: Map<string, Set<string>>,
+  sourceNodeId: string
+): Map<string, number> {
+  const distances = new Map<string, number>([[sourceNodeId, 0]]);
+  const queue = [sourceNodeId];
+
+  while (queue.length > 0) {
+    const currentNodeId = queue.shift() as string;
+    for (const nextNodeId of sortedAdjacentNodeIds(adjacency, currentNodeId)) {
+      if (distances.has(nextNodeId)) {
+        continue;
+      }
+      distances.set(nextNodeId, (distances.get(currentNodeId) ?? 0) + 1);
+      queue.push(nextNodeId);
+    }
+  }
+
+  return distances;
+}
+
+function sortedAdjacentNodeIds(adjacency: Map<string, Set<string>>, nodeId: string): string[] {
+  return [...(adjacency.get(nodeId) ?? new Set())].sort((left, right) => left.localeCompare(right));
 }
 
 function isValidNormalizedPath(edges: GraphBlueprint["edges"], nodeIds: string[]): boolean {

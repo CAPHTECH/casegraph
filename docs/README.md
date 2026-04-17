@@ -134,6 +134,19 @@ flowchart LR
 ### Phase 0 freeze note
 - 凍結する CLI は case / graph / state / frontier / blockers / storage recovery に限定する
 - GraphPatch, importer, projection, worker は v0.1 の設計対象だが、CLI surface は未凍結
+- `cg case view` は参照実装の read-only working surface として残すが、広い TUI / graph view は未凍結
+
+---
+
+## 5.5 Graph View Guardrail
+
+Phase 5 で必要だったのは、広い TUI を先に spec 化することではなく、
+**グラフを安全に読む surface をどこまで許すか** を固定することでした。
+
+- source of truth は event log + deterministic replay のまま
+- graph view は read-only inspection を優先する
+- stable な TUI protocol / schema / layout contract はまだ置かない
+- 現行の public working surface は `cg case view` に留める
 
 ---
 

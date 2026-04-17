@@ -185,271 +185,380 @@ export function applyPatchOperationsToDraft(
 
     switch (operation.op) {
       case "add_node": {
-        const node = operation.node;
-        if (draft.nodes.has(node.node_id)) {
-          errors.push({
-            severity: "error",
-            code: "patch_add_node_conflict",
-            message: `Node ${node.node_id} already exists`,
-            ref
-          });
-          break;
-        }
-
-        draft.nodes.set(
-          node.node_id,
-          sanitizeNodeRecord({
-            node_id: node.node_id,
-            kind: node.kind,
-            title: node.title,
-            description: node.description ?? "",
-            state: node.state,
-            labels: ensureArray(node.labels),
-            acceptance: ensureArray(node.acceptance),
-            metadata: ensureObject(node.metadata),
-            extensions: ensureObject(node.extensions),
-            created_at: timestamp,
-            updated_at: timestamp
-          })
-        );
+        applyAddNodeOperation(draft, operation, timestamp, ref, errors);
         break;
       }
 
       case "update_node": {
-        const existing = draft.nodes.get(operation.node_id);
-        if (!existing) {
-          errors.push({
-            severity: "error",
-            code: "patch_update_node_missing",
-            message: `Node ${operation.node_id} does not exist`,
-            ref
-          });
-          break;
-        }
-
-        draft.nodes.set(
-          operation.node_id,
-          sanitizeNodeRecord({
-            ...existing,
-            ...cloneNodeChanges(operation.changes),
-            updated_at: timestamp
-          })
-        );
+        applyUpdateNodeOperation(draft, operation, timestamp, ref, errors);
         break;
       }
 
       case "remove_node": {
-        if (!draft.nodes.has(operation.node_id)) {
-          errors.push({
-            severity: "error",
-            code: "patch_remove_node_missing",
-            message: `Node ${operation.node_id} does not exist`,
-            ref
-          });
-          break;
-        }
-
-        draft.nodes.delete(operation.node_id);
-        for (const [attachmentId, attachment] of draft.attachments.entries()) {
-          if (attachment.evidence_node_id === operation.node_id) {
-            draft.attachments.delete(attachmentId);
-          }
-        }
+        applyRemoveNodeOperation(draft, operation, ref, errors);
         break;
       }
 
       case "add_edge": {
-        if (
-          !(draft.nodes.has(operation.edge.source_id) && draft.nodes.has(operation.edge.target_id))
-        ) {
-          errors.push({
-            severity: "error",
-            code: "patch_add_edge_missing_node",
-            message: `Edge ${operation.edge.edge_id} references missing node at apply time`,
-            ref
-          });
-          break;
-        }
-
-        if (draft.edges.has(operation.edge.edge_id)) {
-          errors.push({
-            severity: "error",
-            code: "patch_add_edge_conflict",
-            message: `Edge ${operation.edge.edge_id} already exists`,
-            ref
-          });
-          break;
-        }
-
-        draft.edges.set(
-          operation.edge.edge_id,
-          sanitizeEdgeRecord({
-            edge_id: operation.edge.edge_id,
-            type: operation.edge.type,
-            source_id: operation.edge.source_id,
-            target_id: operation.edge.target_id,
-            metadata: ensureObject(operation.edge.metadata),
-            extensions: ensureObject(operation.edge.extensions),
-            created_at: timestamp
-          })
-        );
+        applyAddEdgeOperation(draft, operation, timestamp, ref, errors);
         break;
       }
 
       case "remove_edge": {
-        if (!draft.edges.has(operation.edge_id)) {
-          errors.push({
-            severity: "error",
-            code: "patch_remove_edge_missing",
-            message: `Edge ${operation.edge_id} does not exist`,
-            ref
-          });
-          break;
-        }
-
-        draft.edges.delete(operation.edge_id);
+        applyRemoveEdgeOperation(draft, operation, ref, errors);
         break;
       }
 
       case "change_state": {
-        const existing = draft.nodes.get(operation.node_id);
-        if (!existing) {
-          errors.push({
-            severity: "error",
-            code: "patch_change_state_missing",
-            message: `Node ${operation.node_id} does not exist`,
-            ref
-          });
-          break;
-        }
-
-        draft.nodes.set(
-          operation.node_id,
-          sanitizeNodeRecord({
-            ...existing,
-            state: operation.state,
-            metadata: {
-              ...existing.metadata,
-              ...ensureObject(operation.metadata)
-            },
-            updated_at: timestamp
-          })
-        );
+        applyChangeStateOperation(draft, operation, timestamp, ref, errors);
         break;
       }
 
       case "attach_evidence": {
-        const evidence = operation.evidence;
-        if (draft.nodes.has(evidence.node_id)) {
-          errors.push({
-            severity: "error",
-            code: "patch_attach_evidence_conflict",
-            message: `Evidence node ${evidence.node_id} already exists`,
-            ref
-          });
-          break;
-        }
-
-        draft.nodes.set(
-          evidence.node_id,
-          sanitizeNodeRecord({
-            node_id: evidence.node_id,
-            kind: "evidence",
-            title: evidence.title,
-            description: evidence.description ?? "",
-            state: "done",
-            labels: ensureArray(evidence.labels),
-            acceptance: ensureArray(evidence.acceptance),
-            metadata: ensureObject(evidence.metadata),
-            extensions: ensureObject(evidence.extensions),
-            created_at: timestamp,
-            updated_at: timestamp
-          })
-        );
-
-        if (operation.verifies_target_id) {
-          if (!draft.nodes.has(operation.verifies_target_id)) {
-            errors.push({
-              severity: "error",
-              code: "patch_attach_evidence_target_missing",
-              message: `Evidence target ${operation.verifies_target_id} does not exist`,
-              ref
-            });
-            break;
-          }
-
-          const edgeId = `edge_verify_${evidence.node_id}_${operation.verifies_target_id}`;
-          if (draft.edges.has(edgeId)) {
-            errors.push({
-              severity: "error",
-              code: "patch_attach_evidence_edge_conflict",
-              message: `Edge ${edgeId} already exists`,
-              ref
-            });
-            break;
-          }
-
-          draft.edges.set(
-            edgeId,
-            sanitizeEdgeRecord({
-              edge_id: edgeId,
-              type: "verifies",
-              source_id: evidence.node_id,
-              target_id: operation.verifies_target_id,
-              metadata: {},
-              extensions: {},
-              created_at: timestamp
-            })
-          );
-        }
-
-        if (operation.attachment) {
-          const attachmentId = operation.attachment.attachment_id ?? generateId();
-          if (draft.attachments.has(attachmentId)) {
-            errors.push({
-              severity: "error",
-              code: "patch_attachment_conflict",
-              message: `Attachment ${attachmentId} already exists`,
-              ref
-            });
-            break;
-          }
-
-          draft.attachments.set(
-            attachmentId,
-            sanitizeAttachmentRecord({
-              attachment_id: attachmentId,
-              evidence_node_id: evidence.node_id,
-              storage_mode: operation.attachment.storage_mode,
-              path_or_url: operation.attachment.path_or_url,
-              sha256: operation.attachment.sha256 ?? null,
-              mime_type: operation.attachment.mime_type ?? null,
-              size_bytes: operation.attachment.size_bytes ?? null,
-              created_at: timestamp
-            })
-          );
-        }
+        applyAttachEvidenceOperation(draft, operation, timestamp, ref, errors);
         break;
       }
 
       case "set_case_field": {
-        const changes = cloneCaseChanges(operation.changes);
-        draft.caseRecord = sanitizeCaseRecord({
-          ...draft.caseRecord,
-          title: changes.title ?? draft.caseRecord.title,
-          description: changes.description ?? draft.caseRecord.description,
-          state: changes.state ?? draft.caseRecord.state,
-          labels: changes.labels ?? draft.caseRecord.labels,
-          metadata: changes.metadata ?? draft.caseRecord.metadata,
-          extensions: changes.extensions ?? draft.caseRecord.extensions,
-          case_revision: draft.caseRecord.case_revision
-        });
+        applySetCaseFieldOperation(draft, operation);
         break;
       }
     }
   }
 
   return errors;
+}
+
+function applyAddNodeOperation(
+  draft: PatchDraftState,
+  operation: Extract<GraphPatchOperation, { op: "add_node" }>,
+  timestamp: string,
+  ref: string,
+  errors: ValidationIssue[]
+): void {
+  const node = operation.node;
+  if (draft.nodes.has(node.node_id)) {
+    errors.push({
+      severity: "error",
+      code: "patch_add_node_conflict",
+      message: `Node ${node.node_id} already exists`,
+      ref
+    });
+    return;
+  }
+
+  draft.nodes.set(
+    node.node_id,
+    sanitizeNodeRecord({
+      node_id: node.node_id,
+      kind: node.kind,
+      title: node.title,
+      description: node.description ?? "",
+      state: node.state,
+      labels: ensureArray(node.labels),
+      acceptance: ensureArray(node.acceptance),
+      metadata: ensureObject(node.metadata),
+      extensions: ensureObject(node.extensions),
+      created_at: timestamp,
+      updated_at: timestamp
+    })
+  );
+}
+
+function applyUpdateNodeOperation(
+  draft: PatchDraftState,
+  operation: Extract<GraphPatchOperation, { op: "update_node" }>,
+  timestamp: string,
+  ref: string,
+  errors: ValidationIssue[]
+): void {
+  const existing = draft.nodes.get(operation.node_id);
+  if (!existing) {
+    errors.push({
+      severity: "error",
+      code: "patch_update_node_missing",
+      message: `Node ${operation.node_id} does not exist`,
+      ref
+    });
+    return;
+  }
+
+  draft.nodes.set(
+    operation.node_id,
+    sanitizeNodeRecord({
+      ...existing,
+      ...cloneNodeChanges(operation.changes),
+      updated_at: timestamp
+    })
+  );
+}
+
+function applyRemoveNodeOperation(
+  draft: PatchDraftState,
+  operation: Extract<GraphPatchOperation, { op: "remove_node" }>,
+  ref: string,
+  errors: ValidationIssue[]
+): void {
+  if (!draft.nodes.has(operation.node_id)) {
+    errors.push({
+      severity: "error",
+      code: "patch_remove_node_missing",
+      message: `Node ${operation.node_id} does not exist`,
+      ref
+    });
+    return;
+  }
+
+  draft.nodes.delete(operation.node_id);
+  removeAttachmentsForNode(draft.attachments, operation.node_id);
+}
+
+function removeAttachmentsForNode(
+  attachments: Map<string, AttachmentRecord>,
+  nodeId: string
+): void {
+  for (const [attachmentId, attachment] of attachments.entries()) {
+    if (attachment.evidence_node_id === nodeId) {
+      attachments.delete(attachmentId);
+    }
+  }
+}
+
+function applyAddEdgeOperation(
+  draft: PatchDraftState,
+  operation: Extract<GraphPatchOperation, { op: "add_edge" }>,
+  timestamp: string,
+  ref: string,
+  errors: ValidationIssue[]
+): void {
+  if (!(draft.nodes.has(operation.edge.source_id) && draft.nodes.has(operation.edge.target_id))) {
+    errors.push({
+      severity: "error",
+      code: "patch_add_edge_missing_node",
+      message: `Edge ${operation.edge.edge_id} references missing node at apply time`,
+      ref
+    });
+    return;
+  }
+
+  if (draft.edges.has(operation.edge.edge_id)) {
+    errors.push({
+      severity: "error",
+      code: "patch_add_edge_conflict",
+      message: `Edge ${operation.edge.edge_id} already exists`,
+      ref
+    });
+    return;
+  }
+
+  draft.edges.set(
+    operation.edge.edge_id,
+    sanitizeEdgeRecord({
+      edge_id: operation.edge.edge_id,
+      type: operation.edge.type,
+      source_id: operation.edge.source_id,
+      target_id: operation.edge.target_id,
+      metadata: ensureObject(operation.edge.metadata),
+      extensions: ensureObject(operation.edge.extensions),
+      created_at: timestamp
+    })
+  );
+}
+
+function applyRemoveEdgeOperation(
+  draft: PatchDraftState,
+  operation: Extract<GraphPatchOperation, { op: "remove_edge" }>,
+  ref: string,
+  errors: ValidationIssue[]
+): void {
+  if (!draft.edges.has(operation.edge_id)) {
+    errors.push({
+      severity: "error",
+      code: "patch_remove_edge_missing",
+      message: `Edge ${operation.edge_id} does not exist`,
+      ref
+    });
+    return;
+  }
+
+  draft.edges.delete(operation.edge_id);
+}
+
+function applyChangeStateOperation(
+  draft: PatchDraftState,
+  operation: Extract<GraphPatchOperation, { op: "change_state" }>,
+  timestamp: string,
+  ref: string,
+  errors: ValidationIssue[]
+): void {
+  const existing = draft.nodes.get(operation.node_id);
+  if (!existing) {
+    errors.push({
+      severity: "error",
+      code: "patch_change_state_missing",
+      message: `Node ${operation.node_id} does not exist`,
+      ref
+    });
+    return;
+  }
+
+  draft.nodes.set(
+    operation.node_id,
+    sanitizeNodeRecord({
+      ...existing,
+      state: operation.state,
+      metadata: {
+        ...existing.metadata,
+        ...ensureObject(operation.metadata)
+      },
+      updated_at: timestamp
+    })
+  );
+}
+
+function applyAttachEvidenceOperation(
+  draft: PatchDraftState,
+  operation: Extract<GraphPatchOperation, { op: "attach_evidence" }>,
+  timestamp: string,
+  ref: string,
+  errors: ValidationIssue[]
+): void {
+  const evidence = operation.evidence;
+  if (draft.nodes.has(evidence.node_id)) {
+    errors.push({
+      severity: "error",
+      code: "patch_attach_evidence_conflict",
+      message: `Evidence node ${evidence.node_id} already exists`,
+      ref
+    });
+    return;
+  }
+
+  draft.nodes.set(
+    evidence.node_id,
+    sanitizeNodeRecord({
+      node_id: evidence.node_id,
+      kind: "evidence",
+      title: evidence.title,
+      description: evidence.description ?? "",
+      state: "done",
+      labels: ensureArray(evidence.labels),
+      acceptance: ensureArray(evidence.acceptance),
+      metadata: ensureObject(evidence.metadata),
+      extensions: ensureObject(evidence.extensions),
+      created_at: timestamp,
+      updated_at: timestamp
+    })
+  );
+
+  if (!applyVerifiesEdgeForEvidence(draft, operation, evidence.node_id, timestamp, ref, errors)) {
+    return;
+  }
+
+  applyAttachmentForEvidence(draft, operation, evidence.node_id, timestamp, ref, errors);
+}
+
+function applyVerifiesEdgeForEvidence(
+  draft: PatchDraftState,
+  operation: Extract<GraphPatchOperation, { op: "attach_evidence" }>,
+  evidenceNodeId: string,
+  timestamp: string,
+  ref: string,
+  errors: ValidationIssue[]
+): boolean {
+  if (!operation.verifies_target_id) {
+    return true;
+  }
+
+  if (!draft.nodes.has(operation.verifies_target_id)) {
+    errors.push({
+      severity: "error",
+      code: "patch_attach_evidence_target_missing",
+      message: `Evidence target ${operation.verifies_target_id} does not exist`,
+      ref
+    });
+    return false;
+  }
+
+  const edgeId = `edge_verify_${evidenceNodeId}_${operation.verifies_target_id}`;
+  if (draft.edges.has(edgeId)) {
+    errors.push({
+      severity: "error",
+      code: "patch_attach_evidence_edge_conflict",
+      message: `Edge ${edgeId} already exists`,
+      ref
+    });
+    return false;
+  }
+
+  draft.edges.set(
+    edgeId,
+    sanitizeEdgeRecord({
+      edge_id: edgeId,
+      type: "verifies",
+      source_id: evidenceNodeId,
+      target_id: operation.verifies_target_id,
+      metadata: {},
+      extensions: {},
+      created_at: timestamp
+    })
+  );
+  return true;
+}
+
+function applyAttachmentForEvidence(
+  draft: PatchDraftState,
+  operation: Extract<GraphPatchOperation, { op: "attach_evidence" }>,
+  evidenceNodeId: string,
+  timestamp: string,
+  ref: string,
+  errors: ValidationIssue[]
+): void {
+  if (!operation.attachment) {
+    return;
+  }
+
+  const attachmentId = operation.attachment.attachment_id ?? generateId();
+  if (draft.attachments.has(attachmentId)) {
+    errors.push({
+      severity: "error",
+      code: "patch_attachment_conflict",
+      message: `Attachment ${attachmentId} already exists`,
+      ref
+    });
+    return;
+  }
+
+  draft.attachments.set(
+    attachmentId,
+    sanitizeAttachmentRecord({
+      attachment_id: attachmentId,
+      evidence_node_id: evidenceNodeId,
+      storage_mode: operation.attachment.storage_mode,
+      path_or_url: operation.attachment.path_or_url,
+      sha256: operation.attachment.sha256 ?? null,
+      mime_type: operation.attachment.mime_type ?? null,
+      size_bytes: operation.attachment.size_bytes ?? null,
+      created_at: timestamp
+    })
+  );
+}
+
+function applySetCaseFieldOperation(
+  draft: PatchDraftState,
+  operation: Extract<GraphPatchOperation, { op: "set_case_field" }>
+): void {
+  const changes = cloneCaseChanges(operation.changes);
+  draft.caseRecord = sanitizeCaseRecord({
+    ...draft.caseRecord,
+    title: changes.title ?? draft.caseRecord.title,
+    description: changes.description ?? draft.caseRecord.description,
+    state: changes.state ?? draft.caseRecord.state,
+    labels: changes.labels ?? draft.caseRecord.labels,
+    metadata: changes.metadata ?? draft.caseRecord.metadata,
+    extensions: changes.extensions ?? draft.caseRecord.extensions,
+    case_revision: draft.caseRecord.case_revision
+  });
 }
 
 export function finalizePatchDraftState(

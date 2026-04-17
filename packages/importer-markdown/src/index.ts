@@ -59,57 +59,13 @@ export async function parseMarkdownChecklistPatch(
   const lines = contents.split(/\r?\n/);
 
   for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index] as string;
-    const match = /^([ \t]*)[-*]\s+\[([ xX])\]\s+(.*)$/.exec(line);
-    if (!match) {
-      continue;
-    }
-
-    const indent = normalizeIndent(match[1] ?? "");
-    const checked = (match[2] ?? " ") !== " ";
-    const payload = parseChecklistPayload((match[3] ?? "").trim());
-
-    if (payload.title.length === 0) {
-      warnings.push(`Skipped checklist line ${index + 1}: empty title`);
-      continue;
-    }
-
-    const nodeId = createNodeId(payload.title, index + 1);
-    operations.push({
-      op: "add_node",
-      node: {
-        node_id: nodeId,
-        kind: "task",
-        title: payload.title,
-        state: checked ? "done" : "todo",
-        description: "",
-        labels: payload.labels,
-        acceptance: [],
-        metadata: payload.metadata,
-        extensions: {}
-      }
+    applyChecklistLine({
+      line: lines[index] as string,
+      lineNumber: index + 1,
+      operations,
+      warnings,
+      stack
     });
-
-    while (stack.length > 0 && indent <= (stack.at(-1)?.indent ?? -1)) {
-      stack.pop();
-    }
-
-    const parent = stack.at(-1);
-    if (parent) {
-      operations.push({
-        op: "add_edge",
-        edge: {
-          edge_id: `edge_${parent.nodeId}_depends_on_${nodeId}`,
-          type: "depends_on",
-          source_id: parent.nodeId,
-          target_id: nodeId,
-          metadata: {},
-          extensions: {}
-        }
-      });
-    }
-
-    stack.push({ indent, nodeId });
   }
 
   if (operations.length === 0) {
@@ -139,6 +95,94 @@ export async function parseMarkdownChecklistPatch(
     },
     warnings
   };
+}
+
+function applyChecklistLine(input: {
+  line: string;
+  lineNumber: number;
+  operations: Array<Record<string, unknown>>;
+  warnings: string[];
+  stack: Array<{ indent: number; nodeId: string }>;
+}): void {
+  const parsed = parseChecklistLine(input.line);
+  if (!parsed) {
+    return;
+  }
+
+  if (parsed.payload.title.length === 0) {
+    input.warnings.push(`Skipped checklist line ${input.lineNumber}: empty title`);
+    return;
+  }
+
+  const nodeId = createNodeId(parsed.payload.title, input.lineNumber);
+  input.operations.push(buildAddNodeOperation(nodeId, parsed.payload, parsed.checked));
+
+  trimChecklistStack(input.stack, parsed.indent);
+  const parent = input.stack.at(-1);
+  if (parent) {
+    input.operations.push(buildAddEdgeOperation(parent.nodeId, nodeId));
+  }
+
+  input.stack.push({ indent: parsed.indent, nodeId });
+}
+
+function parseChecklistLine(
+  line: string
+): { indent: number; checked: boolean; payload: ReturnType<typeof parseChecklistPayload> } | null {
+  const match = /^([ \t]*)[-*]\s+\[([ xX])\]\s+(.*)$/.exec(line);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    indent: normalizeIndent(match[1] ?? ""),
+    checked: (match[2] ?? " ") !== " ",
+    payload: parseChecklistPayload((match[3] ?? "").trim())
+  };
+}
+
+function buildAddNodeOperation(
+  nodeId: string,
+  payload: ReturnType<typeof parseChecklistPayload>,
+  checked: boolean
+): Record<string, unknown> {
+  return {
+    op: "add_node",
+    node: {
+      node_id: nodeId,
+      kind: "task",
+      title: payload.title,
+      state: checked ? "done" : "todo",
+      description: "",
+      labels: payload.labels,
+      acceptance: [],
+      metadata: payload.metadata,
+      extensions: {}
+    }
+  };
+}
+
+function buildAddEdgeOperation(parentNodeId: string, nodeId: string): Record<string, unknown> {
+  return {
+    op: "add_edge",
+    edge: {
+      edge_id: `edge_${parentNodeId}_depends_on_${nodeId}`,
+      type: "depends_on",
+      source_id: parentNodeId,
+      target_id: nodeId,
+      metadata: {},
+      extensions: {}
+    }
+  };
+}
+
+function trimChecklistStack(
+  stack: Array<{ indent: number; nodeId: string }>,
+  indent: number
+): void {
+  while (stack.length > 0 && indent <= (stack.at(-1)?.indent ?? -1)) {
+    stack.pop();
+  }
 }
 
 function parseChecklistPayload(raw: string): {

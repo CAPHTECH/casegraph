@@ -24,115 +24,47 @@ export function replayCaseEvents(events: EventEnvelope[]): CaseStateView {
   for (const event of events) {
     switch (event.type) {
       case "case.created": {
-        const nextCase = cloneRecord(event.payload.case as Omit<CaseRecord, "case_revision">);
-        caseRecord = {
-          ...nextCase,
-          case_revision: { current: 0, last_event_id: null }
-        };
+        caseRecord = replayCaseCreatedEvent(event);
         break;
       }
 
       case "case.updated": {
-        ensureCaseLoaded(caseRecord, event.type);
-        const rawChanges = event.payload.changes;
-        const changes =
-          typeof rawChanges === "object" && rawChanges !== null
-            ? (rawChanges as Partial<CaseRecord>)
-            : {};
-        caseRecord = Object.assign({}, caseRecord, changes, {
-          case_revision: caseRecord.case_revision
-        });
+        caseRecord = replayCaseUpdatedEvent(caseRecord, event);
         break;
       }
 
       case "node.added": {
-        const nextNode = cloneRecord(event.payload.node as NodeRecord);
-        nodes.set(nextNode.node_id, nextNode);
+        replayNodeAddedEvent(nodes, event);
         break;
       }
 
       case "node.updated": {
-        const nodeId = event.payload.node_id as string;
-        const existingNode = nodes.get(nodeId);
-        if (!existingNode) {
-          throw new CaseGraphError("node_not_found", `Node ${nodeId} not found during replay`, {
-            exitCode: 3
-          });
-        }
-
-        nodes.set(nodeId, {
-          ...existingNode,
-          ...(event.payload.changes as Partial<NodeRecord>),
-          updated_at: event.timestamp
-        });
+        replayNodeUpdatedEvent(nodes, event);
         break;
       }
 
       case "node.state_changed": {
-        const nodeId = event.payload.node_id as string;
-        const existingNode = nodes.get(nodeId);
-        if (!existingNode) {
-          throw new CaseGraphError("node_not_found", `Node ${nodeId} not found during replay`, {
-            exitCode: 3
-          });
-        }
-
-        nodes.set(nodeId, {
-          ...existingNode,
-          state: event.payload.state as NodeRecord["state"],
-          metadata: {
-            ...existingNode.metadata,
-            ...((event.payload.metadata as Record<string, unknown> | undefined) ?? {})
-          },
-          updated_at: event.timestamp
-        });
+        replayNodeStateChangedEvent(nodes, event);
         break;
       }
 
       case "edge.added": {
-        const nextEdge = cloneRecord(event.payload.edge as EdgeRecord);
-        edges.set(nextEdge.edge_id, nextEdge);
+        replayEdgeAddedEvent(edges, event);
         break;
       }
 
       case "edge.removed": {
-        const edgeId = event.payload.edge_id as string;
-        edges.delete(edgeId);
+        replayEdgeRemovedEvent(edges, event);
         break;
       }
 
       case "event.recorded": {
-        const nodeId = event.payload.node_id as string;
-        const existingNode = nodes.get(nodeId);
-        if (!existingNode) {
-          throw new CaseGraphError(
-            "node_not_found",
-            `Event node ${nodeId} not found during replay`,
-            { exitCode: 3 }
-          );
-        }
-
-        nodes.set(nodeId, {
-          ...existingNode,
-          state: "done",
-          updated_at: event.timestamp
-        });
+        replayEventRecordedEvent(nodes, event);
         break;
       }
 
       case "evidence.attached": {
-        const evidenceNode = cloneRecord(event.payload.node as NodeRecord);
-        nodes.set(evidenceNode.node_id, evidenceNode);
-
-        const verifiesEdge = event.payload.verifies_edge as EdgeRecord | undefined;
-        if (verifiesEdge) {
-          edges.set(verifiesEdge.edge_id, cloneRecord(verifiesEdge));
-        }
-
-        const attachment = event.payload.attachment as AttachmentRecord | undefined;
-        if (attachment) {
-          attachments.set(attachment.attachment_id, cloneRecord(attachment));
-        }
+        replayEvidenceAttachedEvent(nodes, edges, attachments, event);
         break;
       }
 
@@ -146,30 +78,7 @@ export function replayCaseEvents(events: EventEnvelope[]): CaseStateView {
 
       case "patch.applied": {
         ensureCaseLoaded(caseRecord, event.type);
-        const patch = cloneRecord(event.payload.patch as GraphPatch);
-        const draft: {
-          caseRecord: CaseRecord;
-          nodes: Map<string, NodeRecord>;
-          edges: Map<string, EdgeRecord>;
-          attachments: Map<string, AttachmentRecord>;
-        } = {
-          caseRecord,
-          nodes,
-          edges,
-          attachments
-        };
-        const draftErrors = applyPatchOperationsToDraft(draft, patch, event.timestamp);
-
-        if (draftErrors.length > 0) {
-          throw new CaseGraphError(
-            "patch_replay_failed",
-            `Patch ${patch.patch_id} failed during replay`,
-            { exitCode: 2, details: draftErrors }
-          );
-        }
-
-        caseRecord = draft.caseRecord;
-
+        caseRecord = replayPatchAppliedEvent(caseRecord, nodes, edges, attachments, event);
         break;
       }
 
@@ -209,6 +118,140 @@ export function replayCaseEvents(events: EventEnvelope[]): CaseStateView {
     derived,
     validation
   };
+}
+
+function replayCaseCreatedEvent(event: EventEnvelope): CaseRecord {
+  const nextCase = cloneRecord(event.payload.case as Omit<CaseRecord, "case_revision">);
+  return {
+    ...nextCase,
+    case_revision: { current: 0, last_event_id: null }
+  };
+}
+
+function replayCaseUpdatedEvent(caseRecord: CaseRecord | null, event: EventEnvelope): CaseRecord {
+  ensureCaseLoaded(caseRecord, event.type);
+  const rawChanges = event.payload.changes;
+  const changes =
+    typeof rawChanges === "object" && rawChanges !== null
+      ? (rawChanges as Partial<CaseRecord>)
+      : {};
+  return Object.assign({}, caseRecord, changes, {
+    case_revision: caseRecord.case_revision
+  });
+}
+
+function replayNodeAddedEvent(nodes: Map<string, NodeRecord>, event: EventEnvelope): void {
+  const nextNode = cloneRecord(event.payload.node as NodeRecord);
+  nodes.set(nextNode.node_id, nextNode);
+}
+
+function replayNodeUpdatedEvent(nodes: Map<string, NodeRecord>, event: EventEnvelope): void {
+  const nodeId = event.payload.node_id as string;
+  const existingNode = requireNodeForReplay(nodes, nodeId, "Node");
+  nodes.set(nodeId, {
+    ...existingNode,
+    ...(event.payload.changes as Partial<NodeRecord>),
+    updated_at: event.timestamp
+  });
+}
+
+function replayNodeStateChangedEvent(nodes: Map<string, NodeRecord>, event: EventEnvelope): void {
+  const nodeId = event.payload.node_id as string;
+  const existingNode = requireNodeForReplay(nodes, nodeId, "Node");
+  nodes.set(nodeId, {
+    ...existingNode,
+    state: event.payload.state as NodeRecord["state"],
+    metadata: {
+      ...existingNode.metadata,
+      ...((event.payload.metadata as Record<string, unknown> | undefined) ?? {})
+    },
+    updated_at: event.timestamp
+  });
+}
+
+function replayEdgeAddedEvent(edges: Map<string, EdgeRecord>, event: EventEnvelope): void {
+  const nextEdge = cloneRecord(event.payload.edge as EdgeRecord);
+  edges.set(nextEdge.edge_id, nextEdge);
+}
+
+function replayEdgeRemovedEvent(edges: Map<string, EdgeRecord>, event: EventEnvelope): void {
+  const edgeId = event.payload.edge_id as string;
+  edges.delete(edgeId);
+}
+
+function replayEventRecordedEvent(nodes: Map<string, NodeRecord>, event: EventEnvelope): void {
+  const nodeId = event.payload.node_id as string;
+  const existingNode = requireNodeForReplay(nodes, nodeId, "Event node");
+  nodes.set(nodeId, {
+    ...existingNode,
+    state: "done",
+    updated_at: event.timestamp
+  });
+}
+
+function replayEvidenceAttachedEvent(
+  nodes: Map<string, NodeRecord>,
+  edges: Map<string, EdgeRecord>,
+  attachments: Map<string, AttachmentRecord>,
+  event: EventEnvelope
+): void {
+  const evidenceNode = cloneRecord(event.payload.node as NodeRecord);
+  nodes.set(evidenceNode.node_id, evidenceNode);
+
+  const verifiesEdge = event.payload.verifies_edge as EdgeRecord | undefined;
+  if (verifiesEdge) {
+    edges.set(verifiesEdge.edge_id, cloneRecord(verifiesEdge));
+  }
+
+  const attachment = event.payload.attachment as AttachmentRecord | undefined;
+  if (attachment) {
+    attachments.set(attachment.attachment_id, cloneRecord(attachment));
+  }
+}
+
+function replayPatchAppliedEvent(
+  caseRecord: CaseRecord,
+  nodes: Map<string, NodeRecord>,
+  edges: Map<string, EdgeRecord>,
+  attachments: Map<string, AttachmentRecord>,
+  event: EventEnvelope
+): CaseRecord {
+  const patch = cloneRecord(event.payload.patch as GraphPatch);
+  const draft = {
+    caseRecord,
+    nodes,
+    edges,
+    attachments
+  };
+  const draftErrors = applyPatchOperationsToDraft(draft, patch, event.timestamp);
+
+  if (draftErrors.length > 0) {
+    throw new CaseGraphError(
+      "patch_replay_failed",
+      `Patch ${patch.patch_id} failed during replay`,
+      {
+        exitCode: 2,
+        details: draftErrors
+      }
+    );
+  }
+
+  return draft.caseRecord;
+}
+
+function requireNodeForReplay(
+  nodes: Map<string, NodeRecord>,
+  nodeId: string,
+  label: string
+): NodeRecord {
+  const existingNode = nodes.get(nodeId);
+  if (existingNode) {
+    return existingNode;
+  }
+
+  throw new CaseGraphError("node_not_found", `${label} ${nodeId} not found during replay`, {
+    exitCode: 3
+  });
 }
 
 export function computeCaseCounts(state: CaseStateView): CaseCounts {

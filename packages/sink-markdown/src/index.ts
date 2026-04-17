@@ -227,14 +227,7 @@ export async function pullChanges(params: PullParams): Promise<{
 }> {
   const filePath = projectionFilePath(params.case_id);
   const warnings: string[] = [];
-  let contents: string;
-  try {
-    contents = await readFile(filePath, "utf8");
-  } catch (error) {
-    throw new Error(
-      `Projection file ${filePath} not found; push before pull: ${toErrorMessage(error)}`
-    );
-  }
+  const contents = await readProjectionFile(filePath);
 
   const mappingByNodeId = new Map<string, Mapping>();
   for (const mapping of params.mapping) {
@@ -254,35 +247,15 @@ export async function pullChanges(params: PullParams): Promise<{
   let itemCount = 0;
 
   for (const line of lines) {
-    const match = /^\s*-\s+\[([ xX])\]\s+(.*?)\s*<!--\s*node:\s*([^\s]+)\s*-->\s*$/.exec(line);
-    if (!match) {
-      continue;
-    }
-    itemCount += 1;
-
-    const checked = (match[1] ?? " ") !== " ";
-    const nodeId = match[3] as string;
-    const mapping = mappingByNodeId.get(nodeId);
-    if (!mapping) {
-      warnings.push(`Line refers to unmapped node ${nodeId}; skipping`);
-      continue;
-    }
-
-    const newHash = checked ? "checked" : "unchecked";
-    if (mapping.last_known_external_hash !== newHash) {
-      operations.push({
-        op: "change_state",
-        node_id: nodeId,
-        state: checked ? "done" : "todo"
-      });
-    }
-
-    mappingDeltas.push({
-      internal_node_id: nodeId,
-      external_item_id: mapping.external_item_id,
-      last_pulled_at: now,
-      last_known_external_hash: newHash
+    const nextItemCount = processProjectionLine({
+      line,
+      mappingByNodeId,
+      operations,
+      mappingDeltas,
+      warnings,
+      now
     });
+    itemCount += nextItemCount;
   }
 
   if (operations.length === 0) {
@@ -295,16 +268,95 @@ export async function pullChanges(params: PullParams): Promise<{
     };
   }
 
+  return {
+    patch: buildPullPatch(params.case_id, params.base_revision, contents, operations),
+    mapping_deltas: mappingDeltas,
+    warnings,
+    item_count: itemCount
+  };
+}
+
+async function readProjectionFile(filePath: string): Promise<string> {
+  try {
+    return await readFile(filePath, "utf8");
+  } catch (error) {
+    throw new Error(
+      `Projection file ${filePath} not found; push before pull: ${toErrorMessage(error)}`
+    );
+  }
+}
+
+function processProjectionLine(input: {
+  line: string;
+  mappingByNodeId: Map<string, Mapping>;
+  operations: Array<Record<string, unknown>>;
+  mappingDeltas: Array<{
+    internal_node_id: string;
+    external_item_id: string;
+    last_pulled_at: string;
+    last_known_external_hash: string;
+  }>;
+  warnings: string[];
+  now: string;
+}): number {
+  const match = /^\s*-\s+\[([ xX])\]\s+(.*?)\s*<!--\s*node:\s*([^\s]+)\s*-->\s*$/.exec(input.line);
+  if (!match) {
+    return 0;
+  }
+
+  const checked = (match[1] ?? " ") !== " ";
+  const nodeId = match[3] as string;
+  const mapping = input.mappingByNodeId.get(nodeId);
+  if (!mapping) {
+    input.warnings.push(`Line refers to unmapped node ${nodeId}; skipping`);
+    return 1;
+  }
+
+  const newHash = checked ? "checked" : "unchecked";
+  pushStateChangeOperation(input.operations, mapping, nodeId, checked, newHash);
+  input.mappingDeltas.push({
+    internal_node_id: nodeId,
+    external_item_id: mapping.external_item_id,
+    last_pulled_at: input.now,
+    last_known_external_hash: newHash
+  });
+  return 1;
+}
+
+function pushStateChangeOperation(
+  operations: Array<Record<string, unknown>>,
+  mapping: Mapping,
+  nodeId: string,
+  checked: boolean,
+  newHash: string
+): void {
+  if (mapping.last_known_external_hash === newHash) {
+    return;
+  }
+
+  operations.push({
+    op: "change_state",
+    node_id: nodeId,
+    state: checked ? "done" : "todo"
+  });
+}
+
+function buildPullPatch(
+  caseId: string,
+  baseRevision: number,
+  contents: string,
+  operations: Array<Record<string, unknown>>
+): Record<string, unknown> {
   const patchId = `patch_sink_md_${createHash("sha1")
-    .update(`${params.case_id}\0${params.base_revision}\0${contents}`)
+    .update(`${caseId}\0${baseRevision}\0${contents}`)
     .digest("hex")
     .slice(0, 12)}`;
 
-  const patch: Record<string, unknown> = {
+  return {
     patch_id: patchId,
     spec_version: SPEC_VERSION,
-    case_id: params.case_id,
-    base_revision: params.base_revision,
+    case_id: caseId,
+    base_revision: baseRevision,
     summary: `Sync state changes from markdown sink (${operations.length} ops)`,
     generator: {
       kind: "sync",
@@ -314,13 +366,6 @@ export async function pullChanges(params: PullParams): Promise<{
     operations,
     notes: [],
     risks: []
-  };
-
-  return {
-    patch,
-    mapping_deltas: mappingDeltas,
-    warnings,
-    item_count: itemCount
   };
 }
 

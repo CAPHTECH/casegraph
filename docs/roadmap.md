@@ -34,11 +34,12 @@
 - approval policy ✅
 
 ## Phase 5: Hardening
-- conformance suite
-- property tests
+- conformance suite ✅
+- property tests ✅
 - migration tool ✅ (supported legacy scan/run + explicit patch-file path)
 - better error surfaces ✅ (analysis / migration structured issues)
-- TUI / graph view exploration
+- `cg case view` ✅ (read-only graph inspection)
+- broader TUI / graph view は guardrail のみ。full spec は凍結しない
 
 ## Phase 6: Topology and evaluation
 - current graph-topology docs consolidation
