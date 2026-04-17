@@ -40,8 +40,8 @@ describe("cg worker run --worker local-llm", () => {
     const ollamaResponse = `here is the patch\n\`\`\`casegraph-patch\n${JSON.stringify(patch)}\n\`\`\`\n`;
     const { server, port } = await startOllamaMock((req, res) => {
       if (req.url === "/api/generate" && req.method === "POST") {
-        res.setHeader("content-type", "application/json");
-        res.end(JSON.stringify({ response: ollamaResponse }));
+        res.setHeader("content-type", "application/x-ndjson");
+        writeNdjsonChunks(res, ollamaResponse);
         return;
       }
       res.statusCode = 404;
@@ -119,15 +119,11 @@ describe("cg worker run --worker local-llm", () => {
     const { server, port } = await startOllamaMock((req, res) => {
       if (req.url === "/api/generate" && req.method === "POST") {
         requestCount += 1;
-        res.setHeader("content-type", "application/json");
+        res.setHeader("content-type", "application/x-ndjson");
         if (requestCount === 1) {
-          res.end(JSON.stringify({ response: "I thought about it but won't emit a patch." }));
+          writeNdjsonChunks(res, "I thought about it but won't emit a patch.");
         } else {
-          res.end(
-            JSON.stringify({
-              response: `\`\`\`casegraph-patch\n${JSON.stringify(patch)}\n\`\`\``
-            })
-          );
+          writeNdjsonChunks(res, `\`\`\`casegraph-patch\n${JSON.stringify(patch)}\n\`\`\``);
         }
         return;
       }
@@ -157,6 +153,56 @@ describe("cg worker run --worker local-llm", () => {
     expect(result.json.data.patch).not.toBeNull();
     expect(result.json.data.observations.join(" ")).toMatch(/Retry 1 after \(no_fence_found\)/);
     expect(requestCount).toBe(2);
+  });
+
+  it("reassembles a fenced patch delivered as many small NDJSON chunks", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-local-llm-");
+    createdWorkspaces.push(workspaceRoot);
+    const caseId = "demo";
+
+    await setupCase(workspaceRoot, caseId);
+
+    const patch = {
+      patch_id: "patch_streamed",
+      spec_version: "0.1-draft",
+      case_id: caseId,
+      base_revision: 0,
+      summary: "streamed",
+      operations: [{ op: "change_state", node_id: "task_refactor", state: "done" }]
+    };
+    const body = `\`\`\`casegraph-patch\n${JSON.stringify(patch)}\n\`\`\``;
+    const { server, port } = await startOllamaMock((req, res) => {
+      if (req.url === "/api/generate" && req.method === "POST") {
+        res.setHeader("content-type", "application/x-ndjson");
+        // tiny chunk size forces many chunks
+        writeNdjsonChunks(res, body, 4);
+        return;
+      }
+      res.statusCode = 404;
+      res.end("not found");
+    });
+    createdServers.push(server);
+
+    await configureLocalLlm(workspaceRoot);
+
+    const patchPath = path.join(workspaceRoot, "out.patch.json");
+    const result = await runJsonCli(workspaceRoot, port, [
+      "worker",
+      "run",
+      "--worker",
+      "local-llm",
+      "--case",
+      caseId,
+      "--node",
+      "task_refactor",
+      "--output",
+      patchPath
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.json.data.status).toBe("succeeded");
+    const chunks = result.json.data.artifacts[0]?.metadata?.chunks;
+    expect(typeof chunks).toBe("number");
+    expect(chunks).toBeGreaterThan(4);
   });
 });
 
@@ -197,6 +243,19 @@ async function configureLocalLlm(workspaceRoot: string): Promise<void> {
     }
   };
   await writeFile(configPath, stringifyYaml(parsed), "utf8");
+}
+
+function writeNdjsonChunks(
+  res: Parameters<NonNullable<Parameters<typeof createServer>[0]>>[1],
+  body: string,
+  chunkSize = 16
+): void {
+  for (let index = 0; index < body.length; index += chunkSize) {
+    const piece = body.slice(index, index + chunkSize);
+    res.write(`${JSON.stringify({ response: piece })}\n`);
+  }
+  res.write(`${JSON.stringify({ done: true })}\n`);
+  res.end();
 }
 
 async function startOllamaMock(

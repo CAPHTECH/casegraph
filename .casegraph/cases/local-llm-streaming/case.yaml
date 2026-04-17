@@ -1,0 +1,12 @@
+case_id: local-llm-streaming
+title: worker-local-llm NDJSON streaming
+description: Surface in-flight progress via real-time log append
+state: open
+labels: []
+metadata: {}
+extensions: {}
+created_at: 2026-04-17T06:29:44.080Z
+updated_at: 2026-04-17T06:29:44.797Z
+case_revision:
+  current: 9
+  last_event_id: 01KPD234Q95VRBNN1FK3YVYH78

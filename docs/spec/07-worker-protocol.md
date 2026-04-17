@@ -243,7 +243,7 @@ observations には `Retry <n> after (<code>): <message>` を追記する。
 ### In-tree 実装
 - shared helper: `packages/core/src/worker-prompt.ts::buildAgentPrompt / extractPatchFromText`。
 - `packages/worker-code-agent` — 外部 CLI (default `claude --print`、`CASEGRAPH_CODE_AGENT_CMD` で上書き可) を spawn し prompt を stdin に流す。
-- `packages/worker-local-llm` — Ollama `/api/generate` に POST (default `http://localhost:11434`, `llama3.1:8b`、`OLLAMA_HOST` / `CASEGRAPH_LOCAL_LLM_MODEL` で上書き可)。
+- `packages/worker-local-llm` — Ollama `/api/generate` に POST (`stream: true` / NDJSON streaming、default `http://localhost:11434`, `llama3.1:8b`、`OLLAMA_HOST` / `CASEGRAPH_LOCAL_LLM_MODEL` で上書き可)。チャンクは到着次第 `.casegraph/cases/<id>/worker-logs/<command_id>.log` に逐次追記されるので `tail -f` で進捗が追える。`AbortController` で mid-stream timeout cancel 対応。
 
 ---
 
