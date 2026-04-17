@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-`docs/` is the current source of truth. Use `docs/spec/` for numbered core specifications (`00-overview.md` through `11-schema-reference.md`), `docs/adr/` for architectural decisions, and `docs/examples/` for reference scenarios such as `release-case.md` and `move-case.md`. `docs/roadmap.md` and `docs/project-governance.md` define scope and contribution boundaries. The design docs also reserve future implementation space for `/packages` and `/tests`; until code lands, keep structural changes centered in `docs/`.
+`docs/` is the current source of truth. Use `docs/spec/` for numbered core specifications (`00-overview.md` through `11-schema-reference.md`), `docs/adr/` for architectural decisions, and `docs/examples/` for reference scenarios such as `release-case.md` and `move-case.md`. `docs/roadmap.md` and `docs/project-governance.md` define scope and contribution boundaries. The design docs also reserve future implementation space for `/packages` and `/tests`; until code lands, keep structural changes centered in `docs/`. `casegraph-plugin/` ships optional Claude Code integration skills (three `skills/*/SKILL.md`) surfaced via `.claude-plugin/marketplace.json`; it has no build step and no dependency on `/packages`.
 
 ## Build, Test, and Development Commands
 Current contributor workflow centers on the pnpm TypeScript workspace:

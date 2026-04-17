@@ -23,5 +23,12 @@ if [[ $status -eq 0 ]]; then
   exit 0
 fi
 
+# Biome exits non-zero when a path is excluded by biome.json `includes`.
+# Treat "No files were processed" as success so intentionally-scoped paths
+# (e.g. casegraph-plugin/, docs/) do not raise spurious hook errors.
+if printf '%s' "$output" | grep -q "No files were processed"; then
+  exit 0
+fi
+
 printf '%s\n' "$output" >&2
 exit 2

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repo at a Glance
 
-CaseGraph is a local-first, CLI-first **case graph** substrate (spec version `0.1-draft`). `docs/` is the normative source of truth (spec, ADRs, examples). `packages/` contains a pnpm workspace with a TypeScript reference implementation. `AGENTS.md` is the human contributor guide and `docs/README.md` is the design index — read both before proposing structural changes.
+CaseGraph is a local-first, CLI-first **case graph** substrate (spec version `0.1-draft`). `docs/` is the normative source of truth (spec, ADRs, examples). `packages/` contains a pnpm workspace with a TypeScript reference implementation. `casegraph-plugin/` ships optional Claude Code integration skills (surfaced via `.claude-plugin/marketplace.json`) and has no code dependency on `packages/`. `AGENTS.md` is the human contributor guide and `docs/README.md` is the design index — read both before proposing structural changes.
 
 ## Commands
 
