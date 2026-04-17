@@ -31,6 +31,75 @@
           }
         }
       ]
+    },
+    {
+      "corpus_id": "local-llm-streaming-local",
+      "events_file": "../../.casegraph/cases/local-llm-streaming/events.jsonl",
+      "queries": [
+        {
+          "name": "local llm streaming rollout also collapses to empty unresolved topology",
+          "kind": "topology",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_beta_0": 0,
+            "expected_beta_1": 0,
+            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+          }
+        }
+      ]
+    },
+    {
+      "corpus_id": "worker-retry-local",
+      "events_file": "../../.casegraph/cases/worker-retry/events.jsonl",
+      "queries": [
+        {
+          "name": "worker retry follow-up also collapses to empty unresolved topology",
+          "kind": "topology",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_beta_0": 0,
+            "expected_beta_1": 0,
+            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+          }
+        }
+      ]
+    },
+    {
+      "corpus_id": "synthetic-structure-jsonl",
+      "events_file": "./analysis-eval.synthetic-structure.events.jsonl",
+      "queries": [
+        {
+          "name": "jsonl topology keeps one cycle and one component",
+          "kind": "topology",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_beta_0": 1,
+            "expected_beta_1": 1,
+            "expected_component_node_sets": [
+              ["task_docs", "task_prepare", "task_publish", "task_review"]
+            ],
+            "expected_warning_ids": []
+          }
+        },
+        {
+          "name": "jsonl bridges expose the docs dependency cut",
+          "kind": "bridges",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_bridge_pairs": ["task_docs::task_prepare"],
+            "expected_warning_ids": []
+          }
+        },
+        {
+          "name": "jsonl cutpoints expose prepare as the articulation",
+          "kind": "cutpoints",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_cutpoint_ids": ["task_prepare"],
+            "expected_warning_ids": []
+          }
+        }
+      ]
     }
   ]
 }

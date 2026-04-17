@@ -36,7 +36,7 @@
 ## Phase 5: Hardening
 - conformance suite
 - property tests
-- migration tool ✅ (current-version scan + no-op runner)
+- migration tool ✅ (supported legacy scan/run + explicit patch-file path)
 - better error surfaces ✅ (analysis / migration structured issues)
 - TUI / graph view exploration
 

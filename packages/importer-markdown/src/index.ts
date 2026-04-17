@@ -2,9 +2,9 @@
 
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import { SPEC_VERSION } from "@casegraph/core";
 import { isRecord, runPluginStdioServer } from "@casegraph/core/plugin-server";
 
-const SPEC_VERSION = "0.1-draft";
 const IMPORTER_NAME = "casegraph-importer-markdown";
 const IMPORTER_VERSION = "0.1.0";
 

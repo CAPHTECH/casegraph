@@ -3,9 +3,9 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { SPEC_VERSION } from "@casegraph/core";
 import { isRecord, runPluginStdioServer } from "@casegraph/core/plugin-server";
 
-const SPEC_VERSION = "0.1-draft";
 const SINK_NAME = "markdown";
 const SINK_VERSION = "0.1.0";
 const PROJECTION_FILENAME = "markdown.md";

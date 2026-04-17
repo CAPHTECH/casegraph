@@ -175,7 +175,8 @@ describe("cli phase 1 acceptance", () => {
       current_spec_version: "0.1-draft",
       supported: true,
       pending_steps: [],
-      issues: []
+      issues: [],
+      targets: []
     });
 
     const run = await runJsonCommand(workspaceRoot, ["migrate", "run", "--dry-run"]);
@@ -183,11 +184,13 @@ describe("cli phase 1 acceptance", () => {
     expect(run.json.data).toMatchObject({
       dry_run: true,
       changed: false,
-      applied_steps: []
+      applied_steps: [],
+      cache_rebuilt: false,
+      targets: []
     });
   });
 
-  it("fails migrate run with structured issues on unsupported versions", async () => {
+  it("applies supported legacy migration paths through CLI", async () => {
     const workspaceRoot = await createTempWorkspace("casegraph-cli-");
     createdWorkspaces.push(workspaceRoot);
 
@@ -217,11 +220,95 @@ describe("cli phase 1 acceptance", () => {
       "migration-legacy",
       "events.jsonl"
     );
+    const patchFile = path.join(workspaceRoot, "legacy.patch.json");
+
+    await writeFile(
+      patchFile,
+      `${JSON.stringify(
+        {
+          patch_id: "patch_legacy",
+          spec_version: "0.0.9",
+          case_id: "migration-legacy",
+          base_revision: 1,
+          summary: "Legacy patch",
+          operations: [],
+          notes: [],
+          risks: []
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
 
     await replaceInFile(workspaceFile, "spec_version: 0.1-draft", "spec_version: 0.0.9");
     const caseContents = await readFile(caseFile, "utf8");
     await writeFile(caseFile, `spec_version: 0.0.9\n${caseContents}`, "utf8");
     await replaceInFile(eventsFile, '"spec_version":"0.1-draft"', '"spec_version":"0.0.9"');
+
+    const check = await runJsonCommand(workspaceRoot, [
+      "migrate",
+      "check",
+      "--patch-file",
+      patchFile
+    ]);
+    expect(check.code).toBe(0);
+    expect(check.json.data.pending_steps.map((step: { step_id: string }) => step.step_id)).toEqual([
+      "workspace-spec-0.0.9-to-0.1-draft",
+      "case-spec-0.0.9-to-0.1-draft",
+      "event-log-spec-0.0.9-to-0.1-draft",
+      "patch-spec-0.0.9-to-0.1-draft"
+    ]);
+
+    const run = await runJsonCommand(workspaceRoot, ["migrate", "run", "--patch-file", patchFile]);
+    expect(run.code).toBe(0);
+    expect(run.json.data).toMatchObject({
+      changed: true,
+      cache_rebuilt: true
+    });
+    expect(run.json.data.targets.map((target: { status: string }) => target.status)).toEqual([
+      "applied",
+      "applied",
+      "applied",
+      "applied"
+    ]);
+  });
+
+  it("fails migrate run with structured issues on unknown versions", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-cli-");
+    createdWorkspaces.push(workspaceRoot);
+
+    await runJsonCommand(workspaceRoot, [
+      "case",
+      "new",
+      "--id",
+      "migration-unknown",
+      "--title",
+      "Unknown migration case",
+      "--description",
+      "Unknown version"
+    ]);
+
+    const workspaceFile = path.join(workspaceRoot, ".casegraph", "workspace.yaml");
+    const caseFile = path.join(
+      workspaceRoot,
+      ".casegraph",
+      "cases",
+      "migration-unknown",
+      "case.yaml"
+    );
+    const eventsFile = path.join(
+      workspaceRoot,
+      ".casegraph",
+      "cases",
+      "migration-unknown",
+      "events.jsonl"
+    );
+
+    await replaceInFile(workspaceFile, "spec_version: 0.1-draft", "spec_version: 0.0.7");
+    const caseContents = await readFile(caseFile, "utf8");
+    await writeFile(caseFile, `spec_version: 0.0.7\n${caseContents}`, "utf8");
+    await replaceInFile(eventsFile, '"spec_version":"0.1-draft"', '"spec_version":"0.0.7"');
 
     const run = await runJsonCommand(workspaceRoot, ["migrate", "run"]);
     expect(run.code).toBe(2);

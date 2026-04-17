@@ -181,11 +181,15 @@ cg cache rebuild
 ```
 
 ### `cg migrate check`
-workspace / case metadata / event log の `spec_version` を走査し、現行実装で扱えるかを返す。
+workspace / case metadata / event log の `spec_version` を走査し、現行実装と既知 migration path で扱えるかを返す。
+`--patch-file <path>` を繰り返し指定すると、明示指定 patch file も走査対象に含める。
 
 ### `cg migrate run`
-現行では no-op migration runner。`--dry-run` を受け付ける。
-`0.1-draft` 以外の version が見つかった場合は `migration_unsupported_version` (exit code 2) で停止する。
+`--dry-run` を受け付ける。
+現行の既知 path は `0.0.9 -> 0.1-draft` で、workspace metadata / case metadata / explicit patch file の
+version marker を正規化する。legacy event log は rewrite せず reader compatibility で扱う。
+`--patch-file <path>` を繰り返し指定すると、明示指定 patch file も migration 対象に含める。
+未知 version が見つかった場合は `migration_unsupported_version` (exit code 2) で停止する。
 
 ### `cg events verify`
 event log の envelope shape と replay 前提の整合性を確認する。

@@ -441,13 +441,13 @@ function renderValidationText(result: CommandSuccess<unknown>): string {
 function renderMigrateCheckText(result: CommandSuccess<unknown>): string {
   const data = (result as CommandSuccess<MigrationCheckData>).data;
   const status = data.supported ? "SUPPORTED" : "UNSUPPORTED";
-  return `${status} current=${data.current_spec_version} pending=${data.pending_steps.length} issues=${data.issues.length}`;
+  return `${status} current=${data.current_spec_version} pending=${data.pending_steps.length} targets=${data.targets.length} issues=${data.issues.length}`;
 }
 
 function renderMigrateRunText(result: CommandSuccess<unknown>): string {
   const data = (result as CommandSuccess<MigrationRunData>).data;
   const mode = data.dry_run ? "DRY-RUN" : "MIGRATION";
-  return `${mode} changed=${data.changed ? "yes" : "no"} applied=${data.applied_steps.length}`;
+  return `${mode} changed=${data.changed ? "yes" : "no"} applied=${data.applied_steps.length} cache_rebuilt=${data.cache_rebuilt ? "yes" : "no"}`;
 }
 
 function renderPatchValidateText(result: CommandSuccess<unknown>): string {

@@ -14,7 +14,7 @@ Current contributor workflow centers on the pnpm TypeScript workspace:
 - `pnpm test:analysis-golden` runs the topology-analysis golden corpus and prints exact-match metrics.
 - `pnpm test:analysis-eval` runs the mixed analysis harness, including local external-manifest replay.
 - `pnpm lint` runs Biome checks.
-- `pnpm cg -- migrate check` scans workspace/event `spec_version` compatibility.
+- `pnpm cg -- migrate check [--patch-file <path>]` scans workspace/event/explicit-patch `spec_version` compatibility.
 - `git diff -- docs` checks doc-only edits before opening a PR.
 
 ## Coding Style & Naming Conventions

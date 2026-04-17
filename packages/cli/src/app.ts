@@ -636,22 +636,33 @@ export async function runCli(
   });
 
   const migrateCommand = program.command("migrate");
-  migrateCommand.command("check").action(async (_, command) => {
-    await runWorkspaceCommand(runtime, command, async (workspaceRoot) =>
-      successResult("migrate check", await checkWorkspaceMigrations(workspaceRoot))
-    );
-  });
+  migrateCommand
+    .command("check")
+    .option("--patch-file <path>", "Explicit patch file to scan", collectRepeatedOption, [])
+    .action(async (_, command) => {
+      const options = command.opts() as { patchFile?: string[] };
+      await runWorkspaceCommand(runtime, command, async (workspaceRoot) =>
+        successResult(
+          "migrate check",
+          await checkWorkspaceMigrations(workspaceRoot, {
+            patchFiles: resolveOptionalPaths(runtime.cwd, options.patchFile)
+          })
+        )
+      );
+    });
 
   migrateCommand
     .command("run")
     .option("--dry-run")
+    .option("--patch-file <path>", "Explicit patch file to migrate", collectRepeatedOption, [])
     .action(async (_, command) => {
-      const options = command.opts() as { dryRun?: boolean };
+      const options = command.opts() as { dryRun?: boolean; patchFile?: string[] };
       await runWorkspaceCommand(runtime, command, async (workspaceRoot) =>
         successResult(
           "migrate run",
           await runWorkspaceMigrations(workspaceRoot, {
-            dryRun: options.dryRun === true
+            dryRun: options.dryRun === true,
+            patchFiles: resolveOptionalPaths(runtime.cwd, options.patchFile)
           })
         )
       );
@@ -945,6 +956,18 @@ function parseWorkerTimeoutSeconds(timeout?: string): number | undefined {
   }
 
   return parsed;
+}
+
+function collectRepeatedOption(value: string, previous: string[]): string[] {
+  return [...previous, value];
+}
+
+function resolveOptionalPaths(cwd: string, values: string[] | undefined): string[] | undefined {
+  if (!(values && values.length > 0)) {
+    return undefined;
+  }
+
+  return values.map((value) => path.resolve(cwd, value));
 }
 
 async function writeWorkerRunPatchOutput(

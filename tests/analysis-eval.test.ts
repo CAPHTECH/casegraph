@@ -65,5 +65,12 @@ describe("analysis evaluation harness", () => {
     expect(eventEval.queries.some((query) => query.corpus_id === "sqlite-bind-fix-local")).toBe(
       true
     );
+    expect(eventEval.queries.some((query) => query.corpus_id === "local-llm-streaming-local")).toBe(
+      true
+    );
+    expect(eventEval.queries.some((query) => query.corpus_id === "worker-retry-local")).toBe(true);
+    expect(eventEval.queries.some((query) => query.corpus_id === "synthetic-structure-jsonl")).toBe(
+      true
+    );
   });
 });
