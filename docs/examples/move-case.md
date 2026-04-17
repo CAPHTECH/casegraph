@@ -83,9 +83,9 @@ evidence_address_change_receipt verifies task_change_address
 - 見積もり返信待ちで明示的に hold したいなら `state=waiting`
 - 単なる event 未発生なら derived blocker でも足りる
 
-### 4. projection
-- daily action list には `task_choose_mover` など ready task だけ出す
-- summary 出力では waiting event も見えるようにする
+### 4. optional projection
+- 外部 action list が必要なら `task_choose_mover` など ready task だけ出す
+- summary 出力が必要なら waiting event も見えるようにする
 
 ## Normative Acceptance
 

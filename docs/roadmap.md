@@ -21,11 +21,10 @@
 - cache rebuild
 - 参照実装の working surface は `cg patch ...` と `cg import markdown`
 
-## Phase 3: Projection sinks
-- markdown checklist sink
-- Todoist sink
-- Taskwarrior sink
-- limited reverse sync
+## Phase 3: Optional integrations
+- markdown checklist sync ✅ (reference example)
+- external sink support は optional とし、Todoist / Taskwarrior は roadmap の完了条件に含めない
+- reverse sync は narrow な補助機能としてのみ扱う
 
 ## Phase 4: Workers
 - shell worker ✅
