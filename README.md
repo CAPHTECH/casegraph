@@ -14,7 +14,7 @@ The source of truth stays local. AI does not own state; it proposes patches.
 
 ## Status
 
-- Version: `0.1.0`
+- Version: `0.1.1`
 - License: `Apache-2.0`
 - Project type: public OSS, local-first, CLI-first
 
@@ -81,6 +81,7 @@ Published package set:
 - [Release case example](docs/examples/release-case.md)
 - [Move case example](docs/examples/move-case.md)
 - [Roadmap](docs/roadmap.md)
+- [Changelog](CHANGELOG.md)
 
 Release and verification guides:
 
