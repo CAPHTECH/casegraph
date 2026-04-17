@@ -55,7 +55,7 @@ Expected result:
 
 - frontier includes `task_run_regression` and `task_update_notes`
 - blockers mention `task_submit_store` and `task_monitor_post_release`
-- case view renders a readable tree
+- case view renders a readable tree, using `!` for actionable items and `= ... (shared)` for repeated shared dependencies
 
 ## 4. Push the markdown projection
 

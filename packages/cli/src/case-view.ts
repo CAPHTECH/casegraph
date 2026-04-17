@@ -40,9 +40,10 @@ export function buildCaseTree(state: CaseStateView): string[] {
   const childrenByNode = indexChildren(state);
   const rootIds = pickRoots(state, childrenByNode);
   const lines: string[] = [];
+  const rendered = new Set<string>();
 
   for (const rootId of rootIds) {
-    renderSubtree(rootId, [], state, childrenByNode, new Set<string>(), lines);
+    renderSubtree(rootId, [], state, childrenByNode, new Set<string>(), rendered, lines);
   }
 
   return lines;
@@ -102,7 +103,8 @@ function renderSubtree(
   prefixes: boolean[],
   state: CaseStateView,
   childrenByNode: Map<string, string[]>,
-  visited: Set<string>,
+  stack: Set<string>,
+  rendered: Set<string>,
   lines: string[]
 ): void {
   const node = state.nodes.get(nodeId);
@@ -116,23 +118,37 @@ function renderSubtree(
     )
     .join("");
 
-  if (visited.has(nodeId)) {
+  if (stack.has(nodeId)) {
     lines.push(`${indent}· ${nodeId} (cycle)`);
+    return;
+  }
+
+  if (rendered.has(nodeId)) {
+    lines.push(`${indent}= ${nodeId} [${node.kind}/${node.state}] ${node.title} (shared)`);
     return;
   }
 
   const derived = state.derived.get(nodeId);
   const decorator = pickDecorator(node, derived);
   lines.push(`${indent}${decorator} ${nodeId} [${node.kind}/${node.state}] ${node.title}`);
+  rendered.add(nodeId);
 
-  const nextVisited = new Set(visited);
-  nextVisited.add(nodeId);
+  const nextStack = new Set(stack);
+  nextStack.add(nodeId);
 
   const children = childrenByNode.get(nodeId) ?? [];
   for (let i = 0; i < children.length; i += 1) {
     const childId = children[i] as string;
     const isLast = i === children.length - 1;
-    renderSubtree(childId, [...prefixes, isLast], state, childrenByNode, nextVisited, lines);
+    renderSubtree(
+      childId,
+      [...prefixes, isLast],
+      state,
+      childrenByNode,
+      nextStack,
+      rendered,
+      lines
+    );
   }
 }
 
@@ -141,7 +157,7 @@ function pickDecorator(node: NodeRecord, derived: DerivedNodeState | undefined):
     return "✓";
   }
   if (derived?.is_ready) {
-    return "✓";
+    return "!";
   }
   if (derived && derived.waiting_for.length > 0) {
     return "→";

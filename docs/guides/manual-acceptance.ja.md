@@ -55,7 +55,7 @@ pnpm run cg --workspace "$WORKSPACE" case view --case release-1.8.0
 
 - frontier に `task_run_regression` と `task_update_notes` が含まれる
 - blockers に `task_submit_store` と `task_monitor_post_release` が含まれる
-- case view が読める tree を返す
+- case view が読める tree を返し、着手可能項目は `!`、共有依存の再出現は `= ... (shared)` で表現される
 
 ## 4. markdown projection を push する
 

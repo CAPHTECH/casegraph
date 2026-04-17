@@ -29,7 +29,9 @@ describe("cg case view", () => {
     expect(text).toContain("task_run_regression");
     expect(text).toContain("task_submit_store");
     expect(text).toContain("[task/todo]");
-    expect(text).toMatch(/(✓|→|✗|·)\s+task_run_regression/);
+    expect(text).toContain("! task_run_regression [task/todo] Run regression test");
+    expect(text).toContain("└─ ✗ task_submit_store [task/todo] Submit to App Store");
+    expect(text).toContain("= task_submit_store [task/todo] Submit to App Store (shared)");
   });
 
   it("returns tree_lines plus serialised state in JSON mode", async () => {
@@ -55,6 +57,16 @@ describe("cg case view", () => {
     };
     expect(data.case_id).toBe(releaseFixture.case.case_id);
     expect(data.tree_lines.length).toBeGreaterThan(0);
+    expect(
+      data.tree_lines.some((line) =>
+        line.includes("! task_run_regression [task/todo] Run regression test")
+      )
+    ).toBe(true);
+    expect(
+      data.tree_lines.some((line) =>
+        line.includes("= task_submit_store [task/todo] Submit to App Store (shared)")
+      )
+    ).toBe(true);
     expect(new Set(data.nodes.map((node) => node.node_id))).toEqual(
       new Set(releaseFixture.nodes.map((node) => node.node_id))
     );

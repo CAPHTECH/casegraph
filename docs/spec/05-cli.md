@@ -308,7 +308,8 @@ Phase 5 では hardening と read-only graph inspection 向けに次の command 
 
 - `cg case view --case <caseId>`
   - `depends_on` / `waits_for` を辺として ASCII ツリーを描画する (goal を根に、入次数ゼロのノードも根として並べる)。
-  - 各行は `{decorator} {node_id} [{kind}/{state}] {title}` の形。decorator は `✓` ready/done、`→` waiting、`✗` blocked、`·` neutral。サイクルは `(cycle)` を末尾に付ける。
+  - 各行は `{decorator} {node_id} [{kind}/{state}] {title}` の形。decorator は `!` actionable、`✓` done、`→` waiting、`✗` blocked、`·` neutral。
+  - DAG 上で複数の親から参照される node は、最初の出現だけを full subtree として描画し、以後は `= ... (shared)` の参照行にする。サイクルは `(cycle)` を末尾に付ける。
   - `--format json` では `{ tree_lines, nodes, edges, derived, validation, revision }` 形式の JSON を返す。
 - `cg migrate check`
   - `.casegraph/workspace.yaml`, 各 `case.yaml`, 各 `events.jsonl` の `spec_version` を走査し、`supported` / `issues` / `pending_steps` を返す。
