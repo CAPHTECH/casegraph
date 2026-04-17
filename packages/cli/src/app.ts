@@ -865,8 +865,31 @@ export async function runCli(
     await program.parseAsync(argv, { from: "user" });
     return 0;
   } catch (error) {
+    if (isCommanderDisplayExit(error)) {
+      return 0;
+    }
+
     return emitFatalCliError(runtime, error);
   }
+}
+
+function isCommanderDisplayExit(
+  error: unknown
+): error is { code: string; exitCode: number; message: string } {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const maybeCommanderError = error as {
+    code?: unknown;
+    exitCode?: unknown;
+  };
+
+  return (
+    maybeCommanderError.exitCode === 0 &&
+    (maybeCommanderError.code === "commander.helpDisplayed" ||
+      maybeCommanderError.code === "commander.version")
+  );
 }
 
 function addTaskStateCommand(

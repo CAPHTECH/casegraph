@@ -16,6 +16,23 @@ afterEach(async () => {
 });
 
 describe("cli phase 1 acceptance", () => {
+  it("returns exit code 0 for top-level help output", async () => {
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+
+    const code = await runCli(["--help"], {
+      io: {
+        stdout: (text) => stdout.push(text),
+        stderr: (text) => stderr.push(text)
+      }
+    });
+
+    expect(code).toBe(0);
+    expect(stdout.join("")).toContain("Usage: cg");
+    expect(stdout.join("")).toContain("CaseGraph CLI");
+    expect(stderr.join("")).not.toContain("internal_error");
+  });
+
   it("creates a release case and exposes frontier/blockers in JSON", async () => {
     const workspaceRoot = await createTempWorkspace("casegraph-cli-");
     createdWorkspaces.push(workspaceRoot);

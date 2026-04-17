@@ -1,6 +1,6 @@
 {
   "name": "@caphtech/casegraph-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "CLI for CaseGraph local-first case graphs.",
   "license": "Apache-2.0",
