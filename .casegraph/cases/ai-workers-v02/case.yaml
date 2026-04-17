@@ -1,0 +1,12 @@
+case_id: ai-workers-v02
+title: "v0.2: code-agent + local-llm workers"
+description: Close the Phase 4 deferrals
+state: open
+labels: []
+metadata: {}
+extensions: {}
+created_at: 2026-04-17T02:30:21.829Z
+updated_at: 2026-04-17T02:31:08.222Z
+case_revision:
+  current: 13
+  last_event_id: 01KPCME7NZ4K219AYCSSFNXGWH

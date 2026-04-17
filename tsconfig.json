@@ -5,6 +5,8 @@
     { "path": "./packages/cli" },
     { "path": "./packages/importer-markdown" },
     { "path": "./packages/sink-markdown" },
-    { "path": "./packages/worker-shell" }
+    { "path": "./packages/worker-shell" },
+    { "path": "./packages/worker-code-agent" },
+    { "path": "./packages/worker-local-llm" }
   ]
 }

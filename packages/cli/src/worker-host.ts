@@ -32,6 +32,14 @@ const BUILT_IN_WORKERS: Record<string, BuiltInPluginEntry> = {
   shell: {
     entryFromImport: new URL("../../worker-shell/src/index.ts", import.meta.url),
     requiredMethod: "worker.execute"
+  },
+  "code-agent": {
+    entryFromImport: new URL("../../worker-code-agent/src/index.ts", import.meta.url),
+    requiredMethod: "worker.execute"
+  },
+  "local-llm": {
+    entryFromImport: new URL("../../worker-local-llm/src/index.ts", import.meta.url),
+    requiredMethod: "worker.execute"
   }
 };
 

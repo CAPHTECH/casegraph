@@ -28,10 +28,10 @@
 - limited reverse sync
 
 ## Phase 4: Workers
-- shell worker
-- local LLM worker
-- code agent worker bridge
-- approval policy
+- shell worker ✅
+- local LLM worker ✅ (v0.2, Ollama 互換)
+- code agent worker bridge ✅ (v0.2, claude/codex/aider CLI)
+- approval policy ✅
 
 ## Phase 5: Hardening
 - conformance suite

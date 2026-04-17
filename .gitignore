@@ -5,4 +5,7 @@ coverage/
 *.tsbuildinfo
 .DS_Store
 .claude/settings.local.json
+.casegraph/.lock
+.casegraph/cache/
+.casegraph/**/worker-logs/
 

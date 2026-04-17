@@ -54,6 +54,18 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/worker-code-agent:
+    dependencies:
+      '@casegraph/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/worker-local-llm:
+    dependencies:
+      '@casegraph/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/worker-shell:
     dependencies:
       '@casegraph/core':
