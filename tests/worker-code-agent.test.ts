@@ -126,6 +126,48 @@ describe("cg worker run --worker code-agent", () => {
     const state = await loadCaseState(workspaceRoot, caseId);
     expect(state.nodes.get("task_refactor")?.state).toBe("todo");
   });
+
+  it("retries once when the first response has no fenced block and succeeds on retry", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-code-agent-");
+    createdWorkspaces.push(workspaceRoot);
+    const caseId = "demo";
+
+    await setupCase(workspaceRoot, caseId);
+    await configureFakeAgent(workspaceRoot, {
+      mode: "retry_then_patch",
+      case_id: caseId,
+      node_id: "task_refactor"
+    });
+
+    const patchPath = path.join(workspaceRoot, "out.patch.json");
+    const result = await runJsonCli(workspaceRoot, [
+      "worker",
+      "run",
+      "--worker",
+      "code-agent",
+      "--case",
+      caseId,
+      "--node",
+      "task_refactor",
+      "--approve",
+      "--output",
+      patchPath
+    ]);
+
+    expect(result.code).toBe(0);
+    expect(result.json.data.status).toBe("succeeded");
+    expect(result.json.data.patch).not.toBeNull();
+    expect(result.json.data.observations.join(" ")).toMatch(/Retry 1 after \(no_fence_found\)/);
+    // Second attempt's patch_id is recorded in the fixture output
+    expect(result.json.data.patch.patch_id).toBe("patch_fake_agent_attempt_2");
+
+    const { readFile } = await import("node:fs/promises");
+    const counter = Number.parseInt(
+      (await readFile(path.join(workspaceRoot, "agent.counter"), "utf8")).trim(),
+      10
+    );
+    expect(counter).toBe(2);
+  });
 });
 
 async function setupCase(workspaceRoot: string, caseId: string): Promise<void> {
@@ -155,7 +197,11 @@ async function setupCase(workspaceRoot: string, caseId: string): Promise<void> {
 
 async function configureFakeAgent(
   workspaceRoot: string,
-  config: { mode: "patch" | "prose" | "wrong_case"; case_id: string; node_id: string }
+  config: {
+    mode: "patch" | "prose" | "wrong_case" | "retry_then_patch";
+    case_id: string;
+    node_id: string;
+  }
 ): Promise<void> {
   const configPath = path.join(workspaceRoot, ".casegraph", "config.yaml");
   const { readFile } = await import("node:fs/promises");

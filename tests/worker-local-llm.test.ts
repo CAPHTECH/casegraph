@@ -99,6 +99,65 @@ describe("cg worker run --worker local-llm", () => {
     expect(result.json.data.patch).toBeNull();
     expect(result.json.data.summary).toMatch(/unreachable/i);
   });
+
+  it("retries once when the first response has no fenced block and succeeds on retry", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-local-llm-");
+    createdWorkspaces.push(workspaceRoot);
+    const caseId = "demo";
+
+    await setupCase(workspaceRoot, caseId);
+
+    const patch = {
+      patch_id: "patch_retry_success",
+      spec_version: "0.1-draft",
+      case_id: caseId,
+      base_revision: 0,
+      summary: "retry ok",
+      operations: [{ op: "change_state", node_id: "task_refactor", state: "done" }]
+    };
+    let requestCount = 0;
+    const { server, port } = await startOllamaMock((req, res) => {
+      if (req.url === "/api/generate" && req.method === "POST") {
+        requestCount += 1;
+        res.setHeader("content-type", "application/json");
+        if (requestCount === 1) {
+          res.end(JSON.stringify({ response: "I thought about it but won't emit a patch." }));
+        } else {
+          res.end(
+            JSON.stringify({
+              response: `\`\`\`casegraph-patch\n${JSON.stringify(patch)}\n\`\`\``
+            })
+          );
+        }
+        return;
+      }
+      res.statusCode = 404;
+      res.end("not found");
+    });
+    createdServers.push(server);
+
+    await configureLocalLlm(workspaceRoot);
+
+    const patchPath = path.join(workspaceRoot, "out.patch.json");
+    const result = await runJsonCli(workspaceRoot, port, [
+      "worker",
+      "run",
+      "--worker",
+      "local-llm",
+      "--case",
+      caseId,
+      "--node",
+      "task_refactor",
+      "--output",
+      patchPath
+    ]);
+
+    expect(result.code).toBe(0);
+    expect(result.json.data.status).toBe("succeeded");
+    expect(result.json.data.patch).not.toBeNull();
+    expect(result.json.data.observations.join(" ")).toMatch(/Retry 1 after \(no_fence_found\)/);
+    expect(requestCount).toBe(2);
+  });
 });
 
 async function setupCase(workspaceRoot: string, caseId: string): Promise<void> {

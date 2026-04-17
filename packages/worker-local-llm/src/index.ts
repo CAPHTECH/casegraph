@@ -4,7 +4,9 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   buildAgentPrompt,
+  buildRetryPrompt,
   extractPatchFromText,
+  type PatchExtractionResult,
   type WorkerArtifact,
   type WorkerExecuteParams,
   type WorkerExecuteResult
@@ -16,6 +18,7 @@ const WORKER_VERSION = "0.1.0";
 const DEFAULT_HOST = "http://localhost:11434";
 const DEFAULT_MODEL = "llama3.1:8b";
 const DEFAULT_TIMEOUT_SECONDS = 120;
+const MAX_RETRIES = 1;
 
 const WORKER_CAPABILITIES = {
   effectful: false,
@@ -41,15 +44,21 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
 }
 
-export async function execute(params: WorkerExecuteParams): Promise<WorkerExecuteResult> {
-  const host = process.env.OLLAMA_HOST ?? DEFAULT_HOST;
-  const model = process.env.CASEGRAPH_LOCAL_LLM_MODEL ?? DEFAULT_MODEL;
-  const prompt = buildAgentPrompt(params);
-  const timeoutSeconds =
-    params.execution_policy.timeout_seconds > 0
-      ? params.execution_policy.timeout_seconds
-      : DEFAULT_TIMEOUT_SECONDS;
+interface LlmAttempt {
+  prompt: string;
+  responseText: string;
+  httpStatus: number | null;
+  unreachableError: string | null;
+  extraction: PatchExtractionResult;
+}
 
+async function callOllama(
+  host: string,
+  model: string,
+  prompt: string,
+  timeoutSeconds: number,
+  caseId: string
+): Promise<LlmAttempt> {
   let responseText = "";
   let unreachableError: string | null = null;
   let httpStatus: number | null = null;
@@ -70,6 +79,52 @@ export async function execute(params: WorkerExecuteParams): Promise<WorkerExecut
   } catch (error) {
     unreachableError = error instanceof Error ? error.message : String(error);
   }
+  return {
+    prompt,
+    responseText,
+    httpStatus,
+    unreachableError,
+    extraction: extractPatchFromText(responseText, caseId)
+  };
+}
+
+export async function execute(params: WorkerExecuteParams): Promise<WorkerExecuteResult> {
+  const host = process.env.OLLAMA_HOST ?? DEFAULT_HOST;
+  const model = process.env.CASEGRAPH_LOCAL_LLM_MODEL ?? DEFAULT_MODEL;
+  const originalPrompt = buildAgentPrompt(params);
+  const timeoutSeconds =
+    params.execution_policy.timeout_seconds > 0
+      ? params.execution_policy.timeout_seconds
+      : DEFAULT_TIMEOUT_SECONDS;
+
+  const observations: string[] = [];
+  const attempts: LlmAttempt[] = [];
+  let currentPrompt = originalPrompt;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    const run = await callOllama(host, model, currentPrompt, timeoutSeconds, params.case.case_id);
+    attempts.push(run);
+    if (run.unreachableError || (run.httpStatus !== null && run.httpStatus >= 400)) {
+      break;
+    }
+    if (run.extraction.ok) {
+      break;
+    }
+    if (attempt < MAX_RETRIES) {
+      observations.push(
+        `Retry ${attempt + 1} after (${run.extraction.reason.code}): ${run.extraction.reason.message}`
+      );
+      currentPrompt = buildRetryPrompt({
+        originalPrompt,
+        previousResponse: run.responseText,
+        reason: run.extraction.reason
+      });
+    } else {
+      observations.push(
+        `Patch rejected (${run.extraction.reason.code}): ${run.extraction.reason.message}`
+      );
+    }
+  }
 
   const logPath = path.join(
     process.cwd(),
@@ -79,9 +134,11 @@ export async function execute(params: WorkerExecuteParams): Promise<WorkerExecut
     "worker-logs",
     `${params.execution_policy.command_id}.log`
   );
-  await writeLog(logPath, host, model, httpStatus, unreachableError, responseText);
+  await writeLog(logPath, host, model, attempts);
 
   const relativeLogPath = path.relative(process.cwd(), logPath);
+  // biome-ignore lint/style/noNonNullAssertion: loop always runs at least once
+  const final = attempts.at(-1)!;
   const artifact: WorkerArtifact = {
     kind: "log",
     path: relativeLogPath,
@@ -89,44 +146,39 @@ export async function execute(params: WorkerExecuteParams): Promise<WorkerExecut
     metadata: {
       host,
       model,
-      http_status: httpStatus,
-      unreachable: unreachableError !== null
+      attempts: attempts.length,
+      http_status: final.httpStatus,
+      unreachable: final.unreachableError !== null
     }
   };
 
-  if (unreachableError) {
+  if (final.unreachableError) {
     return {
       status: "failed",
       summary: `Local LLM unreachable at ${host}`,
       artifacts: [artifact],
-      observations: [unreachableError],
+      observations: [final.unreachableError],
       warnings: []
     };
   }
-  if (httpStatus !== null && httpStatus >= 400) {
+  if (final.httpStatus !== null && final.httpStatus >= 400) {
     return {
       status: "failed",
-      summary: `Local LLM returned HTTP ${httpStatus}`,
+      summary: `Local LLM returned HTTP ${final.httpStatus}`,
       artifacts: [artifact],
-      observations: [responseText],
+      observations: [final.responseText],
       warnings: []
     };
-  }
-
-  const extraction = extractPatchFromText(responseText, params.case.case_id);
-  const observations: string[] = [];
-  if (!extraction.ok) {
-    observations.push(`Patch rejected (${extraction.reason.code}): ${extraction.reason.message}`);
   }
 
   return {
-    status: extraction.ok ? "succeeded" : "failed",
-    summary: extraction.ok
+    status: final.extraction.ok ? "succeeded" : "failed",
+    summary: final.extraction.ok
       ? `Local LLM produced a GraphPatch for ${params.task.node_id}`
       : `Local LLM did not produce a GraphPatch for ${params.task.node_id}`,
     artifacts: [artifact],
     observations,
-    ...(extraction.ok ? { patch: extraction.patch } : {}),
+    ...(final.extraction.ok ? { patch: final.extraction.patch } : {}),
     warnings: []
   };
 }
@@ -135,21 +187,32 @@ async function writeLog(
   logPath: string,
   host: string,
   model: string,
-  httpStatus: number | null,
-  unreachableError: string | null,
-  responseText: string
+  attempts: LlmAttempt[]
 ): Promise<void> {
   await mkdir(path.dirname(logPath), { recursive: true });
-  const header = [
+  const sections: string[] = [
     "# casegraph-worker-local-llm log",
     `host: ${host}`,
     `model: ${model}`,
-    `http_status: ${httpStatus ?? ""}`,
-    `unreachable: ${unreachableError ?? ""}`,
+    `attempts: ${attempts.length}`,
     ""
-  ].join("\n");
-  const body = ["### response", responseText, ""].join("\n");
-  await writeFile(logPath, `${header}\n${body}`, "utf8");
+  ];
+  attempts.forEach((attempt, index) => {
+    sections.push(
+      `## attempt ${index + 1}`,
+      `http_status: ${attempt.httpStatus ?? ""}`,
+      `unreachable: ${attempt.unreachableError ?? ""}`,
+      `extraction_ok: ${attempt.extraction.ok}`,
+      ...(attempt.extraction.ok
+        ? []
+        : [`rejection: ${attempt.extraction.reason.code}: ${attempt.extraction.reason.message}`]),
+      "",
+      "### response",
+      attempt.responseText,
+      ""
+    );
+  });
+  await writeFile(logPath, sections.join("\n"), "utf8");
 }
 
 function assertExecuteParams(input: unknown): WorkerExecuteParams {

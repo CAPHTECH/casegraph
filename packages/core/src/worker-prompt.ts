@@ -147,6 +147,38 @@ export function buildAgentPrompt(params: WorkerExecuteParams): string {
   return lines.join("\n");
 }
 
+const MAX_REPRINT_CHARS = 1200;
+
+export interface RetryPromptInput {
+  originalPrompt: string;
+  previousResponse: string;
+  reason: PatchExtractionFailure;
+}
+
+export function buildRetryPrompt(input: RetryPromptInput): string {
+  const reprint =
+    input.previousResponse.length > MAX_REPRINT_CHARS
+      ? `${input.previousResponse.slice(0, MAX_REPRINT_CHARS)}\n... [truncated, ${input.previousResponse.length - MAX_REPRINT_CHARS} more chars]`
+      : input.previousResponse;
+  return [
+    input.originalPrompt,
+    "",
+    "---",
+    "",
+    "CaseGraph rejected your previous attempt.",
+    "",
+    "Your previous response was:",
+    "<<<PREVIOUS",
+    reprint,
+    "PREVIOUS>>>",
+    "",
+    `Rejection code: ${input.reason.code}`,
+    `Rejection message: ${input.reason.message}`,
+    "",
+    "Please emit a corrected GraphPatch fenced block that fixes the issue above. Emit no prose outside the fence."
+  ].join("\n");
+}
+
 export function extractPatchFromText(text: string, caseId: string): PatchExtractionResult {
   const blocks = collectFencedBlocks(text);
   const candidate = pickCandidate(blocks);

@@ -1,5 +1,6 @@
 import {
   buildAgentPrompt,
+  buildRetryPrompt,
   extractPatchFromText,
   SPEC_VERSION,
   type WorkerExecuteParams
@@ -150,6 +151,35 @@ describe("worker-prompt", () => {
     if (result.ok) {
       expect(result.patch.patch_id).toBe("patch_from_cg");
     }
+  });
+
+  it("buildRetryPrompt includes the original prompt plus the rejection reason", () => {
+    const original = buildAgentPrompt(params);
+    const retry = buildRetryPrompt({
+      originalPrompt: original,
+      previousResponse: "I thought about it but chose not to emit a patch.",
+      reason: {
+        code: "patch_invalid",
+        message: "update_node requires changes",
+        errors: []
+      }
+    });
+    expect(retry.startsWith(original)).toBe(true);
+    expect(retry).toContain("CaseGraph rejected your previous attempt");
+    expect(retry).toContain("Rejection code: patch_invalid");
+    expect(retry).toContain("update_node requires changes");
+    expect(retry).toContain("I thought about it but chose not to emit a patch.");
+  });
+
+  it("buildRetryPrompt truncates a pathologically large previous response", () => {
+    const huge = "x".repeat(5000);
+    const retry = buildRetryPrompt({
+      originalPrompt: "original",
+      previousResponse: huge,
+      reason: { code: "no_fence_found", message: "no fence" }
+    });
+    expect(retry).toContain("... [truncated");
+    expect(retry.length).toBeLessThan(5000);
   });
 
   it("injects case_id when the fence block omits it", () => {

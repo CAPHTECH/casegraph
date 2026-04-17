@@ -5,7 +5,9 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   buildAgentPrompt,
+  buildRetryPrompt,
   extractPatchFromText,
+  type PatchExtractionResult,
   type WorkerArtifact,
   type WorkerExecuteParams,
   type WorkerExecuteResult
@@ -16,6 +18,7 @@ const WORKER_NAME = "code-agent";
 const WORKER_VERSION = "0.1.0";
 const DEFAULT_TIMEOUT_SECONDS = 120;
 const DEFAULT_COMMAND = ["claude", "--print"];
+const MAX_RETRIES = 1;
 
 const WORKER_CAPABILITIES = {
   effectful: true,
@@ -43,13 +46,42 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
 export async function execute(params: WorkerExecuteParams): Promise<WorkerExecuteResult> {
   const command = resolveCommand();
-  const prompt = buildAgentPrompt(params);
+  const originalPrompt = buildAgentPrompt(params);
   const timeoutSeconds =
     params.execution_policy.timeout_seconds > 0
       ? params.execution_policy.timeout_seconds
       : DEFAULT_TIMEOUT_SECONDS;
 
-  const runResult = await runChild(command, prompt, timeoutSeconds);
+  const observations: string[] = [];
+  const attempts: Array<{ prompt: string; run: RunResult; extraction: PatchExtractionResult }> = [];
+  let extraction: PatchExtractionResult;
+  let runResult: RunResult;
+  let currentPrompt = originalPrompt;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    runResult = await runChild(command, currentPrompt, timeoutSeconds);
+    extraction = extractPatchFromText(runResult.stdout, params.case.case_id);
+    attempts.push({ prompt: currentPrompt, run: runResult, extraction });
+    if (runResult.timedOut) {
+      observations.push(`Command exceeded ${timeoutSeconds}s timeout and was terminated.`);
+      break;
+    }
+    if (extraction.ok) {
+      break;
+    }
+    if (attempt < MAX_RETRIES) {
+      observations.push(
+        `Retry ${attempt + 1} after (${extraction.reason.code}): ${extraction.reason.message}`
+      );
+      currentPrompt = buildRetryPrompt({
+        originalPrompt,
+        previousResponse: runResult.stdout,
+        reason: extraction.reason
+      });
+    } else {
+      observations.push(`Patch rejected (${extraction.reason.code}): ${extraction.reason.message}`);
+    }
+  }
 
   const logPath = path.join(
     process.cwd(),
@@ -59,39 +91,35 @@ export async function execute(params: WorkerExecuteParams): Promise<WorkerExecut
     "worker-logs",
     `${params.execution_policy.command_id}.log`
   );
-  await writeLog(logPath, command, runResult);
+  await writeLog(logPath, command, attempts);
 
-  const extraction = extractPatchFromText(runResult.stdout, params.case.case_id);
   const relativeLogPath = path.relative(process.cwd(), logPath);
+  // biome-ignore lint/style/noNonNullAssertion: the for-loop runs at least once
+  const finalRun = runResult!;
+  // biome-ignore lint/style/noNonNullAssertion: the for-loop runs at least once
+  const finalExtraction = extraction!;
   const artifact: WorkerArtifact = {
     kind: "log",
     path: relativeLogPath,
     description: "Code agent stdout/stderr",
     metadata: {
       command: command.join(" "),
-      exit_code: runResult.exitCode,
-      timed_out: runResult.timedOut,
-      signal: runResult.signal
+      attempts: attempts.length,
+      exit_code: finalRun.exitCode,
+      timed_out: finalRun.timedOut,
+      signal: finalRun.signal
     }
   };
 
-  const observations: string[] = [];
-  if (runResult.timedOut) {
-    observations.push(`Command exceeded ${timeoutSeconds}s timeout and was terminated.`);
-  }
-  if (!extraction.ok) {
-    observations.push(`Patch rejected (${extraction.reason.code}): ${extraction.reason.message}`);
-  }
-
   return {
-    status: extraction.ok ? "succeeded" : "failed",
-    summary: extraction.ok
+    status: finalExtraction.ok ? "succeeded" : "failed",
+    summary: finalExtraction.ok
       ? `Code agent produced a GraphPatch for ${params.task.node_id}`
       : `Code agent did not produce a GraphPatch for ${params.task.node_id}`,
     artifacts: [artifact],
     observations,
-    ...(extraction.ok ? { patch: extraction.patch } : {}),
-    ...(typeof runResult.exitCode === "number" ? { exit_code: runResult.exitCode } : {}),
+    ...(finalExtraction.ok ? { patch: finalExtraction.patch } : {}),
+    ...(typeof finalRun.exitCode === "number" ? { exit_code: finalRun.exitCode } : {}),
     warnings: []
   };
 }
@@ -171,18 +199,43 @@ async function runChild(
   });
 }
 
-async function writeLog(logPath: string, command: string[], result: RunResult): Promise<void> {
+interface AttemptRecord {
+  prompt: string;
+  run: RunResult;
+  extraction: PatchExtractionResult;
+}
+
+async function writeLog(
+  logPath: string,
+  command: string[],
+  attempts: AttemptRecord[]
+): Promise<void> {
   await mkdir(path.dirname(logPath), { recursive: true });
-  const header = [
+  const sections: string[] = [
     "# casegraph-worker-code-agent log",
     `command: ${JSON.stringify(command)}`,
-    `exit_code: ${result.exitCode}`,
-    `signal: ${result.signal ?? ""}`,
-    `timed_out: ${result.timedOut}`,
+    `attempts: ${attempts.length}`,
     ""
-  ].join("\n");
-  const body = ["### stdout", result.stdout, "### stderr", result.stderr, ""].join("\n");
-  await writeFile(logPath, `${header}\n${body}`, "utf8");
+  ];
+  attempts.forEach((attempt, index) => {
+    sections.push(
+      `## attempt ${index + 1}`,
+      `exit_code: ${attempt.run.exitCode}`,
+      `signal: ${attempt.run.signal ?? ""}`,
+      `timed_out: ${attempt.run.timedOut}`,
+      `extraction_ok: ${attempt.extraction.ok}`,
+      ...(attempt.extraction.ok
+        ? []
+        : [`rejection: ${attempt.extraction.reason.code}: ${attempt.extraction.reason.message}`]),
+      "",
+      "### stdout",
+      attempt.run.stdout,
+      "### stderr",
+      attempt.run.stderr,
+      ""
+    );
+  });
+  await writeFile(logPath, sections.join("\n"), "utf8");
 }
 
 function assertExecuteParams(input: unknown): WorkerExecuteParams {

@@ -232,6 +232,14 @@ worker は応答に **ちょうど 1 つ** の fenced code block を含め、ラ
 - JSON.parse → `validateGraphPatchDocument` で通ったものだけを GraphPatch として採用。
 - fence が 1 つも無い / 壊れている場合は `status: "failed"` (patch なし) として worker.finished を追記する (agent 側で再試行可能にするため、worker_patch_invalid は投げない)。
 
+### Retry with feedback (worker 内ループ)
+worker plugin は extraction 失敗時に **plugin 内で 1 回だけ retry** してよい。retry prompt は
+`buildRetryPrompt({ originalPrompt, previousResponse, reason })` で構築する — 元のプロンプトに
+前回の応答と rejection reason (code + message) を追加した形。Retry は plugin 内で閉じる (JSON-RPC
+の `worker.execute` は 1 回のままで、worker-host 側の `worker.dispatched` / `worker.finished` の
+対応関係は崩れない)。in-tree `worker-code-agent` / `worker-local-llm` は既定で `MAX_RETRIES = 1`。
+observations には `Retry <n> after (<code>): <message>` を追記する。
+
 ### In-tree 実装
 - shared helper: `packages/core/src/worker-prompt.ts::buildAgentPrompt / extractPatchFromText`。
 - `packages/worker-code-agent` — 外部 CLI (default `claude --print`、`CASEGRAPH_CODE_AGENT_CMD` で上書き可) を spawn し prompt を stdin に流す。
