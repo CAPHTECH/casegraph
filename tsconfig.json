@@ -4,6 +4,7 @@
     { "path": "./packages/core" },
     { "path": "./packages/cli" },
     { "path": "./packages/importer-markdown" },
-    { "path": "./packages/sink-markdown" }
+    { "path": "./packages/sink-markdown" },
+    { "path": "./packages/worker-shell" }
   ]
 }

@@ -1,4 +1,3 @@
-import { fileURLToPath } from "node:url";
 import {
   CaseGraphError,
   type ImporterIngestResult,
@@ -6,7 +5,7 @@ import {
   loadConfigRecord,
   validatePatchDocument
 } from "@casegraph/core";
-import { closePluginClient, openPluginClient } from "./plugin-client.js";
+import { builtInPluginCommand, closePluginClient, openPluginClient } from "./plugin-client.js";
 
 export async function ingestMarkdownPatch(options: {
   workspaceRoot: string;
@@ -19,11 +18,9 @@ export async function ingestMarkdownPatch(options: {
     workspaceRoot: options.workspaceRoot,
     env: options.env,
     config: config.importers?.markdown,
-    defaultCommand: [
-      process.execPath,
-      "--experimental-strip-types",
-      fileURLToPath(new URL("../../importer-markdown/src/index.ts", import.meta.url))
-    ],
+    defaultCommand: builtInPluginCommand(
+      new URL("../../importer-markdown/src/index.ts", import.meta.url)
+    ),
     peerName: "importer",
     requiredMethod: "importer.ingest",
     capabilityErrorCode: "importer_capability_missing"

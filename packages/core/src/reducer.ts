@@ -137,7 +137,9 @@ export function replayCaseEvents(events: EventEnvelope[]): CaseStateView {
       }
 
       case "projection.pushed":
-      case "projection.pulled": {
+      case "projection.pulled":
+      case "worker.dispatched":
+      case "worker.finished": {
         ensureCaseLoaded(caseRecord, event.type);
         break;
       }

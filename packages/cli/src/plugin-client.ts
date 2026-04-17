@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import {
   CaseGraphError,
   type CommandPluginConfig,
@@ -6,6 +7,10 @@ import {
 } from "@casegraph/core";
 
 const BASE_ENV_KEYS = ["PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "TMP", "TEMP"];
+
+export function builtInPluginCommand(entryFromImport: URL): string[] {
+  return [process.execPath, "--experimental-strip-types", fileURLToPath(entryFromImport)];
+}
 
 export interface PluginClientOptions {
   workspaceRoot: string;

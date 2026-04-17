@@ -1,4 +1,3 @@
-import { fileURLToPath } from "node:url";
 import {
   appendCaseEvents,
   CaseGraphError,
@@ -20,7 +19,6 @@ import {
   type ProjectionPushedPayload,
   type SinkApplyProjectionResult,
   type SinkCapabilities,
-  type SinkMappingDelta,
   type SinkOperation,
   type SinkOperationKind,
   type SinkPlanProjectionResult,
@@ -29,7 +27,7 @@ import {
   validatePatchDocument
 } from "@casegraph/core";
 
-import { closePluginClient, openPluginClient } from "./plugin-client.js";
+import { builtInPluginCommand, closePluginClient, openPluginClient } from "./plugin-client.js";
 
 const BUILT_IN_SINKS: Record<string, { entryFromImport: URL; requiredMethod: string }> = {
   markdown: {
@@ -200,9 +198,7 @@ async function withSinkClient<T>(
     workspaceRoot: options.workspaceRoot,
     env: options.env,
     config: sinkConfig,
-    defaultCommand: builtIn
-      ? [process.execPath, "--experimental-strip-types", fileURLToPath(builtIn.entryFromImport)]
-      : [],
+    defaultCommand: builtIn ? builtInPluginCommand(builtIn.entryFromImport) : [],
     peerName: "sink",
     requiredMethod: builtIn?.requiredMethod ?? "sink.planProjection",
     capabilityErrorCode: "sink_capability_missing"

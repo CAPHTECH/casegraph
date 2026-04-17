@@ -43,6 +43,7 @@ import {
   runWorkspaceCommand
 } from "./runtime.js";
 import { runSinkPull, runSinkPush } from "./sink-host.js";
+import { runWorkerExecute } from "./worker-host.js";
 
 export async function runCli(
   argv: string[],
@@ -628,6 +629,73 @@ export async function runCli(
               item_count: result.item_count,
               warnings: result.warnings,
               output_file: result.patch ? outputPath : null
+            },
+            result.revision
+          );
+        }
+      );
+    });
+
+  const workerCommand = program.command("worker");
+  workerCommand
+    .command("run")
+    .requiredOption("--worker <name>")
+    .requiredOption("--case <caseId>")
+    .requiredOption("--node <nodeId>")
+    .option("--approve")
+    .option("--output <path>")
+    .option("--timeout <seconds>", "worker execution timeout in seconds")
+    .action(async (_, command) => {
+      const options = command.opts() as {
+        worker: string;
+        case: string;
+        node: string;
+        approve?: boolean;
+        output?: string;
+        timeout?: string;
+      };
+      await runMutationCommand(
+        runtime,
+        command,
+        async (workspaceRoot, _globals, mutationContext) => {
+          const timeoutSeconds =
+            typeof options.timeout === "string" ? Number.parseInt(options.timeout, 10) : undefined;
+
+          const result = await runWorkerExecute({
+            workspaceRoot,
+            caseId: options.case,
+            nodeId: options.node,
+            workerName: options.worker,
+            env: runtime.env,
+            approve: options.approve === true,
+            mutationContext,
+            timeoutSeconds:
+              typeof timeoutSeconds === "number" &&
+              Number.isFinite(timeoutSeconds) &&
+              timeoutSeconds > 0
+                ? timeoutSeconds
+                : undefined
+          });
+
+          const outputPath = options.output ? path.resolve(runtime.cwd, options.output) : undefined;
+          if (outputPath && result.patch) {
+            await writeStructuredFile(outputPath, result.patch);
+          }
+
+          return successResult(
+            "worker run",
+            {
+              worker_name: result.worker_name,
+              node_id: result.node_id,
+              status: result.status,
+              summary: result.summary,
+              artifacts: result.artifacts,
+              observations: result.observations,
+              warnings: result.warnings,
+              exit_code: result.exit_code,
+              approval: result.approval,
+              patch: result.patch,
+              output_file: outputPath && result.patch ? outputPath : null
             },
             result.revision
           );

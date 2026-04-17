@@ -106,7 +106,9 @@ export type EventType =
   | "evidence.attached"
   | "patch.applied"
   | "projection.pushed"
-  | "projection.pulled";
+  | "projection.pulled"
+  | "worker.dispatched"
+  | "worker.finished";
 
 export interface EventEnvelope<TPayload = Record<string, unknown>> {
   event_id: string;

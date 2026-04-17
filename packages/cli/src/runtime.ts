@@ -293,6 +293,21 @@ function renderText(result: CommandResult<unknown>): string {
       const verb = data.applied ? "Applied" : "Planned";
       return `${verb} projection to ${data.sink_name} (${summary || "no-op"})`;
     }
+    case "worker run": {
+      const data = (
+        result as CommandSuccess<{
+          worker_name: string;
+          status: string;
+          node_id: string;
+          summary: string;
+          exit_code: number | null;
+          output_file: string | null;
+        }>
+      ).data;
+      const exitPart = data.exit_code !== null ? ` exit=${data.exit_code}` : "";
+      const patchPart = data.output_file ? ` patch=${data.output_file}` : "";
+      return `Worker ${data.worker_name} ${data.status} for ${data.node_id}${exitPart}${patchPart}`;
+    }
     case "sync pull": {
       const data = (
         result as CommandSuccess<{

@@ -29,6 +29,7 @@ Package manager is pnpm 10 (declared in `package.json`). Node must support `node
 @casegraph/cli   ← commander-based `cg` CLI, thin wrappers over core
 @casegraph/importer-markdown ← out-of-process JSON-RPC over stdio plugin (importer)
 @casegraph/sink-markdown     ← out-of-process JSON-RPC over stdio plugin (sink)
+@casegraph/worker-shell      ← out-of-process JSON-RPC over stdio plugin (worker)
 ```
 
 Aliases in `vitest.config.ts` resolve `@casegraph/core` to `packages/core/src/index.ts` and `@casegraph/cli/app` to the CLI's `app.ts` so tests run against TypeScript sources without a build step. `tsconfig.base.json` mirrors this for `tsc`.
@@ -45,7 +46,7 @@ When you add a mutation path: go through `appendPreparedCaseEvents` in `packages
 
 ### CLI shape
 
-`packages/cli/src/app.ts` wires commander; the runtime glue is in `runtime.ts` (workspace resolution, global flags, text/JSON rendering, exit-code mapping). Frozen Phase 0 surface: `init`, `case {new,list,show}`, `node`, `edge`, `task`, `decision`, `event`, `evidence`, `frontier`, `blockers`, `validate [storage]`, `cache rebuild`, `events {verify,export}`. `cg patch …` and `cg import markdown` are Phase 2 working surfaces; `cg sync {push,pull}` is the Phase 3 working surface for projection sinks. Per spec these are **not yet UX-frozen**, so rename/shape changes are allowed but should be called out.
+`packages/cli/src/app.ts` wires commander; the runtime glue is in `runtime.ts` (workspace resolution, global flags, text/JSON rendering, exit-code mapping). Frozen Phase 0 surface: `init`, `case {new,list,show}`, `node`, `edge`, `task`, `decision`, `event`, `evidence`, `frontier`, `blockers`, `validate [storage]`, `cache rebuild`, `events {verify,export}`. `cg patch …` and `cg import markdown` are Phase 2 working surfaces; `cg sync {push,pull}` is the Phase 3 working surface for projection sinks; `cg worker run` is the Phase 4 working surface for worker execution. Per spec these are **not yet UX-frozen**, so rename/shape changes are allowed but should be called out.
 
 Exit codes are frozen: `0` ok, `2` validation, `3` not found, `4` conflict. Propagate by throwing `CaseGraphError` with the right `exitCode` rather than calling `process.exit` from deep code.
 
@@ -55,7 +56,7 @@ Exit codes are frozen: `0` ok, `2` validation, `3` not found, `4` conflict. Prop
 
 ### Plugin protocol
 
-Out-of-process plugins (markdown importer + markdown sink) speak JSON-RPC over stdio via `createJsonRpcStdioClient` (`packages/core/src/jsonrpc.ts`). Handshake is `initialize` → `capabilities.list` → domain method (e.g. `importer.ingest`, `sink.planProjection` / `sink.applyProjection` / `sink.pullChanges`) → `shutdown`. The shared spawn + handshake + env-filtering helper lives in `packages/cli/src/plugin-client.ts`; the role-specific wrappers are `packages/cli/src/importer-host.ts` and `packages/cli/src/sink-host.ts`. Env is filtered through a fixed allowlist plus per-plugin `env_allowlist` from `config.yaml` — do not pass `process.env` through raw. Sinks read `config.sinks.<name>` (same shape as `config.importers.<name>`) and fall back to the bundled markdown sink. Reverse sync: `sink.pullChanges` returns a `GraphPatch` with `generator.kind = "sync"`; `cg sync pull` persists a `projection.pulled` audit event and writes the patch to disk for `cg patch review` / `cg patch apply`. See ADR-0005.
+Out-of-process plugins (markdown importer, markdown sink, shell worker) speak JSON-RPC over stdio via `createJsonRpcStdioClient` (`packages/core/src/jsonrpc.ts`). Handshake is `initialize` → `capabilities.list` → domain method (e.g. `importer.ingest`, `sink.planProjection` / `sink.applyProjection` / `sink.pullChanges`, `worker.execute`) → `shutdown`. The shared spawn + handshake + env-filtering helper lives in `packages/cli/src/plugin-client.ts`; the role-specific wrappers are `packages/cli/src/importer-host.ts`, `packages/cli/src/sink-host.ts`, and `packages/cli/src/worker-host.ts`. Env is filtered through a fixed allowlist plus per-plugin `env_allowlist` from `config.yaml` — do not pass `process.env` through raw. Sinks read `config.sinks.<name>`, workers read `config.workers.<name>` (same shape as `config.importers.<name>`) and fall back to the bundled markdown sink / shell worker. Reverse sync: `sink.pullChanges` returns a `GraphPatch` with `generator.kind = "sync"`; `cg sync pull` persists a `projection.pulled` audit event and writes the patch to disk for `cg patch review` / `cg patch apply`. Worker execution: `cg worker run` appends `worker.dispatched` before calling the plugin and `worker.finished` after; both are audit-only (no graph state change). If `worker.execute` returns a `GraphPatch`, the patch is written to `--output` with `base_revision` rewritten to the post-`worker.finished` revision, and it is applied via the regular `cg patch apply` pipeline (ADR-0003 "AI does not own state"). `config.approval_policy.<worker_name>` accepts `auto` / `require` / `deny`; the default is `require` for effectful workers and `auto` for pure workers. See ADR-0005.
 
 ## Project Conventions
 
@@ -73,4 +74,5 @@ Out-of-process plugins (markdown importer + markdown sink) speak JSON-RPC over s
 - `rebuildCaseCacheForState` runs on every mutation; if you add a new event type, extend `replayCaseEvents` and the SQLite `rebuildCaseCache` together or the cache will silently drift.
 - `projection_mappings` is a projection of `projection.pushed` / `projection.pulled` events (via `deriveProjectionMappings`), not a separately maintained table. Never mutate it outside `rebuildCaseCache`.
 - `cg sync pull` appends `projection.pulled` before returning its patch, so the emitted patch's `base_revision` is rewritten to the post-append revision; don't reorder this or the subsequent `cg patch apply` will be stale.
+- `cg worker run` applies the same invariant: `worker.finished` is appended *before* the returned patch's `base_revision` is rewritten. `worker.dispatched` is appended *before* `worker.execute` is dispatched so a worker that never returns still leaves an audit trail.
 - `applyPatch` canonicalizes attachments (copies workspace files, assigns ids) *after* review but before emitting the event — preserve that order to keep event payloads self-contained.

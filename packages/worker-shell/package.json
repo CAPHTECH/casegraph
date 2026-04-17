@@ -1,0 +1,14 @@
+{
+  "name": "@casegraph/worker-shell",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "casegraph-worker-shell": "./src/index.ts"
+  },
+  "dependencies": {
+    "@casegraph/core": "workspace:*"
+  }
+}

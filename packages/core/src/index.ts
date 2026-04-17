@@ -10,5 +10,6 @@ export * from "./sink-mappings.js";
 export * from "./sink-types.js";
 export * from "./types.js";
 export * from "./validation.js";
+export * from "./worker-types.js";
 export * from "./workspace.js";
 export * from "./yaml.js";

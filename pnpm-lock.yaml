@@ -54,6 +54,12 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/worker-shell:
+    dependencies:
+      '@casegraph/core':
+        specifier: workspace:*
+        version: link:../core
+
 packages:
 
   '@biomejs/biome@2.4.12':
