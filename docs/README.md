@@ -235,3 +235,7 @@ root の `@casegraph/core` ではなく `@casegraph/core/experimental` からだ
 ## 9. 一文要約
 
 **CaseGraph は、ケースを依存・待機・代替・証跡つきのグラフとして管理し、決定論的コアの上に AI 補助と外部ツール連携を載せる local-first CLI 基盤である。**
+
+## 10. License
+
+This repository is licensed under the Apache License 2.0. See [LICENSE](../LICENSE).
