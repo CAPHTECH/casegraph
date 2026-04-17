@@ -61,7 +61,7 @@ export async function execute(params: WorkerExecuteParams): Promise<WorkerExecut
   );
   await writeLog(logPath, command, runResult);
 
-  const patch = extractPatchFromText(runResult.stdout, params.case.case_id);
+  const extraction = extractPatchFromText(runResult.stdout, params.case.case_id);
   const relativeLogPath = path.relative(process.cwd(), logPath);
   const artifact: WorkerArtifact = {
     kind: "log",
@@ -79,18 +79,18 @@ export async function execute(params: WorkerExecuteParams): Promise<WorkerExecut
   if (runResult.timedOut) {
     observations.push(`Command exceeded ${timeoutSeconds}s timeout and was terminated.`);
   }
-  if (!patch) {
-    observations.push("No fenced casegraph-patch or json block was parseable in agent stdout.");
+  if (!extraction.ok) {
+    observations.push(`Patch rejected (${extraction.reason.code}): ${extraction.reason.message}`);
   }
 
   return {
-    status: patch ? "succeeded" : "failed",
-    summary: patch
+    status: extraction.ok ? "succeeded" : "failed",
+    summary: extraction.ok
       ? `Code agent produced a GraphPatch for ${params.task.node_id}`
       : `Code agent did not produce a GraphPatch for ${params.task.node_id}`,
     artifacts: [artifact],
     observations,
-    ...(patch ? { patch } : {}),
+    ...(extraction.ok ? { patch: extraction.patch } : {}),
     ...(typeof runResult.exitCode === "number" ? { exit_code: runResult.exitCode } : {}),
     warnings: []
   };

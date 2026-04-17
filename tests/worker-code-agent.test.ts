@@ -87,6 +87,7 @@ describe("cg worker run --worker code-agent", () => {
     expect(result.code).toBe(0);
     expect(result.json.data.status).toBe("failed");
     expect(result.json.data.patch).toBeNull();
+    expect(result.json.data.observations.join(" ")).toMatch(/no_fence_found/);
 
     const events = await exportEvents(workspaceRoot, caseId);
     const finished = events.find((event) => event.type === "worker.finished");

@@ -735,11 +735,11 @@ function addTaskStateCommand(
   runtime: CliRuntime,
   reasonFlag?: string
 ): void {
-  const command = taskCommand.command(`${name} <nodeId>`).requiredOption("--case <caseId>");
+  const command = taskCommand.command(`${name} <nodeIds...>`).requiredOption("--case <caseId>");
   if (reasonFlag) {
     command.option(reasonFlag, "Reason");
   }
-  command.action(async (nodeId, options, commandInstance) => {
+  command.action(async (nodeIds: string[], options, commandInstance) => {
     await runMutationCommand(
       runtime,
       commandInstance,
@@ -749,19 +749,32 @@ function addTaskStateCommand(
           reasonOptionName && options[reasonOptionName]
             ? { [`last_${name}_reason`]: options[reasonOptionName] as string }
             : undefined;
-        const resultState = await changeNodeState(
+        let resultState = await changeNodeState(
           workspaceRoot,
           {
             caseId: options.case as string,
-            nodeId: nodeId as string,
+            nodeId: nodeIds[0] as string,
             state,
             metadata
           },
           mutationContext
         );
+        for (let index = 1; index < nodeIds.length; index += 1) {
+          resultState = await changeNodeState(
+            workspaceRoot,
+            {
+              caseId: options.case as string,
+              nodeId: nodeIds[index] as string,
+              state,
+              metadata
+            },
+            mutationContext
+          );
+        }
+        const updated = nodeIds.map((id) => resultState.nodes.get(id) ?? null);
         return successResult(
           `task ${name}`,
-          { node: resultState.nodes.get(nodeId as string) ?? null },
+          nodeIds.length === 1 ? { node: updated[0] } : { nodes: updated, count: nodeIds.length },
           resultState.caseRecord.case_revision
         );
       }

@@ -62,23 +62,63 @@ describe("worker-prompt", () => {
   });
 
   it("extractPatchFromText parses a casegraph-patch fence", () => {
-    const patch = extractPatchFromText(validFencedPatch("casegraph-patch"), "demo");
-    expect(patch?.patch_id).toBe("patch_x");
-    expect(patch?.operations[0]).toMatchObject({ op: "change_state", node_id: "task_x" });
+    const result = extractPatchFromText(validFencedPatch("casegraph-patch"), "demo");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.patch.patch_id).toBe("patch_x");
+      expect(result.patch.operations[0]).toMatchObject({ op: "change_state", node_id: "task_x" });
+    }
   });
 
   it("falls back to a json fence when no casegraph-patch fence exists", () => {
-    const patch = extractPatchFromText(validFencedPatch("json"), "demo");
-    expect(patch?.patch_id).toBe("patch_x");
+    const result = extractPatchFromText(validFencedPatch("json"), "demo");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.patch.patch_id).toBe("patch_x");
+    }
   });
 
-  it("returns null when no fence is present", () => {
-    expect(extractPatchFromText("just prose, no code block", "demo")).toBeNull();
+  it("returns no_fence_found when no fence is present", () => {
+    const result = extractPatchFromText("just prose, no code block", "demo");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason.code).toBe("no_fence_found");
+    }
   });
 
-  it("returns null on malformed JSON", () => {
+  it("returns json_parse_error on malformed JSON inside the fence", () => {
     const text = "```casegraph-patch\n{ not valid json\n```";
-    expect(extractPatchFromText(text, "demo")).toBeNull();
+    const result = extractPatchFromText(text, "demo");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason.code).toBe("json_parse_error");
+      expect(result.reason.message).toMatch(/json/i);
+    }
+  });
+
+  it("returns patch_invalid with enumerated errors for a malformed patch", () => {
+    // Missing `changes` on update_node (the exact Claude mistake we saw in dogfood)
+    const malformed = {
+      patch_id: "patch_bad",
+      spec_version: SPEC_VERSION,
+      case_id: "demo",
+      base_revision: 0,
+      summary: "update_node without changes",
+      operations: [
+        {
+          op: "update_node",
+          node_id: "task_x",
+          metadata: { priority: "high" }
+        }
+      ]
+    };
+    const text = `\`\`\`casegraph-patch\n${JSON.stringify(malformed)}\n\`\`\``;
+    const result = extractPatchFromText(text, "demo");
+    expect(result.ok).toBe(false);
+    if (!result.ok && result.reason.code === "patch_invalid") {
+      expect(result.reason.errors.length).toBeGreaterThan(0);
+      expect(result.reason.message).toMatch(/update_node|changes/);
+    }
   });
 
   it("prefers casegraph-patch over a json fence when both exist", () => {
@@ -105,8 +145,11 @@ describe("worker-prompt", () => {
       "```casegraph-patch\n" +
       JSON.stringify(cgPatch) +
       "\n```";
-    const extracted = extractPatchFromText(text, "demo");
-    expect(extracted?.patch_id).toBe("patch_from_cg");
+    const result = extractPatchFromText(text, "demo");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.patch.patch_id).toBe("patch_from_cg");
+    }
   });
 
   it("injects case_id when the fence block omits it", () => {
@@ -118,7 +161,10 @@ describe("worker-prompt", () => {
       operations: [{ op: "change_state", node_id: "task_x", state: "done" }]
     };
     const text = `\`\`\`casegraph-patch\n${JSON.stringify(patch)}\n\`\`\``;
-    const extracted = extractPatchFromText(text, "demo");
-    expect(extracted?.case_id).toBe("demo");
+    const result = extractPatchFromText(text, "demo");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.patch.case_id).toBe("demo");
+    }
   });
 });
