@@ -18,6 +18,7 @@ When verifying a temporary workspace from the repository root, set `WORKSPACE=/p
 - [ ] `pnpm lint`
 - [ ] `pnpm typecheck`
 - [ ] `pnpm test`
+- [ ] `pnpm test:e2e`
 
 Optional diagnostics when analyzing failures:
 
@@ -51,4 +52,5 @@ Before publishing, be able to state all of the following without caveats:
 
 - the deterministic core is passing its full regression suite
 - markdown sync is passing both happy-path and edge-case regressions
+- black-box E2E is passing the documented core + sync flows
 - the docs describe the current stable and optional boundaries accurately

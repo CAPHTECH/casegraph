@@ -8,6 +8,8 @@
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
+    "pretest:e2e": "pnpm build",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:analysis-golden": "vitest run tests/analysis-golden.test.ts",
     "test:analysis-eval": "vitest run tests/analysis-eval.test.ts",
     "test:watch": "vitest",

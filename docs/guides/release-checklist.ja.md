@@ -18,6 +18,7 @@ repository root から一時 workspace を検証する場合は、`WORKSPACE=/pa
 - [ ] `pnpm lint`
 - [ ] `pnpm typecheck`
 - [ ] `pnpm test`
+- [ ] `pnpm test:e2e`
 
 障害解析用の補助コマンド:
 
@@ -51,4 +52,5 @@ repository root から一時 workspace を検証する場合は、`WORKSPACE=/pa
 
 - 決定論的 core の full regression suite が通っている
 - markdown sync の happy-path と edge-case 回帰が通っている
+- documented CLI flow に対する black-box E2E が通っている
 - docs が stable / optional の境界を正しく説明している
