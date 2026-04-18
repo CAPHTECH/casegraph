@@ -1,0 +1,13 @@
+case_id: cg-implementation-workflow
+title: Document cg-first implementation workflow
+description: Summarize how to structure work in cg and drive implementation,
+  verification, and close from that structure
+state: closed
+labels: []
+metadata: {}
+extensions: {}
+created_at: 2026-04-18T20:35:16.298Z
+updated_at: 2026-04-18T20:49:43.523Z
+case_revision:
+  current: 22
+  last_event_id: 01KPH5PH34EF1H5D93XW12CGJK
