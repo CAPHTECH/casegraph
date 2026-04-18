@@ -1,0 +1,12 @@
+case_id: case-close
+title: Implement cg case close
+description: Add a guarded case close command and manage the work in cg
+state: open
+labels: []
+metadata: {}
+extensions: {}
+created_at: 2026-04-18T15:02:45.443Z
+updated_at: 2026-04-18T15:11:56.381Z
+case_revision:
+  current: 37
+  last_event_id: 01KPGJC0YY9D3PR635JCZN5TEB

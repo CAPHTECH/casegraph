@@ -25,6 +25,7 @@ import {
   CaseGraphError,
   changeNodeState,
   checkWorkspaceMigrations,
+  closeCase,
   createCase,
   decideNode,
   exportEvents,
@@ -175,6 +176,23 @@ export async function runCli(
         const state = await loadCaseState(workspaceRoot, options.case);
         const data = buildCaseViewData(state);
         return successResult("case view", data, data.revision);
+      });
+    });
+
+  caseCommand
+    .command("close")
+    .requiredOption("--case <caseId>")
+    .option("--force", "Close even when validation warnings remain")
+    .action(async (_, command) => {
+      const options = command.opts() as { case: string; force?: boolean };
+      await runMutationCommand(runtime, command, async (workspaceRoot, _, mutationContext) => {
+        const data = await closeCase(
+          workspaceRoot,
+          options.case,
+          { force: options.force === true },
+          mutationContext
+        );
+        return successResult("case close", data, data.case.case_revision);
       });
     });
 

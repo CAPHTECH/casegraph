@@ -129,10 +129,21 @@ Expected result:
 
 - `frontier` is empty
 - `validate` returns success
-- `case show` may still report `state: open` in the current v0.1 reference implementation
+- `case show` may still report `state: open` at this point
 
 This is the current completion pattern.
-There is not yet a frozen case-close command, so completion is represented through the combination of goal state, evidence, frontier, and validate output.
+Completion is represented through the combination of goal state, evidence, frontier, and validate output, and you can then close the case lifecycle explicitly.
+
+## 11. Optionally close the case
+
+```bash
+pnpm run cg --workspace "$WORKSPACE" case close --case release-demo
+pnpm run cg --workspace "$WORKSPACE" case show --case release-demo
+```
+
+Expected result:
+
+- `case show` reports `state: closed`
 
 ## Related guides
 

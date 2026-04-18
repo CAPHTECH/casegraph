@@ -152,6 +152,239 @@ describe("cli phase 1 acceptance", () => {
     expect(nodeIds(nextFrontier.json.data.nodes as NodeLike[])).toEqual(["task_submit_store"]);
   });
 
+  it("closes a completed case once goals are terminal and frontier is empty", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-cli-");
+    createdWorkspaces.push(workspaceRoot);
+
+    await runJsonCommand(workspaceRoot, [
+      "case",
+      "new",
+      "--id",
+      "close-demo",
+      "--title",
+      "Close demo"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "close-demo",
+      "--id",
+      "goal_release_done",
+      "--kind",
+      "goal",
+      "--title",
+      "Release done"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "close-demo",
+      "--id",
+      "task_publish",
+      "--kind",
+      "task",
+      "--title",
+      "Publish release"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "close-demo",
+      "--id",
+      "edge_publish_goal",
+      "--type",
+      "contributes_to",
+      "--from",
+      "task_publish",
+      "--to",
+      "goal_release_done"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "task",
+      "done",
+      "task_publish",
+      "--case",
+      "close-demo"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "task",
+      "done",
+      "goal_release_done",
+      "--case",
+      "close-demo"
+    ]);
+
+    const close = await runJsonCommand(workspaceRoot, ["case", "close", "--case", "close-demo"]);
+    expect(close.code).toBe(0);
+    expect(close.json.data).toMatchObject({
+      changed: true,
+      forced: false,
+      case: {
+        case_id: "close-demo",
+        state: "closed"
+      },
+      checks: {
+        ready_node_ids: [],
+        non_terminal_goal_ids: []
+      }
+    });
+
+    const show = await runJsonCommand(workspaceRoot, ["case", "show", "--case", "close-demo"]);
+    expect(show.json.data.case.state).toBe("closed");
+  });
+
+  it("rejects close while ready work or unfinished goals remain", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-cli-");
+    createdWorkspaces.push(workspaceRoot);
+
+    await runJsonCommand(workspaceRoot, [
+      "case",
+      "new",
+      "--id",
+      "close-blocked",
+      "--title",
+      "Close blocked"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "close-blocked",
+      "--id",
+      "goal_release_done",
+      "--kind",
+      "goal",
+      "--title",
+      "Release done"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "close-blocked",
+      "--id",
+      "task_publish",
+      "--kind",
+      "task",
+      "--title",
+      "Publish release"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "close-blocked",
+      "--id",
+      "edge_publish_goal",
+      "--type",
+      "contributes_to",
+      "--from",
+      "task_publish",
+      "--to",
+      "goal_release_done"
+    ]);
+
+    const close = await runJsonCommand(workspaceRoot, ["case", "close", "--case", "close-blocked"]);
+    expect(close.code).toBe(4);
+    expect(close.json.error.code).toBe("case_close_blocked");
+    expect(close.json.error.details.checks.ready_node_ids).toEqual(["task_publish"]);
+    expect(close.json.error.details.checks.non_terminal_goal_ids).toEqual(["goal_release_done"]);
+  });
+
+  it("requires force when validation warnings remain during close", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-cli-");
+    createdWorkspaces.push(workspaceRoot);
+
+    await runJsonCommand(workspaceRoot, [
+      "case",
+      "new",
+      "--id",
+      "close-warning",
+      "--title",
+      "Close warning"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "close-warning",
+      "--id",
+      "goal_release_done",
+      "--kind",
+      "goal",
+      "--title",
+      "Release done"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "close-warning",
+      "--id",
+      "task_publish",
+      "--kind",
+      "task",
+      "--title",
+      "Publish release",
+      "--metadata",
+      "{\"requires_evidence\":true}"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "close-warning",
+      "--id",
+      "edge_publish_goal",
+      "--type",
+      "contributes_to",
+      "--from",
+      "task_publish",
+      "--to",
+      "goal_release_done"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "task",
+      "done",
+      "task_publish",
+      "--case",
+      "close-warning"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "task",
+      "done",
+      "goal_release_done",
+      "--case",
+      "close-warning"
+    ]);
+
+    const blocked = await runJsonCommand(workspaceRoot, ["case", "close", "--case", "close-warning"]);
+    expect(blocked.code).toBe(4);
+    expect(blocked.json.error.code).toBe("case_close_requires_force");
+    expect(blocked.json.error.details.checks.validation_warnings).toMatchObject([
+      { code: "missing_required_evidence", ref: "task_publish" }
+    ]);
+
+    const forced = await runJsonCommand(workspaceRoot, [
+      "case",
+      "close",
+      "--case",
+      "close-warning",
+      "--force"
+    ]);
+    expect(forced.code).toBe(0);
+    expect(forced.json.data).toMatchObject({
+      changed: true,
+      forced: true,
+      case: {
+        state: "closed"
+      }
+    });
+  });
+
   it("rebuilds cache and verifies events through CLI", async () => {
     const workspaceRoot = await createTempWorkspace("casegraph-cli-");
     createdWorkspaces.push(workspaceRoot);

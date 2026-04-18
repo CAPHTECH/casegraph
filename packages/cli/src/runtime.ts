@@ -252,6 +252,7 @@ const textRenderers: Record<string, (result: CommandSuccess<unknown>) => string>
   "case list": renderCaseListText,
   "case show": renderCaseShowText,
   "case view": renderCaseViewText,
+  "case close": renderCaseCloseText,
   frontier: renderFrontierText,
   blockers: renderBlockersText,
   "analyze impact": renderAnalyzeImpactText,
@@ -305,6 +306,24 @@ function renderCaseShowText(result: CommandSuccess<unknown>): string {
 
 function renderCaseViewText(result: CommandSuccess<unknown>): string {
   return (result as CommandSuccess<{ tree_lines: string[] }>).data.tree_lines.join("\n");
+}
+
+function renderCaseCloseText(result: CommandSuccess<unknown>): string {
+  const data = result as CommandSuccess<{
+    case: { case_id: string; state: string };
+    changed: boolean;
+    forced: boolean;
+    checks: {
+      ready_node_ids: string[];
+      non_terminal_goal_ids: string[];
+      validation_warnings: unknown[];
+    };
+  }>;
+
+  return [
+    `${data.data.case.case_id}: state=${data.data.case.state} changed=${data.data.changed ? "yes" : "no"}`,
+    `ready=${data.data.checks.ready_node_ids.length} goals=${data.data.checks.non_terminal_goal_ids.length} warnings=${data.data.checks.validation_warnings.length} forced=${data.data.forced ? "yes" : "no"}`
+  ].join("\n");
 }
 
 function renderFrontierText(result: CommandSuccess<unknown>): string {

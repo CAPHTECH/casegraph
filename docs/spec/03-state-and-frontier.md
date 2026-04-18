@@ -216,9 +216,11 @@ v0.1 では case 自体の完了を reducer が自動導出しません。
 3. `requires_evidence` がある node や監査上残したい node に evidence を添付する
 4. `frontier` を確認し、case 全体で未解決の actionable が残っていないことを確認する
 5. `validate` を実行し、error がないこと、`missing_required_evidence` などの warning をレビュー済みにする
+6. active queue から外したいときは `cg case close` を実行する
 
-このパターンでは `case.state` は `open` のままでもよいです。
-`closed` / `archived` への遷移は later-phase の lifecycle / admin surface に委ねます。
+`cg case close` は lifecycle 操作であり、completion そのものを自動導出するものではありません。
+close 前に使う主要な判断材料は、goal state、evidence、frontier、validate 結果です。
+`archive` への遷移は引き続き later-phase の lifecycle / admin surface に委ねます。
 
 ---
 

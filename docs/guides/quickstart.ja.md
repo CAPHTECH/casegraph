@@ -129,10 +129,21 @@ pnpm run cg --workspace "$WORKSPACE" case show --case release-demo
 
 - `frontier` は空になる
 - `validate` は success を返す
-- `case show` の `state` は現行 v0.1 では `open` のままでよい
+- `case show` の `state` は、この時点では `open` のままでもよい
 
 これが現行参照実装での completion pattern です。
-case を閉じる専用 command はまだ凍結していないため、goal / evidence / frontier / validate の組み合わせで完了を表します。
+goal / evidence / frontier / validate の組み合わせで completion を表し、その後に必要なら case を close します。
+
+## 11. 必要なら case を close する
+
+```bash
+pnpm run cg --workspace "$WORKSPACE" case close --case release-demo
+pnpm run cg --workspace "$WORKSPACE" case show --case release-demo
+```
+
+期待結果:
+
+- `case show` の `state` が `closed` になる
 
 ## 関連ガイド
 

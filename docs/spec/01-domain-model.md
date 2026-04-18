@@ -57,11 +57,12 @@ Case は一件の案件・テーマ・ライフイベントです。case は gra
 
 ### `case.state` と完了の関係
 - `open`: 通常の作業中。v0.1 の参照実装では、完了済み case もこの state のまま保持してよい
-- `closed`: later-phase の明示ライフサイクル遷移で使う予約状態
+- `closed`: completion review 後に `cg case close` で active queue から外した状態
 - `archived`: 履歴保存中心の読み取り状態。これも later-phase / admin surface で使う予約状態
 
-v0.1 の凍結 CLI には `cg case close` / `cg case archive` を含めません。
-そのため現行の完了表現は `case.state` を変えることではなく、goal / task / decision / event の state、evidence、frontier、validate 結果の組み合わせで表します。
+現行の完了表現の本体は、goal / task / decision / event の state、evidence、frontier、validate 結果です。
+`cg case close` はその上に乗る lifecycle 操作で、node-level completion を置き換えるものではありません。
+`cg case archive` はまだ later-phase / admin surface に留めます。
 
 ---
 

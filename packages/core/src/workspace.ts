@@ -51,6 +51,7 @@ import {
   type FrontierItem,
   type MinimalUnblockSetResult,
   type MutationContext,
+  type NodeRecord,
   type PatchReview,
   type RevisionSnapshot,
   type SlackAnalysisResult,
@@ -79,6 +80,20 @@ export interface ShowCaseData {
     node_ids: string[];
   };
   revision: RevisionSnapshot;
+}
+
+export interface CaseCloseChecks {
+  ready_node_ids: string[];
+  non_terminal_goal_ids: string[];
+  validation_errors: ValidationIssue[];
+  validation_warnings: ValidationIssue[];
+}
+
+export interface CloseCaseData {
+  case: CaseRecord;
+  changed: boolean;
+  forced: boolean;
+  checks: CaseCloseChecks;
 }
 
 export interface ValidateCaseData {
@@ -263,6 +278,96 @@ export async function showCase(workspaceRoot: string, caseId: string): Promise<S
     },
     revision: state.caseRecord.case_revision
   };
+}
+
+export async function closeCase(
+  workspaceRoot: string,
+  caseId: string,
+  input: { force?: boolean } = {},
+  context: MutationContext = {}
+): Promise<CloseCaseData> {
+  const workspacePaths = getWorkspacePaths(workspaceRoot);
+  const force = input.force === true;
+
+  return withWorkspaceLock(workspacePaths.lockFile, async () => {
+    const currentState = await loadCaseState(workspaceRoot, caseId);
+    const checks = buildCaseCloseChecks(currentState);
+
+    if (currentState.caseRecord.state === "archived") {
+      throw new CaseGraphError("case_close_archived", `Case ${caseId} is archived`, {
+        exitCode: 4,
+        details: {
+          case: currentState.caseRecord,
+          checks
+        }
+      });
+    }
+
+    if (currentState.caseRecord.state === "closed") {
+      return {
+        case: currentState.caseRecord,
+        changed: false,
+        forced: force,
+        checks
+      };
+    }
+
+    if (
+      checks.ready_node_ids.length > 0 ||
+      checks.non_terminal_goal_ids.length > 0 ||
+      checks.validation_errors.length > 0
+    ) {
+      throw new CaseGraphError(
+        "case_close_blocked",
+        "Case close preconditions are not satisfied",
+        {
+          exitCode: checks.validation_errors.length > 0 ? 2 : 4,
+          details: {
+            case: currentState.caseRecord,
+            checks
+          }
+        }
+      );
+    }
+
+    if (checks.validation_warnings.length > 0 && !force) {
+      throw new CaseGraphError(
+        "case_close_requires_force",
+        "Case has validation warnings; rerun with --force to close anyway",
+        {
+          exitCode: 4,
+          details: {
+            case: currentState.caseRecord,
+            checks
+          }
+        }
+      );
+    }
+
+    const timestamp = context.now ?? nowUtc();
+    const nextState = await appendPreparedCaseEvents(workspaceRoot, caseId, [
+      createEvent({
+        case_id: caseId,
+        timestamp,
+        type: "case.updated",
+        source: "cli",
+        command_id: context.commandId,
+        actor: context.actor,
+        payload: {
+          changes: {
+            state: "closed"
+          }
+        }
+      })
+    ]);
+
+    return {
+      case: nextState.caseRecord,
+      changed: true,
+      forced: force,
+      checks: buildCaseCloseChecks(nextState)
+    };
+  });
 }
 
 export async function addNode(
@@ -986,4 +1091,23 @@ async function canonicalizePatchForApply(
     ...patch,
     operations
   };
+}
+
+function buildCaseCloseChecks(state: CaseStateView): CaseCloseChecks {
+  const readyNodeIds = getFrontier(state).map((node) => node.node_id);
+  const nonTerminalGoalIds = Array.from(state.nodes.values())
+    .filter((node) => node.kind === "goal" && !isTerminalGoalState(node))
+    .map((node) => node.node_id)
+    .sort((left, right) => left.localeCompare(right));
+
+  return {
+    ready_node_ids: readyNodeIds,
+    non_terminal_goal_ids: nonTerminalGoalIds,
+    validation_errors: state.validation.filter((issue) => issue.severity === "error"),
+    validation_warnings: state.validation.filter((issue) => issue.severity === "warning")
+  };
+}
+
+function isTerminalGoalState(node: NodeRecord): boolean {
+  return node.state === "done" || node.state === "cancelled" || node.state === "failed";
 }
