@@ -411,6 +411,16 @@ function applyChangeStateOperation(
     return;
   }
 
+  if (existing.kind === "evidence") {
+    errors.push({
+      severity: "error",
+      code: "patch_change_state_evidence",
+      message: `Cannot change state of evidence node ${operation.node_id}`,
+      ref
+    });
+    return;
+  }
+
   draft.nodes.set(
     operation.node_id,
     sanitizeNodeRecord({
@@ -1126,14 +1136,20 @@ function parseNodeChanges(
   ref: string,
   errors: ValidationIssue[]
 ): PatchNodeChanges {
-  return {
-    title: optionalString(input.title, `${ref}.title`, errors),
-    description: optionalString(input.description, `${ref}.description`, errors),
-    labels: parseStringArray(input.labels, `${ref}.labels`, errors),
-    acceptance: parseStringArray(input.acceptance, `${ref}.acceptance`, errors),
-    metadata: parseRecord(input.metadata, `${ref}.metadata`, errors),
-    extensions: parseRecord(input.extensions, `${ref}.extensions`, errors)
-  };
+  const changes: PatchNodeChanges = {};
+  const title = optionalString(input.title, `${ref}.title`, errors);
+  if (title !== undefined) changes.title = title;
+  const description = optionalString(input.description, `${ref}.description`, errors);
+  if (description !== undefined) changes.description = description;
+  const labels = parseStringArray(input.labels, `${ref}.labels`, errors);
+  if (labels !== undefined) changes.labels = labels;
+  const acceptance = parseStringArray(input.acceptance, `${ref}.acceptance`, errors);
+  if (acceptance !== undefined) changes.acceptance = acceptance;
+  const metadata = parseRecord(input.metadata, `${ref}.metadata`, errors);
+  if (metadata !== undefined) changes.metadata = metadata;
+  const extensions = parseRecord(input.extensions, `${ref}.extensions`, errors);
+  if (extensions !== undefined) changes.extensions = extensions;
+  return changes;
 }
 
 function parseStringArray(

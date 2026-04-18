@@ -572,20 +572,37 @@ export async function recordEventNode(
   input: { caseId: string; nodeId: string },
   context: MutationContext = {}
 ): Promise<CaseStateView> {
-  const timestamp = context.now ?? nowUtc();
-  return appendCaseEvents(workspaceRoot, input.caseId, [
-    createEvent({
-      case_id: input.caseId,
-      timestamp,
-      type: "event.recorded",
-      source: "cli",
-      command_id: context.commandId,
-      actor: context.actor,
-      payload: {
-        node_id: input.nodeId
-      }
-    })
-  ]);
+  const workspacePaths = getWorkspacePaths(workspaceRoot);
+  return withWorkspaceLock(workspacePaths.lockFile, async () => {
+    const existingState = await loadCaseState(workspaceRoot, input.caseId);
+    const node = existingState.nodes.get(input.nodeId);
+    if (!node) {
+      throw new CaseGraphError("not_found", `Node ${input.nodeId} does not exist`, {
+        exitCode: 3
+      });
+    }
+    if (node.kind !== "event") {
+      throw new CaseGraphError(
+        "validation_error",
+        `Node ${input.nodeId} is of kind '${node.kind}'; event.recorded requires kind 'event'`,
+        { exitCode: 2 }
+      );
+    }
+    const timestamp = context.now ?? nowUtc();
+    return appendPreparedCaseEvents(workspaceRoot, input.caseId, [
+      createEvent({
+        case_id: input.caseId,
+        timestamp,
+        type: "event.recorded",
+        source: "cli",
+        command_id: context.commandId,
+        actor: context.actor,
+        payload: {
+          node_id: input.nodeId
+        }
+      })
+    ]);
+  });
 }
 
 export async function addEvidence(
