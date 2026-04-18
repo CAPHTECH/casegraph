@@ -6,12 +6,12 @@ Treat completion and closure as separate states. A task becomes done when its ou
 
 Use this loop for each concrete task:
 
-1. `pnpm cg frontier --case <id> --format json`
-2. `pnpm cg task start --case <id> <task_id>`
+1. `cg frontier --case <id> --format json`
+2. `cg task start --case <id> <task_id>`
 3. make the change
 4. run the relevant checks
 5. attach checkpoint or verification evidence
-6. `pnpm cg task done --case <id> <task_id>`
+6. `cg task done --case <id> <task_id>`
 
 Do not mark a task done before the evidence exists.
 
@@ -19,11 +19,11 @@ Do not mark a task done before the evidence exists.
 
 Before closing:
 
-1. run `pnpm cg validate --case <id> --format json`
-2. inspect `pnpm cg frontier --case <id> --format json`
+1. run `cg validate --case <id> --format json`
+2. inspect `cg frontier --case <id> --format json`
 3. inspect blockers or waiting nodes if anything is unresolved
 4. make sure the final verification evidence is attached
-5. close with `pnpm cg case close --case <id>`
+5. close with `cg case close --case <id>`
 
 Use `--force` only when the remaining issue is an understood warning, not when hard blockers still exist.
 
@@ -42,8 +42,8 @@ If one of these is missing, keep the case open.
 
 After compaction, handoff, or a long pause:
 
-1. `pnpm cg case show --case <id> --format json`
-2. `pnpm cg frontier --case <id> --format json`
+1. `cg case show --case <id> --format json`
+2. `cg frontier --case <id> --format json`
 3. read the latest checkpoint evidence
 4. read the latest verification evidence
 5. inspect waiting, failed, or cancelled nodes

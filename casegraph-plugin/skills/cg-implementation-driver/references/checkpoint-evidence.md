@@ -27,7 +27,7 @@ Recommended payload:
 Example:
 
 ```sh
-pnpm cg evidence add \
+cg evidence add \
   --case <id> \
   --id evidence_checkpoint_<name> \
   --title "Checkpoint: <task>" \
@@ -49,7 +49,7 @@ Recommended payload:
 Example:
 
 ```sh
-pnpm cg evidence add \
+cg evidence add \
   --case <id> \
   --id evidence_verify_<name> \
   --title "Verification: <task or goal>" \
@@ -72,7 +72,7 @@ Flow:
 
 1. create the event node
 2. connect waiting tasks with `waits_for` if needed
-3. call `pnpm cg event record --case <id> <event_id>` only when it actually happened
+3. call `cg event record --case <id> <event_id>` only when it actually happened
 
 ## Decision recording
 

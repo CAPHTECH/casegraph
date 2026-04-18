@@ -9,6 +9,17 @@ description: Use when proposing AI-driven graph changes to a CaseGraph workspace
 
 Core contract: **AI does not mutate workspace state directly. It proposes a `GraphPatch`.** The patch flows through `validate → review → apply`, and on success lands as a single `patch.applied` event in the event log. This skill fixes the ordering, the `base_revision` contract, and the shape of the patch.
 
+## Command bootstrap
+
+Resolve a working launcher before using the commands below:
+
+1. If `cg --help` works, use `cg`.
+2. If CaseGraph is installed locally in the current project, use `pnpm exec cg --help` or `npx cg --help`.
+3. If you are inside the CaseGraph repository, run `pnpm install` and `pnpm build`, then use `pnpm cg --help`.
+4. If none of those work, install `@caphtech/casegraph-cli` and use either global `cg` or project-local `pnpm exec cg`.
+
+In the rest of this skill, `cg ...` means "use the launcher that succeeded here."
+
 ## Workspace resolution
 
 `cg` CLI lookup order: `--workspace` → `CASEGRAPH_WORKSPACE` → walk upward from cwd.

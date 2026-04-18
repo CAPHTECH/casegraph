@@ -11,6 +11,17 @@ Use CaseGraph as the durable task backbone for implementation, verification, res
 
 Use this skill for direct case management through the `cg` CLI. For normal workspace reading use **casegraph**. For AI-authored graph changes use **casegraph-patch**. For importers, workers, sync, or storage recovery use **casegraph-integrate**.
 
+## Command bootstrap
+
+Resolve a working launcher before using the commands below:
+
+1. If `cg --help` works, use `cg`.
+2. If CaseGraph is installed locally in the current project, use `pnpm exec cg --help` or `npx cg --help`.
+3. If you are inside the CaseGraph repository, run `pnpm install` and `pnpm build`, then use `pnpm cg --help`.
+4. If none of those work, install `@caphtech/casegraph-cli` and use either global `cg` or project-local `pnpm exec cg`.
+
+In the rest of this skill, `cg ...` means "use the launcher that succeeded here."
+
 ## When to use
 
 Use this skill when:
@@ -32,7 +43,7 @@ Skip it for tiny one-pass edits that do not need a durable case.
    - Use `depends_on` for hard sequencing, `waits_for` for external blockers, and `contributes_to` from work nodes to the goal.
    - Read [task-templates.md](references/task-templates.md) when deciding how much graph to create.
 3. Execute from the frontier.
-   - Inspect `pnpm cg frontier --case <id> --format json`.
+   - Inspect `cg frontier --case <id> --format json`.
    - Start only the task you are actively executing.
    - If the next step is blocked, record the blocker in the case instead of leaving it only in chat.
 4. Change code and checkpoint before context can disappear.
@@ -60,24 +71,24 @@ Skip it for tiny one-pass edits that do not need a durable case.
 ## Command skeleton
 
 ```sh
-pnpm cg case new --id <case_id> --title "<title>"
-pnpm cg node add --case <case_id> --id goal_<name> --kind goal --title "<goal>"
-pnpm cg node add --case <case_id> --id task_<name> --kind task --title "<task>"
-pnpm cg edge add --case <case_id> --id edge_<name> --type contributes_to --from task_<name> --to goal_<name>
-pnpm cg frontier --case <case_id> --format json
-pnpm cg task start --case <case_id> task_<name>
-pnpm cg evidence add --case <case_id> --id evidence_<name> --title "<title>" --target task_<name> --description "<summary>"
-pnpm cg task done --case <case_id> task_<name>
-pnpm cg validate --case <case_id> --format json
-pnpm cg case close --case <case_id>
+cg case new --id <case_id> --title "<title>"
+cg node add --case <case_id> --id goal_<name> --kind goal --title "<goal>"
+cg node add --case <case_id> --id task_<name> --kind task --title "<task>"
+cg edge add --case <case_id> --id edge_<name> --type contributes_to --from task_<name> --to goal_<name>
+cg frontier --case <case_id> --format json
+cg task start --case <case_id> task_<name>
+cg evidence add --case <case_id> --id evidence_<name> --title "<title>" --target task_<name> --description "<summary>"
+cg task done --case <case_id> task_<name>
+cg validate --case <case_id> --format json
+cg case close --case <case_id>
 ```
 
 ## Resume order
 
 When resuming after compaction or handoff:
 
-1. `pnpm cg case show --case <id> --format json`
-2. `pnpm cg frontier --case <id> --format json`
+1. `cg case show --case <id> --format json`
+2. `cg frontier --case <id> --format json`
 3. the latest checkpoint and verification evidence
 4. unresolved waiting or failed nodes
 5. recent decisions and event nodes

@@ -76,8 +76,8 @@ When an external signal matters, add an event node and connect waiting tasks wit
 Use when part of the work depends on another team, service, review, or user action.
 
 - create `event_<external_fact>`
-- mark the waiting task with `pnpm cg task wait --case <id> <task_id> --reason "<why>" --for <event_id>`
-- record the event only when the fact actually happens: `pnpm cg event record --case <id> <event_id>`
+- mark the waiting task with `cg task wait --case <id> <task_id> --reason "<why>" --for <event_id>`
+- record the event only when the fact actually happens: `cg event record --case <id> <event_id>`
 - resume the waiting task after the blocker clears
 
 Do not fake progress by keeping a blocked task in `doing`.

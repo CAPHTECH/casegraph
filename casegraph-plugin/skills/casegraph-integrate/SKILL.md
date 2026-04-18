@@ -9,6 +9,17 @@ description: Use when integrating CaseGraph with external tools (markdown import
 
 External integrations — importers, sinks, workers — are out-of-process plugins speaking **JSON-RPC 2.0 over stdio** (ADR-0005). This skill covers launching them, configuring them, and verifying / recovering storage when something drifts.
 
+## Command bootstrap
+
+Resolve a working launcher before using the commands below:
+
+1. If `cg --help` works, use `cg`.
+2. If CaseGraph is installed locally in the current project, use `pnpm exec cg --help` or `npx cg --help`.
+3. If you are inside the CaseGraph repository, run `pnpm install` and `pnpm build`, then use `pnpm cg --help`.
+4. If none of those work, install `@caphtech/casegraph-cli` and use either global `cg` or project-local `pnpm exec cg`.
+
+In the rest of this skill, `cg ...` means "use the launcher that succeeded here."
+
 ## Workspace resolution
 
 `--workspace` → `CASEGRAPH_WORKSPACE` → walk upward from cwd.

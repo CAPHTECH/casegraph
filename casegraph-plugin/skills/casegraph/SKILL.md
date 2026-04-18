@@ -11,6 +11,17 @@ CaseGraph is an event-sourced, local-first case graph substrate. The `cg` CLI is
 
 For AI-proposed changes use **casegraph-patch**. For importers, sinks, workers, and recovery use **casegraph-integrate**.
 
+## Command bootstrap
+
+Resolve a working launcher before using the commands below:
+
+1. If `cg --help` works, use `cg`.
+2. If CaseGraph is installed locally in the current project, use `pnpm exec cg --help` or `npx cg --help`.
+3. If you are inside the CaseGraph repository, run `pnpm install` and `pnpm build`, then use `pnpm cg --help`.
+4. If none of those work, install `@caphtech/casegraph-cli` and use either global `cg` or project-local `pnpm exec cg`.
+
+In the rest of this skill, `cg ...` means "use the launcher that succeeded here."
+
 ## Workspace resolution
 
 The CLI finds the workspace (the nearest directory containing `.casegraph/`) in this order:
