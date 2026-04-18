@@ -1,5 +1,5 @@
 import { CaseGraphError } from "./errors.js";
-import { cloneRecord, dueDateValue, metadataPriorityValue } from "./helpers.js";
+import { cloneRecord, dueDateValue, metadataPriorityValue, sanitizeNodeChanges } from "./helpers.js";
 import { applyPatchOperationsToDraft } from "./patch.js";
 import type {
   AttachmentRecord,
@@ -148,9 +148,14 @@ function replayNodeAddedEvent(nodes: Map<string, NodeRecord>, event: EventEnvelo
 function replayNodeUpdatedEvent(nodes: Map<string, NodeRecord>, event: EventEnvelope): void {
   const nodeId = event.payload.node_id as string;
   const existingNode = requireNodeForReplay(nodes, nodeId, "Node");
+  const changes = sanitizeNodeChanges(
+    (event.payload.changes as Partial<
+      Pick<NodeRecord, "title" | "description" | "labels" | "acceptance" | "metadata" | "extensions">
+    >) ?? {}
+  );
   nodes.set(nodeId, {
     ...existingNode,
-    ...(event.payload.changes as Partial<NodeRecord>),
+    ...changes,
     updated_at: event.timestamp
   });
 }

@@ -54,6 +54,7 @@ import {
   sanitizeAttachmentRecord,
   sanitizeCaseRecord,
   sanitizeEdgeRecord,
+  sanitizeNodeChanges,
   sanitizeNodeRecord,
   type UpdateNodeInput,
   type ValidationIssue,
@@ -407,11 +408,7 @@ export async function updateNode(
       actor: context.actor,
       payload: {
         node_id: input.nodeId,
-        changes: {
-          ...input.changes,
-          metadata: input.changes.metadata ? ensureObject(input.changes.metadata) : undefined,
-          extensions: input.changes.extensions ? ensureObject(input.changes.extensions) : undefined
-        }
+        changes: sanitizeNodeChanges(input.changes)
       }
     })
   ]);

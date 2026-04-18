@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { loadCaseState } from "@caphtech/casegraph-core";
 import { runCli } from "@caphtech/casegraph-cli/app";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -150,6 +151,82 @@ describe("cli phase 1 acceptance", () => {
       "release-1.8.0"
     ]);
     expect(nodeIds(nextFrontier.json.data.nodes as NodeLike[])).toEqual(["task_submit_store"]);
+  });
+
+  it("updates a node title without clearing existing arrays or metadata", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-cli-");
+    createdWorkspaces.push(workspaceRoot);
+
+    await runJsonCommand(workspaceRoot, [
+      "case",
+      "new",
+      "--id",
+      "update-demo",
+      "--title",
+      "Update demo"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "update-demo",
+      "--id",
+      "task_publish",
+      "--kind",
+      "task",
+      "--title",
+      "Publish release",
+      "--description",
+      "Original description",
+      "--labels",
+      "release,urgent",
+      "--acceptance",
+      "package,announce",
+      "--metadata",
+      '{"priority":"high","estimate_minutes":30}'
+    ]);
+
+    const update = await runJsonCommand(workspaceRoot, [
+      "node",
+      "update",
+      "--case",
+      "update-demo",
+      "--id",
+      "task_publish",
+      "--title",
+      "Publish release now"
+    ]);
+    expect(update.code).toBe(0);
+    expect(update.json.data.node).toMatchObject({
+      node_id: "task_publish",
+      title: "Publish release now"
+    });
+
+    const validate = await runJsonCommand(workspaceRoot, [
+      "validate",
+      "--case",
+      "update-demo"
+    ]);
+    expect(validate.code).toBe(0);
+    expect(validate.json.data).toMatchObject({
+      case_id: "update-demo",
+      valid: true,
+      errors: [],
+      warnings: []
+    });
+
+    const state = await loadCaseState(workspaceRoot, "update-demo");
+    expect(state.nodes.get("task_publish")).toMatchObject({
+      node_id: "task_publish",
+      title: "Publish release now",
+      description: "Original description",
+      labels: ["release", "urgent"],
+      acceptance: ["package", "announce"],
+      metadata: {
+        priority: "high",
+        estimate_minutes: 30
+      }
+    });
   });
 
   it("closes a completed case once goals are terminal and frontier is empty", async () => {

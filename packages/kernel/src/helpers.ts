@@ -82,6 +82,27 @@ export function sanitizeNodeRecord(node: NodeRecord): NodeRecord {
   };
 }
 
+export function sanitizeNodeChanges(
+  changes: Partial<
+    Pick<NodeRecord, "title" | "description" | "labels" | "acceptance" | "metadata" | "extensions">
+  >
+): Partial<
+  Pick<NodeRecord, "title" | "description" | "labels" | "acceptance" | "metadata" | "extensions">
+> {
+  const out: Partial<
+    Pick<NodeRecord, "title" | "description" | "labels" | "acceptance" | "metadata" | "extensions">
+  > = {};
+
+  if (changes.title !== undefined) out.title = changes.title;
+  if (changes.description !== undefined) out.description = changes.description;
+  if (changes.labels !== undefined) out.labels = ensureArray(changes.labels);
+  if (changes.acceptance !== undefined) out.acceptance = ensureArray(changes.acceptance);
+  if (changes.metadata !== undefined) out.metadata = ensureObject(changes.metadata);
+  if (changes.extensions !== undefined) out.extensions = ensureObject(changes.extensions);
+
+  return out;
+}
+
 export function sanitizeEdgeRecord(edge: EdgeRecord): EdgeRecord {
   return {
     ...edge,
