@@ -1,0 +1,13 @@
+case_id: completion-pattern
+title: Formalize completion pattern
+description: Document how a case is considered complete in the current v0.1 CLI
+  and graph model
+state: open
+labels: []
+metadata: {}
+extensions: {}
+created_at: 2026-04-18T14:51:07.902Z
+updated_at: 2026-04-18T14:56:29.309Z
+case_revision:
+  current: 31
+  last_event_id: 01KPGHFQKXHZA03JQPWCYSTQYT

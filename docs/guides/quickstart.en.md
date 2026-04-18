@@ -110,6 +110,30 @@ pnpm run cg --workspace "$WORKSPACE" analyze slack --case release-demo --goal go
 pnpm run cg --workspace "$WORKSPACE" analyze bottlenecks --case release-demo --goal goal_release_demo
 ```
 
+## 10. Record the case as complete
+
+```bash
+pnpm run cg --workspace "$WORKSPACE" task done --case release-demo task_publish
+pnpm run cg --workspace "$WORKSPACE" evidence add --case release-demo \
+  --id evidence_publish_receipt \
+  --title "Published build receipt" \
+  --target task_publish \
+  --url "https://example.invalid/releases/demo"
+pnpm run cg --workspace "$WORKSPACE" task done --case release-demo goal_release_demo
+pnpm run cg --workspace "$WORKSPACE" frontier --case release-demo
+pnpm run cg --workspace "$WORKSPACE" validate --case release-demo
+pnpm run cg --workspace "$WORKSPACE" case show --case release-demo
+```
+
+Expected result:
+
+- `frontier` is empty
+- `validate` returns success
+- `case show` may still report `state: open` in the current v0.1 reference implementation
+
+This is the current completion pattern.
+There is not yet a frozen case-close command, so completion is represented through the combination of goal state, evidence, frontier, and validate output.
+
 ## Related guides
 
 - [v0.1 Release Checklist (EN)](release-checklist.en.md)

@@ -207,6 +207,19 @@ goal の自動完了は v0.1 では強制しません。
 - `requires_evidence = true`
 - `has_required_evidence = false`
 
+### v0.1 の完了パターン
+v0.1 では case 自体の完了を reducer が自動導出しません。
+代わりに「この case は完了した」と扱うときは、次のパターンで表現します。
+
+1. 完了対象に含める task / decision / event を明示的に `done` にする
+2. 達成対象の goal を明示的に `done` にする。goal は自動完了しない
+3. `requires_evidence` がある node や監査上残したい node に evidence を添付する
+4. `frontier` を確認し、case 全体で未解決の actionable が残っていないことを確認する
+5. `validate` を実行し、error がないこと、`missing_required_evidence` などの warning をレビュー済みにする
+
+このパターンでは `case.state` は `open` のままでもよいです。
+`closed` / `archived` への遷移は later-phase の lifecycle / admin surface に委ねます。
+
 ---
 
 ## 3.12 Impact analysis
