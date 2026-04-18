@@ -253,41 +253,15 @@ export async function runCli(
     .requiredOption("--id <nodeId>")
     .option("--title <title>")
     .option("--description <description>")
+    .option("--state <state>", "set node state (todo|doing|waiting|done|cancelled|failed)")
     .option("--labels <labels>")
     .option("--acceptance <acceptance>")
     .option("--metadata <json>")
     .action(async (_, command) => {
-      const options = command.opts() as {
-        case: string;
-        id: string;
-        title?: string;
-        description?: string;
-        labels?: string;
-        acceptance?: string;
-        metadata?: string;
-      };
-      await runMutationCommand(runtime, command, async (workspaceRoot, _, mutationContext) => {
-        const state = await updateNode(
-          workspaceRoot,
-          {
-            caseId: options.case,
-            nodeId: options.id,
-            changes: {
-              title: options.title,
-              description: options.description,
-              labels: options.labels ? parseCsv(options.labels) : undefined,
-              acceptance: options.acceptance ? parseCsv(options.acceptance) : undefined,
-              metadata: options.metadata ? parseJsonObject(options.metadata) : undefined
-            }
-          },
-          mutationContext
-        );
-        return successResult(
-          "node update",
-          { node: state.nodes.get(options.id) ?? null },
-          state.caseRecord.case_revision
-        );
-      });
+      const options = command.opts() as NodeUpdateOptions;
+      await runMutationCommand(runtime, command, (workspaceRoot, _, mutationContext) =>
+        runNodeUpdate(workspaceRoot, options, mutationContext)
+      );
     });
 
   const edgeCommand = program.command("edge");
@@ -295,17 +269,33 @@ export async function runCli(
     .command("add")
     .requiredOption("--case <caseId>")
     .requiredOption("--type <type>")
-    .requiredOption("--from <sourceId>")
-    .requiredOption("--to <targetId>")
+    .option("--from <sourceId>", "source node id (alias: --source)")
+    .option("--to <targetId>", "target node id (alias: --target)")
+    .option("--source <sourceId>", "source node id (alias: --from)")
+    .option("--target <targetId>", "target node id (alias: --to)")
     .option("--id <edgeId>")
     .action(async (_, command) => {
       const options = command.opts() as {
         case: string;
         type: EdgeType;
-        from: string;
-        to: string;
+        from?: string;
+        to?: string;
+        source?: string;
+        target?: string;
         id?: string;
       };
+      const sourceId = options.from ?? options.source;
+      const targetId = options.to ?? options.target;
+      if (!sourceId) {
+        throw new CaseGraphError("internal_error", "edge add requires --from or --source", {
+          exitCode: 2
+        });
+      }
+      if (!targetId) {
+        throw new CaseGraphError("internal_error", "edge add requires --to or --target", {
+          exitCode: 2
+        });
+      }
       await runMutationCommand(runtime, command, async (workspaceRoot, _, mutationContext) => {
         const edgeId = options.id ?? generateId();
         const state = await addEdge(
@@ -315,8 +305,8 @@ export async function runCli(
             edge: {
               edge_id: edgeId,
               type: options.type,
-              source_id: options.from,
-              target_id: options.to,
+              source_id: sourceId,
+              target_id: targetId,
               metadata: {},
               extensions: {}
             }
@@ -1044,4 +1034,69 @@ function buildWorkerRunPayload(result: WorkerRunResult, outputFile: string | nul
     patch: result.patch,
     output_file: outputFile
   };
+}
+
+interface NodeUpdateOptions {
+  case: string;
+  id: string;
+  title?: string;
+  description?: string;
+  state?: string;
+  labels?: string;
+  acceptance?: string;
+  metadata?: string;
+}
+
+async function runNodeUpdate(
+  workspaceRoot: string,
+  options: NodeUpdateOptions,
+  mutationContext: MutationContext
+) {
+  const metadata = options.metadata ? parseJsonObject(options.metadata) : undefined;
+  const stateChanged = options.state !== undefined;
+  const fieldChanged =
+    options.title !== undefined ||
+    options.description !== undefined ||
+    options.labels !== undefined ||
+    options.acceptance !== undefined ||
+    (!stateChanged && metadata !== undefined);
+
+  let caseState: Awaited<ReturnType<typeof updateNode>> | undefined;
+  if (stateChanged) {
+    caseState = await changeNodeState(
+      workspaceRoot,
+      {
+        caseId: options.case,
+        nodeId: options.id,
+        state: options.state as NodeState,
+        metadata
+      },
+      mutationContext
+    );
+  }
+  if (fieldChanged) {
+    caseState = await updateNode(
+      workspaceRoot,
+      {
+        caseId: options.case,
+        nodeId: options.id,
+        changes: {
+          title: options.title,
+          description: options.description,
+          labels: options.labels ? parseCsv(options.labels) : undefined,
+          acceptance: options.acceptance ? parseCsv(options.acceptance) : undefined,
+          metadata: stateChanged ? undefined : metadata
+        }
+      },
+      mutationContext
+    );
+  }
+  if (!caseState) {
+    caseState = await loadCaseState(workspaceRoot, options.case);
+  }
+  return successResult(
+    "node update",
+    { node: caseState.nodes.get(options.id) ?? null },
+    caseState.caseRecord.case_revision
+  );
 }

@@ -341,35 +341,42 @@ function renderAnalyzeImpactText(result: CommandSuccess<unknown>): string {
 
 function renderAnalyzeCriticalPathText(result: CommandSuccess<unknown>): string {
   const data = (result as CommandSuccess<CriticalPathAnalysisResult>).data;
-  return [
+  const lines = [
     `goal=${data.goal_node_id ?? "-"}`,
     `depth=${data.depth_path.node_ids.join(" -> ") || "-"}`,
     `duration=${data.duration_path?.node_ids.join(" -> ") || "-"}`
-  ].join("\n");
+  ];
+  return appendAnalyzeWarnings(lines, data.warnings);
+}
+
+function appendAnalyzeWarnings(lines: string[], warnings: string[] | undefined): string {
+  if (!warnings || warnings.length === 0) {
+    return lines.join("\n");
+  }
+  return [...lines, ...warnings.map((warning) => `! ${warning}`)].join("\n");
 }
 
 function renderAnalyzeSlackText(result: CommandSuccess<unknown>): string {
   const data = (result as CommandSuccess<SlackAnalysisResult>).data;
   const criticalNodeIds = data.nodes.filter((node) => node.is_critical).map((node) => node.node_id);
-  return [
+  const lines = [
     `goal=${data.goal_node_id ?? "-"}`,
     `duration=${data.projected_duration_minutes ?? "-"}`,
     `critical=${criticalNodeIds.join(",") || "-"}`
-  ].join("\n");
+  ];
+  return appendAnalyzeWarnings(lines, data.warnings);
 }
 
 function renderAnalyzeBottlenecksText(result: CommandSuccess<unknown>): string {
   const data = (result as CommandSuccess<BottleneckAnalysisResult>).data;
-  if (data.nodes.length === 0) {
-    return "bottlenecks=-";
-  }
-
-  return data.nodes
-    .map(
-      (node) =>
-        `${node.node_id}:downstream=${node.downstream_count},frontier=${node.frontier_invalidation_count},goals=${node.goal_context_count}`
-    )
-    .join("\n");
+  const lines =
+    data.nodes.length === 0
+      ? ["bottlenecks=-"]
+      : data.nodes.map(
+          (node) =>
+            `${node.node_id}:downstream=${node.downstream_count},frontier=${node.frontier_invalidation_count},goals=${node.goal_context_count}`
+        );
+  return appendAnalyzeWarnings(lines, data.warnings);
 }
 
 function renderAnalyzeCyclesText(result: CommandSuccess<unknown>): string {
@@ -468,17 +475,44 @@ function renderMigrateRunText(result: CommandSuccess<unknown>): string {
 }
 
 function renderPatchValidateText(result: CommandSuccess<unknown>): string {
-  const data = (result as CommandSuccess<{ valid: boolean; errors: unknown[] }>).data;
-  return data.valid ? "VALID PATCH" : `INVALID PATCH (${data.errors.length} errors)`;
+  const data = (
+    result as CommandSuccess<{
+      valid: boolean;
+      errors: Array<{ code: string; message: string; ref?: string }>;
+    }>
+  ).data;
+  const header = data.valid ? "VALID PATCH" : `INVALID PATCH (${data.errors.length} errors)`;
+  if (data.errors.length === 0) {
+    return header;
+  }
+  const lines = data.errors.map((error) => {
+    const refPart = error.ref ? ` @${error.ref}` : "";
+    return `  ${error.code}: ${error.message}${refPart}`;
+  });
+  return [header, ...lines].join("\n");
 }
 
 function renderPatchReviewText(result: CommandSuccess<unknown>): string {
-  const data = (result as CommandSuccess<{ valid: boolean; stale: boolean; errors: unknown[] }>)
-    .data;
-  if (data.stale) {
-    return `STALE PATCH (${data.errors.length} errors)`;
+  const data = (
+    result as CommandSuccess<{
+      valid: boolean;
+      stale: boolean;
+      errors: Array<{ code: string; message: string; ref?: string }>;
+    }>
+  ).data;
+  const header = data.stale
+    ? `STALE PATCH (${data.errors.length} errors)`
+    : data.valid
+      ? "PATCH REVIEW OK"
+      : `PATCH REVIEW FAILED (${data.errors.length} errors)`;
+  if (data.errors.length === 0) {
+    return header;
   }
-  return data.valid ? "PATCH REVIEW OK" : `PATCH REVIEW FAILED (${data.errors.length} errors)`;
+  const lines = data.errors.map((error) => {
+    const refPart = error.ref ? ` @${error.ref}` : "";
+    return `  ${error.code}: ${error.message}${refPart}`;
+  });
+  return [header, ...lines].join("\n");
 }
 
 function renderPatchApplyText(result: CommandSuccess<unknown>): string {
@@ -520,8 +554,13 @@ function renderSyncPushText(result: CommandSuccess<unknown>): string {
     .filter(([, count]) => count > 0)
     .map(([op, count]) => `${op}=${count}`)
     .join(" ");
+  if (summary.length === 0) {
+    return data.applied
+      ? `No projection changes needed for ${data.sink_name}`
+      : `No projection changes planned for ${data.sink_name}`;
+  }
   const verb = data.applied ? "Applied" : "Planned";
-  return `${verb} projection to ${data.sink_name} (${summary || "no-op"})`;
+  return `${verb} projection to ${data.sink_name} (${summary})`;
 }
 
 function renderWorkerRunText(result: CommandSuccess<unknown>): string {
