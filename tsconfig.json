@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "./packages/kernel" },
     { "path": "./packages/core" },
     { "path": "./packages/cli" },
     { "path": "./packages/importer-markdown" },

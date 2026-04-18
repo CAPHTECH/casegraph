@@ -10,7 +10,7 @@ import {
   type WorkerArtifact,
   type WorkerExecuteParams,
   type WorkerExecuteResult
-} from "@caphtech/casegraph-core";
+} from "@caphtech/casegraph-kernel";
 import { isRecord, runPluginStdioServer } from "@caphtech/casegraph-core/plugin-server";
 
 const WORKER_NAME = "local-llm";

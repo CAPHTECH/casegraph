@@ -1,0 +1,13 @@
+case_id: kernel-extraction
+title: Extract casegraph-kernel from Node runtime
+description: Split pure graph logic from Node-specific workspace and storage
+  code so non-Node runtimes can reuse CaseGraph safely
+state: open
+labels: []
+metadata: {}
+extensions: {}
+created_at: 2026-04-18T14:16:40.243Z
+updated_at: 2026-04-18T14:36:21.985Z
+case_revision:
+  current: 37
+  last_event_id: 01KPGGAWKATT121WA1JVQN4WB7

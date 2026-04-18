@@ -1,8 +1,19 @@
 # @caphtech/casegraph-core
 
-Deterministic core library for CaseGraph.
+Node runtime and compatibility package for CaseGraph.
 
-This package provides the replay, validation, frontier, blocker, patch, migration, and analysis logic that powers the CaseGraph CLI and plugins.
+This package provides the local workspace, migration, JSON-RPC, plugin, and
+SQLite runtime used by the CaseGraph CLI and built-in plugins.
+
+It re-exports the pure `@caphtech/casegraph-kernel` surface for compatibility,
+while keeping Node-only APIs such as workspace loading and plugin stdio hosting
+here.
+
+Topology analysis remains off the root public API and is exposed through:
+
+```ts
+import { analyzeTopology, analyzeTopologyForCase } from "@caphtech/casegraph-core/experimental";
+```
 
 Repository:
 

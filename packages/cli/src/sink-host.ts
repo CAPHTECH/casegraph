@@ -1,24 +1,28 @@
 import {
   CaseGraphError,
-  type CaseStateView,
-  deriveProjectionMappings,
-  type GraphPatch,
   type JsonRpcStdioClient,
   loadCaseState,
   loadConfigRecord,
-  type MutationContext,
-  type ProjectionMapping,
-  type ProjectionPulledPayload,
-  type ProjectionPushedPayload,
-  type SinkApplyProjectionResult,
-  type SinkCapabilities,
-  type SinkOperation,
-  type SinkOperationKind,
-  type SinkPlanProjectionResult,
-  type SinkPullChangesResult,
+} from "@caphtech/casegraph-core";
+import type {
+  CaseStateView,
+  GraphPatch,
+  MutationContext,
+  ProjectionMapping,
+  ProjectionPulledPayload,
+  ProjectionPushedPayload,
+  SinkApplyProjectionResult,
+  SinkCapabilities,
+  SinkOperation,
+  SinkOperationKind,
+  SinkPlanProjectionResult,
+  SinkPullChangesResult
+} from "@caphtech/casegraph-kernel";
+import {
+  deriveProjectionMappings,
   selectProjectionTargets,
   validatePatchDocument
-} from "@caphtech/casegraph-core";
+} from "@caphtech/casegraph-kernel";
 
 import {
   appendPluginAuditEvent,

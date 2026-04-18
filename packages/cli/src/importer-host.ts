@@ -1,10 +1,10 @@
 import {
   CaseGraphError,
-  type ImporterIngestResult,
   loadCaseState,
   loadConfigRecord,
   validatePatchDocument
 } from "@caphtech/casegraph-core";
+import type { ImporterIngestResult } from "@caphtech/casegraph-kernel";
 import {
   closePluginClient,
   openPluginClient,

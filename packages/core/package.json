@@ -2,7 +2,7 @@
   "name": "@caphtech/casegraph-core",
   "version": "0.1.0",
   "private": false,
-  "description": "Deterministic core for CaseGraph: replay, validation, frontier, patch, and analysis.",
+  "description": "Node runtime and compatibility package for CaseGraph.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -50,7 +50,6 @@
     "access": "public"
   },
   "dependencies": {
-    "ulid": "^2.4.0",
-    "yaml": "^2.8.1"
+    "@caphtech/casegraph-kernel": "workspace:*"
   }
 }

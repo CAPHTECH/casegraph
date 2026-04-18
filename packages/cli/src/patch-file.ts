@@ -1,12 +1,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { GraphPatch, PatchValidationData } from "@caphtech/casegraph-core";
-import {
-  CaseGraphError,
-  parseYaml,
-  stringifyYaml,
-  validatePatchDocument
-} from "@caphtech/casegraph-core";
+import type { GraphPatch, PatchValidationData } from "@caphtech/casegraph-kernel";
+import { CaseGraphError } from "@caphtech/casegraph-core";
+import { parseYaml, stringifyYaml, validatePatchDocument } from "@caphtech/casegraph-kernel";
 
 export async function readPatchDocument(filePath: string): Promise<unknown> {
   const absolutePath = path.resolve(filePath);

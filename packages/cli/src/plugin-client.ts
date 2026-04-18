@@ -5,18 +5,17 @@ import { fileURLToPath } from "node:url";
 import {
   appendCaseEvents,
   CaseGraphError,
-  type CaseStateView,
   type CommandPluginConfig,
-  createEvent,
   createJsonRpcStdioClient,
-  defaultActor,
-  type EventEnvelope,
-  type EventType,
-  generateId,
   type JsonRpcStdioClient,
-  type MutationContext,
-  nowUtc
 } from "@caphtech/casegraph-core";
+import type {
+  CaseStateView,
+  EventEnvelope,
+  EventType,
+  MutationContext
+} from "@caphtech/casegraph-kernel";
+import { createEvent, defaultActor, generateId, nowUtc } from "@caphtech/casegraph-kernel";
 
 const require = createRequire(import.meta.url);
 const BASE_ENV_KEYS = ["PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "TMP", "TEMP"];

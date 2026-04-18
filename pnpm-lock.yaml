@@ -32,6 +32,9 @@ importers:
       '@caphtech/casegraph-importer-markdown':
         specifier: workspace:*
         version: link:../importer-markdown
+      '@caphtech/casegraph-kernel':
+        specifier: workspace:*
+        version: link:../kernel
       '@caphtech/casegraph-sink-markdown':
         specifier: workspace:*
         version: link:../sink-markdown
@@ -50,6 +53,21 @@ importers:
 
   packages/core:
     dependencies:
+      '@caphtech/casegraph-kernel':
+        specifier: workspace:*
+        version: link:../kernel
+
+  packages/importer-markdown:
+    dependencies:
+      '@caphtech/casegraph-core':
+        specifier: workspace:*
+        version: link:../core
+      '@caphtech/casegraph-kernel':
+        specifier: workspace:*
+        version: link:../kernel
+
+  packages/kernel:
+    dependencies:
       ulid:
         specifier: ^2.4.0
         version: 2.4.0
@@ -57,35 +75,41 @@ importers:
         specifier: ^2.8.1
         version: 2.8.3
 
-  packages/importer-markdown:
-    dependencies:
-      '@caphtech/casegraph-core':
-        specifier: workspace:*
-        version: link:../core
-
   packages/sink-markdown:
     dependencies:
       '@caphtech/casegraph-core':
         specifier: workspace:*
         version: link:../core
+      '@caphtech/casegraph-kernel':
+        specifier: workspace:*
+        version: link:../kernel
 
   packages/worker-code-agent:
     dependencies:
       '@caphtech/casegraph-core':
         specifier: workspace:*
         version: link:../core
+      '@caphtech/casegraph-kernel':
+        specifier: workspace:*
+        version: link:../kernel
 
   packages/worker-local-llm:
     dependencies:
       '@caphtech/casegraph-core':
         specifier: workspace:*
         version: link:../core
+      '@caphtech/casegraph-kernel':
+        specifier: workspace:*
+        version: link:../kernel
 
   packages/worker-shell:
     dependencies:
       '@caphtech/casegraph-core':
         specifier: workspace:*
         version: link:../core
+      '@caphtech/casegraph-kernel':
+        specifier: workspace:*
+        version: link:../kernel
 
 packages:
 

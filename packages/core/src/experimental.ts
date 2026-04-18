@@ -6,7 +6,7 @@ import {
   type TopologyCycleWitness,
   type TopologyCycleWitnessEdge,
   type TopologyProjection
-} from "./analysis-topology.js";
+} from "@caphtech/casegraph-kernel/experimental";
 import { loadCaseState } from "./workspace.js";
 
 export {

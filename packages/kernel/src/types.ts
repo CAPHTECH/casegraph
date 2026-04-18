@@ -148,6 +148,13 @@ export interface ValidationIssue {
   ref?: string;
 }
 
+export interface PatchValidationData {
+  valid: boolean;
+  errors: ValidationIssue[];
+  warnings: ValidationIssue[];
+  patch: GraphPatch | null;
+}
+
 export interface CaseStateView {
   caseRecord: CaseRecord;
   nodes: Map<string, NodeRecord>;

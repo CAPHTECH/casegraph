@@ -1,7 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { runCli } from "@caphtech/casegraph-cli/app";
-import { exportEvents, loadCaseState, stringifyYaml } from "@caphtech/casegraph-core";
+import { exportEvents, loadCaseState } from "@caphtech/casegraph-core";
+import { parseYaml, stringifyYaml } from "@caphtech/casegraph-kernel";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createTempWorkspace, removeTempWorkspace } from "./helpers/workspace.js";
@@ -205,7 +206,6 @@ async function configureFakeAgent(
 ): Promise<void> {
   const configPath = path.join(workspaceRoot, ".casegraph", "config.yaml");
   const { readFile } = await import("node:fs/promises");
-  const { parseYaml } = await import("@caphtech/casegraph-core");
   const raw = await readFile(configPath, "utf8");
   const parsed = parseYaml<Record<string, unknown>>(raw);
   parsed.workers = {

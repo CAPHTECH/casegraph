@@ -8,9 +8,9 @@ import {
   EVENTS_FILENAME,
   LOCK_FILENAME,
   WORKSPACE_DIRNAME,
-  WORKSPACE_FILENAME
-} from "./constants.js";
-import { CaseGraphError } from "./errors.js";
+  WORKSPACE_FILENAME,
+  CaseGraphError
+} from "@caphtech/casegraph-kernel";
 
 export interface WorkspacePaths {
   workspaceRoot: string;

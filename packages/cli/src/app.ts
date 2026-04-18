@@ -5,7 +5,7 @@ import type {
   MutationContext,
   NodeKind,
   NodeState
-} from "@caphtech/casegraph-core";
+} from "@caphtech/casegraph-kernel";
 
 import {
   addEdge,
@@ -28,7 +28,6 @@ import {
   createCase,
   decideNode,
   exportEvents,
-  generateId,
   getFrontierItems,
   initWorkspace,
   listBlockedItems,
@@ -46,6 +45,7 @@ import {
   verifyEvents,
   waitTask
 } from "@caphtech/casegraph-core";
+import { generateId } from "@caphtech/casegraph-kernel";
 import { Command } from "commander";
 import { buildCaseViewData } from "./case-view.js";
 import { ingestMarkdownPatch } from "./importer-host.js";

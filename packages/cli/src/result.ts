@@ -1,4 +1,4 @@
-import type { RevisionSnapshot } from "@caphtech/casegraph-core";
+import type { RevisionSnapshot } from "@caphtech/casegraph-kernel";
 
 export interface CommandSuccess<TData> {
   ok: true;

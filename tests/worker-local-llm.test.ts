@@ -3,7 +3,8 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
 import { runCli } from "@caphtech/casegraph-cli/app";
-import { loadCaseState, parseYaml, stringifyYaml } from "@caphtech/casegraph-core";
+import { loadCaseState } from "@caphtech/casegraph-core";
+import { parseYaml, stringifyYaml } from "@caphtech/casegraph-kernel";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createTempWorkspace, removeTempWorkspace } from "./helpers/workspace.js";

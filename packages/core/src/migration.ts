@@ -1,13 +1,18 @@
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { SPEC_VERSION } from "./constants.js";
-import { CaseGraphError } from "./errors.js";
+import {
+  CaseGraphError,
+  parseYaml,
+  SPEC_VERSION,
+  stringifyYaml,
+  type EventEnvelope,
+  type WorkspaceRecord
+} from "@caphtech/casegraph-kernel";
 import { withWorkspaceLock } from "./lock.js";
 import { getCasePaths, getWorkspacePaths } from "./paths.js";
-import type { EventEnvelope, WorkspaceRecord } from "./types.js";
 import { rebuildCache } from "./workspace.js";
-import { parseYaml, readYamlFile, stringifyYaml, writeYamlFile } from "./yaml.js";
+import { readYamlFile, writeYamlFile } from "./yaml.js";
 
 export type MigrationTarget = "workspace" | "case" | "event_log" | "patch_file" | "cache";
 export type MigrationAction = "none" | "rewrite_spec_version" | "reader_compatible";

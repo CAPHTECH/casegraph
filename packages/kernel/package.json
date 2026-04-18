@@ -1,8 +1,8 @@
 {
-  "name": "@caphtech/casegraph-worker-shell",
+  "name": "@caphtech/casegraph-kernel",
   "version": "0.1.0",
   "private": false,
-  "description": "Shell worker plugin for CaseGraph.",
+  "description": "Pure CaseGraph kernel: graph logic, validation, reducer, and analysis.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,10 +11,11 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./experimental": {
+      "types": "./dist/experimental.d.ts",
+      "import": "./dist/experimental.js"
     }
-  },
-  "bin": {
-    "casegraph-worker-shell": "./dist/index.js"
   },
   "files": [
     "dist/**/*.d.ts",
@@ -29,16 +30,20 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CAPHTECH/casegraph.git",
-    "directory": "packages/worker-shell"
+    "directory": "packages/kernel"
   },
-  "engines": {
-    "node": ">=24"
-  },
+  "keywords": [
+    "casegraph",
+    "workflow",
+    "graph",
+    "deterministic",
+    "planning"
+  ],
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@caphtech/casegraph-kernel": "workspace:*",
-    "@caphtech/casegraph-core": "workspace:*"
+    "ulid": "^2.4.0",
+    "yaml": "^2.8.1"
   }
 }

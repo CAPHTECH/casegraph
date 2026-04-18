@@ -38,6 +38,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@caphtech/casegraph-kernel": "workspace:*",
     "@caphtech/casegraph-core": "workspace:*"
   }
 }

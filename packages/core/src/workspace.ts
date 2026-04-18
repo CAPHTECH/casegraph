@@ -1,64 +1,69 @@
 import { access, appendFile, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { analyzeCriticalPath, analyzeImpact } from "./analysis.js";
-import { analyzeBottlenecks, type BottleneckAnalysisResult } from "./analysis-bottleneck.js";
-import { analyzeBridges, type BridgeAnalysisResult } from "./analysis-bridges.js";
-import { analyzeComponents, type ComponentAnalysisResult } from "./analysis-components.js";
-import { analyzeCutpoints, type CutpointAnalysisResult } from "./analysis-cutpoints.js";
-import { analyzeCycles, type CycleAnalysisResult } from "./analysis-cycles.js";
-import { analyzeFragility, type FragilityAnalysisResult } from "./analysis-fragility.js";
-import { analyzeSlack, type SlackAnalysisResult } from "./analysis-slack.js";
-import type { TopologyAnalysisOptions } from "./analysis-topology.js";
-import { analyzeMinimalUnblockSet, type MinimalUnblockSetResult } from "./analysis-unblock.js";
-import { DEFAULT_WORKSPACE_TITLE, SPEC_VERSION } from "./constants.js";
-import { CaseGraphError } from "./errors.js";
 import {
+  analyzeBottlenecks,
+  analyzeBridges,
+  analyzeComponents,
+  analyzeCriticalPath,
+  analyzeCutpoints,
+  analyzeCycles,
+  analyzeFragility,
+  analyzeImpact,
+  analyzeMinimalUnblockSet,
+  analyzeSlack,
+  type AddEdgeInput,
+  type AddEvidenceInput,
+  type AddNodeInput,
+  type BlockedItem,
+  type BottleneckAnalysisResult,
+  type BridgeAnalysisResult,
+  CaseGraphError,
   cloneRecord,
-  copyAttachmentIntoWorkspace,
+  type ComponentAnalysisResult,
+  computeCaseCounts,
   createEvent,
-  defaultActor,
+  DEFAULT_WORKSPACE_TITLE,
   ensureArray,
   ensureObject,
+  type EventEnvelope,
   generateId,
+  type GraphPatch,
+  type ImpactAnalysisResult,
+  getBlockedItems as getReducerBlockedItems,
+  getFrontier,
   nowUtc,
+  replayCaseEvents,
+  reviewGraphPatch,
   sanitizeAttachmentRecord,
   sanitizeCaseRecord,
   sanitizeEdgeRecord,
-  sanitizeNodeRecord
-} from "./helpers.js";
+  sanitizeNodeRecord,
+  SPEC_VERSION,
+  type CaseRecord,
+  type CaseStateView,
+  type ChangeNodeStateInput,
+  type ConfigRecord,
+  type CriticalPathAnalysisResult,
+  type CutpointAnalysisResult,
+  type CycleAnalysisResult,
+  type FragilityAnalysisResult,
+  type FrontierItem,
+  type MinimalUnblockSetResult,
+  type MutationContext,
+  type PatchReview,
+  type RevisionSnapshot,
+  type SlackAnalysisResult,
+  type UpdateNodeInput,
+  type ValidationIssue,
+  type WorkspaceContextOptions,
+  type WorkspaceRecord
+} from "@caphtech/casegraph-kernel";
+import type { TopologyAnalysisOptions } from "@caphtech/casegraph-kernel/experimental";
+import { copyAttachmentIntoWorkspace } from "./node-helpers.js";
 import { withWorkspaceLock } from "./lock.js";
-import { reviewGraphPatch, validateGraphPatchDocument } from "./patch.js";
 import { getCasePaths, getWorkspacePaths, resolveWorkspaceRoot } from "./paths.js";
-import {
-  computeCaseCounts,
-  getFrontier,
-  getBlockedItems as getReducerBlockedItems,
-  replayCaseEvents
-} from "./reducer.js";
 import { openCacheDatabase, rebuildCaseCache } from "./sqlite.js";
-import type {
-  AddEdgeInput,
-  AddEvidenceInput,
-  AddNodeInput,
-  BlockedItem,
-  CaseRecord,
-  CaseStateView,
-  ChangeNodeStateInput,
-  ConfigRecord,
-  CriticalPathAnalysisResult,
-  EventEnvelope,
-  FrontierItem,
-  GraphPatch,
-  ImpactAnalysisResult,
-  MutationContext,
-  PatchReview,
-  RevisionSnapshot,
-  UpdateNodeInput,
-  ValidationIssue,
-  WorkspaceContextOptions,
-  WorkspaceRecord
-} from "./types.js";
 import { ensureDirectory, readYamlFile, writeYamlFile } from "./yaml.js";
 
 export interface ResolvedWorkspaceContext {
@@ -89,13 +94,6 @@ export interface ValidateStorageData {
   errors: ValidationIssue[];
   warnings: ValidationIssue[];
   cases_checked: number;
-}
-
-export interface PatchValidationData {
-  valid: boolean;
-  errors: ValidationIssue[];
-  warnings: ValidationIssue[];
-  patch: GraphPatch | null;
 }
 
 export async function resolveWorkspaceContext(
@@ -576,14 +574,6 @@ export async function validateCase(
   };
 }
 
-export function validatePatchDocument(input: unknown): PatchValidationData {
-  const validation = validateGraphPatchDocument(input);
-  return {
-    valid: validation.errors.length === 0,
-    ...validation
-  };
-}
-
 export async function reviewPatch(workspaceRoot: string, patch: GraphPatch): Promise<PatchReview> {
   const state = await loadCaseState(workspaceRoot, patch.case_id);
   return reviewGraphPatch(state, patch);
@@ -952,14 +942,6 @@ async function fileExists(filePath: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-export function createDefaultMutationContext(commandId?: string): MutationContext {
-  return {
-    actor: defaultActor(),
-    now: nowUtc(),
-    commandId: commandId ?? generateId()
-  };
 }
 
 async function canonicalizePatchForApply(

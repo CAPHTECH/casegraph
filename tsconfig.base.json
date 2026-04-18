@@ -16,6 +16,8 @@
     "paths": {
       "@caphtech/casegraph-cli": ["./packages/cli/src/index.ts"],
       "@caphtech/casegraph-cli/app": ["./packages/cli/src/app.ts"],
+      "@caphtech/casegraph-kernel": ["./packages/kernel/src/index.ts"],
+      "@caphtech/casegraph-kernel/experimental": ["./packages/kernel/src/experimental.ts"],
       "@caphtech/casegraph-core": ["./packages/core/src/index.ts"],
       "@caphtech/casegraph-core/experimental": ["./packages/core/src/experimental.ts"],
       "@caphtech/casegraph-core/plugin-server": ["./packages/core/src/plugin-server.ts"]

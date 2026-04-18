@@ -4,7 +4,7 @@ import {
   extractPatchFromText,
   SPEC_VERSION,
   type WorkerExecuteParams
-} from "@caphtech/casegraph-core";
+} from "@caphtech/casegraph-kernel";
 import { describe, expect, it } from "vitest";
 
 const params: WorkerExecuteParams = {

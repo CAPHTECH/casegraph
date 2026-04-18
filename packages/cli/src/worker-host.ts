@@ -1,24 +1,24 @@
 import {
-  type ApprovalDecision,
   CaseGraphError,
-  type CaseStateView,
-  type GraphPatch,
-  generateId,
   type JsonRpcStdioClient,
   loadCaseState,
   loadConfigRecord,
-  type MutationContext,
-  type NodeRecord,
-  resolveApprovalDecision,
-  validatePatchDocument,
-  type WorkerAttachmentRef,
-  type WorkerCapabilities,
-  type WorkerExecuteResult,
-  type WorkerFinishedPayload,
-  type WorkerRelatedNode,
-  type WorkerTaskContext,
-  type WorkerTaskSnapshot
 } from "@caphtech/casegraph-core";
+import type {
+  ApprovalDecision,
+  CaseStateView,
+  GraphPatch,
+  MutationContext,
+  NodeRecord,
+  WorkerAttachmentRef,
+  WorkerCapabilities,
+  WorkerExecuteResult,
+  WorkerFinishedPayload,
+  WorkerRelatedNode,
+  WorkerTaskContext,
+  WorkerTaskSnapshot
+} from "@caphtech/casegraph-kernel";
+import { generateId, resolveApprovalDecision, validatePatchDocument } from "@caphtech/casegraph-kernel";
 
 import {
   appendPluginAuditEvent,

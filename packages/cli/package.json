@@ -49,6 +49,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@caphtech/casegraph-kernel": "workspace:*",
     "@caphtech/casegraph-core": "workspace:*",
     "@caphtech/casegraph-importer-markdown": "workspace:*",
     "@caphtech/casegraph-sink-markdown": "workspace:*",

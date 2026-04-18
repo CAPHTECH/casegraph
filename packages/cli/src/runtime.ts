@@ -10,19 +10,22 @@ import type {
   FragilityAnalysisResult,
   FrontierItem,
   ImpactAnalysisResult,
-  MigrationCheckData,
-  MigrationRunData,
   MinimalUnblockSetResult,
   MutationContext,
-  ShowCaseData,
   SlackAnalysisResult
-} from "@caphtech/casegraph-core";
+} from "@caphtech/casegraph-kernel";
 
 import {
   createDefaultMutationContext,
-  generateId,
+  generateId
+} from "@caphtech/casegraph-kernel";
+
+import {
+  type MigrationCheckData,
+  type MigrationRunData,
   normalizeUnknownError,
-  resolveWorkspaceContext
+  resolveWorkspaceContext,
+  type ShowCaseData
 } from "@caphtech/casegraph-core";
 import type { Command } from "commander";
 

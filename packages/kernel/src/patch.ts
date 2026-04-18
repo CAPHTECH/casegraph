@@ -19,6 +19,7 @@ import type {
   NodeRecord,
   PatchAttachmentInput,
   PatchNodeChanges,
+  PatchValidationData,
   PatchReview,
   ValidationIssue
 } from "./types.js";
@@ -118,6 +119,14 @@ export function validateGraphPatchDocument(input: unknown): {
       : null;
 
   return { patch, errors, warnings };
+}
+
+export function validatePatchDocument(input: unknown): PatchValidationData {
+  const validation = validateGraphPatchDocument(input);
+  return {
+    valid: validation.errors.length === 0,
+    ...validation
+  };
 }
 
 export function reviewGraphPatch(state: CaseStateView, patch: GraphPatch): PatchReview {

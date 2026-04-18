@@ -1,6 +1,6 @@
 import { type FileHandle, open, unlink } from "node:fs/promises";
 
-import { CaseGraphError } from "./errors.js";
+import { CaseGraphError } from "@caphtech/casegraph-kernel";
 
 export async function withWorkspaceLock<T>(
   lockFile: string,

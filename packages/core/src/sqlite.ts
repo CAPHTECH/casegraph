@@ -1,7 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 
-import { deriveProjectionMappings } from "./sink-mappings.js";
-import type { CaseStateView } from "./types.js";
+import { deriveProjectionMappings, type CaseStateView } from "@caphtech/casegraph-kernel";
 
 export function openCacheDatabase(databasePath: string): DatabaseSync {
   const database = new DatabaseSync(databasePath);
