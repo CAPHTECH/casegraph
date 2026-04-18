@@ -2,7 +2,7 @@ import {
   CaseGraphError,
   type JsonRpcStdioClient,
   loadCaseState,
-  loadConfigRecord,
+  loadConfigRecord
 } from "@caphtech/casegraph-core";
 import type {
   CaseStateView,

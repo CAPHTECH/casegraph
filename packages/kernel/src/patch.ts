@@ -19,8 +19,8 @@ import type {
   NodeRecord,
   PatchAttachmentInput,
   PatchNodeChanges,
-  PatchValidationData,
   PatchReview,
+  PatchValidationData,
   ValidationIssue
 } from "./types.js";
 import { deriveNodeStates, validateGraph } from "./validation.js";

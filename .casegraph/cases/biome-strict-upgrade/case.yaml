@@ -1,0 +1,12 @@
+case_id: biome-strict-upgrade
+title: Promote biome warn rules to error
+description: ""
+state: closed
+labels: []
+metadata: {}
+extensions: {}
+created_at: 2026-04-18T21:28:24.904Z
+updated_at: 2026-04-18T21:39:04.217Z
+case_revision:
+  current: 27
+  last_event_id: 01KPH8GWCWS21HFT4FZRY89B8X

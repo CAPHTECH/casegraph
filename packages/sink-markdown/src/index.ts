@@ -3,8 +3,8 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { SPEC_VERSION } from "@caphtech/casegraph-kernel";
 import { isRecord, runPluginStdioServer } from "@caphtech/casegraph-core/plugin-server";
+import { SPEC_VERSION } from "@caphtech/casegraph-kernel";
 
 const SINK_NAME = "markdown";
 const SINK_VERSION = "0.1.0";

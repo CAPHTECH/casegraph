@@ -1,7 +1,12 @@
 import { spawn } from "node:child_process";
 import readline from "node:readline";
 
-import { CaseGraphError, type JsonRpcErrorResponse, type JsonRpcResponse, type JsonRpcSuccess } from "@caphtech/casegraph-kernel";
+import {
+  CaseGraphError,
+  type JsonRpcErrorResponse,
+  type JsonRpcResponse,
+  type JsonRpcSuccess
+} from "@caphtech/casegraph-kernel";
 
 export interface JsonRpcStdioClient {
   close: () => Promise<void>;

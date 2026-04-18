@@ -1,12 +1,4 @@
 import path from "node:path";
-import type {
-  EdgeType,
-  GraphPatch,
-  MutationContext,
-  NodeKind,
-  NodeState
-} from "@caphtech/casegraph-kernel";
-
 import {
   addEdge,
   addEvidence,
@@ -46,6 +38,13 @@ import {
   verifyEvents,
   waitTask
 } from "@caphtech/casegraph-core";
+import type {
+  EdgeType,
+  GraphPatch,
+  MutationContext,
+  NodeKind,
+  NodeState
+} from "@caphtech/casegraph-kernel";
 import { generateId } from "@caphtech/casegraph-kernel";
 import { Command } from "commander";
 import { buildCaseViewData } from "./case-view.js";

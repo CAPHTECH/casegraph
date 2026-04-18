@@ -2,7 +2,7 @@ import {
   CaseGraphError,
   type JsonRpcStdioClient,
   loadCaseState,
-  loadConfigRecord,
+  loadConfigRecord
 } from "@caphtech/casegraph-core";
 import type {
   ApprovalDecision,
@@ -18,7 +18,11 @@ import type {
   WorkerTaskContext,
   WorkerTaskSnapshot
 } from "@caphtech/casegraph-kernel";
-import { generateId, resolveApprovalDecision, validatePatchDocument } from "@caphtech/casegraph-kernel";
+import {
+  generateId,
+  resolveApprovalDecision,
+  validatePatchDocument
+} from "@caphtech/casegraph-kernel";
 
 import {
   appendPluginAuditEvent,

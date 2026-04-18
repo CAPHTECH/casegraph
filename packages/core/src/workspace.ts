@@ -2,6 +2,9 @@ import { access, appendFile, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 import {
+  type AddEdgeInput,
+  type AddEvidenceInput,
+  type AddNodeInput,
   analyzeBottlenecks,
   analyzeBridges,
   analyzeComponents,
@@ -12,57 +15,54 @@ import {
   analyzeImpact,
   analyzeMinimalUnblockSet,
   analyzeSlack,
-  type AddEdgeInput,
-  type AddEvidenceInput,
-  type AddNodeInput,
   type BlockedItem,
   type BottleneckAnalysisResult,
   type BridgeAnalysisResult,
   CaseGraphError,
-  cloneRecord,
-  type ComponentAnalysisResult,
-  computeCaseCounts,
-  createEvent,
-  DEFAULT_WORKSPACE_TITLE,
-  ensureArray,
-  ensureObject,
-  type EventEnvelope,
-  generateId,
-  type GraphPatch,
-  type ImpactAnalysisResult,
-  getBlockedItems as getReducerBlockedItems,
-  getFrontier,
-  nowUtc,
-  replayCaseEvents,
-  reviewGraphPatch,
-  sanitizeAttachmentRecord,
-  sanitizeCaseRecord,
-  sanitizeEdgeRecord,
-  sanitizeNodeRecord,
-  SPEC_VERSION,
   type CaseRecord,
   type CaseStateView,
   type ChangeNodeStateInput,
+  type ComponentAnalysisResult,
   type ConfigRecord,
   type CriticalPathAnalysisResult,
   type CutpointAnalysisResult,
   type CycleAnalysisResult,
+  cloneRecord,
+  computeCaseCounts,
+  createEvent,
+  DEFAULT_WORKSPACE_TITLE,
+  type EventEnvelope,
+  ensureArray,
+  ensureObject,
   type FragilityAnalysisResult,
   type FrontierItem,
+  type GraphPatch,
+  generateId,
+  getFrontier,
+  getBlockedItems as getReducerBlockedItems,
+  type ImpactAnalysisResult,
   type MinimalUnblockSetResult,
   type MutationContext,
   type NodeRecord,
+  nowUtc,
   type PatchReview,
   type RevisionSnapshot,
+  replayCaseEvents,
+  reviewGraphPatch,
   type SlackAnalysisResult,
+  SPEC_VERSION,
+  sanitizeAttachmentRecord,
+  sanitizeCaseRecord,
+  sanitizeEdgeRecord,
+  sanitizeNodeRecord,
   type UpdateNodeInput,
   type ValidationIssue,
   type WorkspaceContextOptions,
   type WorkspaceRecord
 } from "@caphtech/casegraph-kernel";
 import type { TopologyAnalysisOptions } from "@caphtech/casegraph-kernel/experimental";
-import { copyAttachmentIntoWorkspace } from "./node-helpers.js";
 import { withWorkspaceLock } from "./lock.js";
+import { copyAttachmentIntoWorkspace } from "./node-helpers.js";
 import { getCasePaths, getWorkspacePaths, resolveWorkspaceRoot } from "./paths.js";
 import { openCacheDatabase, rebuildCaseCache } from "./sqlite.js";
 import { ensureDirectory, readYamlFile, writeYamlFile } from "./yaml.js";
@@ -317,17 +317,13 @@ export async function closeCase(
       checks.non_terminal_goal_ids.length > 0 ||
       checks.validation_errors.length > 0
     ) {
-      throw new CaseGraphError(
-        "case_close_blocked",
-        "Case close preconditions are not satisfied",
-        {
-          exitCode: checks.validation_errors.length > 0 ? 2 : 4,
-          details: {
-            case: currentState.caseRecord,
-            checks
-          }
+      throw new CaseGraphError("case_close_blocked", "Case close preconditions are not satisfied", {
+        exitCode: checks.validation_errors.length > 0 ? 2 : 4,
+        details: {
+          case: currentState.caseRecord,
+          checks
         }
-      );
+      });
     }
 
     if (checks.validation_warnings.length > 0 && !force) {

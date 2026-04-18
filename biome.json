@@ -43,12 +43,12 @@
       "recommended": true,
       "complexity": {
         "noExcessiveCognitiveComplexity": {
-          "level": "warn",
+          "level": "error",
           "options": { "maxAllowedComplexity": 15 }
         },
-        "noForEach": "warn",
+        "noForEach": "error",
         "noUselessSwitchCase": "error",
-        "useSimplifiedLogicExpression": "warn"
+        "useSimplifiedLogicExpression": "error"
       }
     }
   },

@@ -202,13 +202,7 @@ describe("cli phase 1 acceptance", () => {
       "--to",
       "goal_release_done"
     ]);
-    await runJsonCommand(workspaceRoot, [
-      "task",
-      "done",
-      "task_publish",
-      "--case",
-      "close-demo"
-    ]);
+    await runJsonCommand(workspaceRoot, ["task", "done", "task_publish", "--case", "close-demo"]);
     await runJsonCommand(workspaceRoot, [
       "task",
       "done",
@@ -330,7 +324,7 @@ describe("cli phase 1 acceptance", () => {
       "--title",
       "Publish release",
       "--metadata",
-      "{\"requires_evidence\":true}"
+      '{"requires_evidence":true}'
     ]);
     await runJsonCommand(workspaceRoot, [
       "edge",
@@ -361,7 +355,12 @@ describe("cli phase 1 acceptance", () => {
       "close-warning"
     ]);
 
-    const blocked = await runJsonCommand(workspaceRoot, ["case", "close", "--case", "close-warning"]);
+    const blocked = await runJsonCommand(workspaceRoot, [
+      "case",
+      "close",
+      "--case",
+      "close-warning"
+    ]);
     expect(blocked.code).toBe(4);
     expect(blocked.json.error.code).toBe("case_close_requires_force");
     expect(blocked.json.error.details.checks.validation_warnings).toMatchObject([

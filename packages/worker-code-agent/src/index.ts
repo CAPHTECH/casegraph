@@ -1,8 +1,14 @@
 #!/usr/bin/env -S node --experimental-strip-types
 
-import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import {
+  assertWorkerExecuteParams,
+  runPluginStdioServer,
+  runWorkerChild,
+  type WorkerChildRunResult,
+  workerLogPath
+} from "@caphtech/casegraph-core/plugin-server";
 import {
   buildAgentPrompt,
   buildRetryPrompt,
@@ -12,7 +18,6 @@ import {
   type WorkerExecuteParams,
   type WorkerExecuteResult
 } from "@caphtech/casegraph-kernel";
-import { isRecord, runPluginStdioServer } from "@caphtech/casegraph-core/plugin-server";
 
 const WORKER_NAME = "code-agent";
 const WORKER_VERSION = "0.1.0";
@@ -39,7 +44,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       extra: { worker: WORKER_CAPABILITIES }
     },
     handlers: {
-      "worker.execute": (params) => execute(assertExecuteParams(params))
+      "worker.execute": (params) => execute(assertWorkerExecuteParams(params))
     }
   });
 }
@@ -53,13 +58,17 @@ export async function execute(params: WorkerExecuteParams): Promise<WorkerExecut
       : DEFAULT_TIMEOUT_SECONDS;
 
   const observations: string[] = [];
-  const attempts: Array<{ prompt: string; run: RunResult; extraction: PatchExtractionResult }> = [];
+  const attempts: AttemptRecord[] = [];
   let extraction: PatchExtractionResult;
-  let runResult: RunResult;
+  let runResult: WorkerChildRunResult;
   let currentPrompt = originalPrompt;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
-    runResult = await runChild(command, currentPrompt, timeoutSeconds);
+    runResult = await runWorkerChild({
+      command,
+      timeoutSeconds,
+      stdin: currentPrompt
+    });
     extraction = extractPatchFromText(runResult.stdout, params.case.case_id);
     attempts.push({ prompt: currentPrompt, run: runResult, extraction });
     if (runResult.timedOut) {
@@ -83,14 +92,7 @@ export async function execute(params: WorkerExecuteParams): Promise<WorkerExecut
     }
   }
 
-  const logPath = path.join(
-    process.cwd(),
-    ".casegraph",
-    "cases",
-    params.case.case_id,
-    "worker-logs",
-    `${params.execution_policy.command_id}.log`
-  );
+  const logPath = workerLogPath(params.case.case_id, params.execution_policy.command_id);
   await writeLog(logPath, command, attempts);
 
   const relativeLogPath = path.relative(process.cwd(), logPath);
@@ -140,68 +142,9 @@ function resolveCommand(): string[] {
   return override.split(/\s+/).filter((part) => part.length > 0);
 }
 
-interface RunResult {
-  exitCode: number | null;
-  signal: NodeJS.Signals | null;
-  stdout: string;
-  stderr: string;
-  timedOut: boolean;
-}
-
-async function runChild(
-  command: string[],
-  prompt: string,
-  timeoutSeconds: number
-): Promise<RunResult> {
-  const [cmd, ...args] = command;
-  if (!cmd) {
-    return { exitCode: null, signal: null, stdout: "", stderr: "empty command", timedOut: false };
-  }
-  return new Promise((resolve) => {
-    const child = spawn(cmd, args, { cwd: process.cwd(), stdio: ["pipe", "pipe", "pipe"] });
-    const stdoutChunks: Buffer[] = [];
-    const stderrChunks: Buffer[] = [];
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      child.kill("SIGKILL");
-    }, timeoutSeconds * 1000);
-
-    child.stdout.on("data", (chunk: Buffer) => {
-      stdoutChunks.push(chunk);
-    });
-    child.stderr.on("data", (chunk: Buffer) => {
-      stderrChunks.push(chunk);
-    });
-    child.on("error", (error) => {
-      clearTimeout(timer);
-      resolve({
-        exitCode: null,
-        signal: null,
-        stdout: Buffer.concat(stdoutChunks).toString("utf8"),
-        stderr: `${Buffer.concat(stderrChunks).toString("utf8")}\nspawn error: ${error.message}`,
-        timedOut
-      });
-    });
-    child.on("close", (code, signal) => {
-      clearTimeout(timer);
-      resolve({
-        exitCode: code,
-        signal,
-        stdout: Buffer.concat(stdoutChunks).toString("utf8"),
-        stderr: Buffer.concat(stderrChunks).toString("utf8"),
-        timedOut
-      });
-    });
-
-    child.stdin.write(prompt);
-    child.stdin.end();
-  });
-}
-
 interface AttemptRecord {
   prompt: string;
-  run: RunResult;
+  run: WorkerChildRunResult;
   extraction: PatchExtractionResult;
 }
 
@@ -236,22 +179,4 @@ async function writeLog(
     );
   });
   await writeFile(logPath, sections.join("\n"), "utf8");
-}
-
-function assertExecuteParams(input: unknown): WorkerExecuteParams {
-  if (
-    !(
-      isRecord(input) &&
-      isRecord(input.case) &&
-      isRecord(input.task) &&
-      isRecord(input.context) &&
-      isRecord(input.execution_policy) &&
-      typeof input.case.case_id === "string" &&
-      typeof input.task.node_id === "string" &&
-      typeof input.execution_policy.command_id === "string"
-    )
-  ) {
-    throw new Error("Invalid worker.execute params");
-  }
-  return input as unknown as WorkerExecuteParams;
 }

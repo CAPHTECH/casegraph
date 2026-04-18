@@ -1,3 +1,10 @@
+import {
+  type MigrationCheckData,
+  type MigrationRunData,
+  normalizeUnknownError,
+  resolveWorkspaceContext,
+  type ShowCaseData
+} from "@caphtech/casegraph-core";
 import type {
   AddEvidenceInput,
   BlockedItem,
@@ -14,19 +21,7 @@ import type {
   MutationContext,
   SlackAnalysisResult
 } from "@caphtech/casegraph-kernel";
-
-import {
-  createDefaultMutationContext,
-  generateId
-} from "@caphtech/casegraph-kernel";
-
-import {
-  type MigrationCheckData,
-  type MigrationRunData,
-  normalizeUnknownError,
-  resolveWorkspaceContext,
-  type ShowCaseData
-} from "@caphtech/casegraph-core";
+import { createDefaultMutationContext, generateId } from "@caphtech/casegraph-kernel";
 import type { Command } from "commander";
 
 import type { CommandResult, CommandSuccess } from "./result.js";

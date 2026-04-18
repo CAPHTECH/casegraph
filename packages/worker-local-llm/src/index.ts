@@ -3,6 +3,11 @@
 import { appendFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
+  assertWorkerExecuteParams,
+  runPluginStdioServer,
+  workerLogPath
+} from "@caphtech/casegraph-core/plugin-server";
+import {
   buildAgentPrompt,
   buildRetryPrompt,
   extractPatchFromText,
@@ -11,7 +16,6 @@ import {
   type WorkerExecuteParams,
   type WorkerExecuteResult
 } from "@caphtech/casegraph-kernel";
-import { isRecord, runPluginStdioServer } from "@caphtech/casegraph-core/plugin-server";
 
 const WORKER_NAME = "local-llm";
 const WORKER_VERSION = "0.1.0";
@@ -39,7 +43,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       extra: { worker: WORKER_CAPABILITIES }
     },
     handlers: {
-      "worker.execute": (params) => execute(assertExecuteParams(params))
+      "worker.execute": (params) => execute(assertWorkerExecuteParams(params))
     }
   });
 }
@@ -221,14 +225,7 @@ export async function execute(params: WorkerExecuteParams): Promise<WorkerExecut
       ? params.execution_policy.timeout_seconds
       : DEFAULT_TIMEOUT_SECONDS;
 
-  const logPath = path.join(
-    process.cwd(),
-    ".casegraph",
-    "cases",
-    params.case.case_id,
-    "worker-logs",
-    `${params.execution_policy.command_id}.log`
-  );
+  const logPath = workerLogPath(params.case.case_id, params.execution_policy.command_id);
   await mkdir(path.dirname(logPath), { recursive: true });
   await writeFile(
     logPath,
@@ -316,22 +313,4 @@ export async function execute(params: WorkerExecuteParams): Promise<WorkerExecut
     ...(final.extraction.ok ? { patch: final.extraction.patch } : {}),
     warnings: []
   };
-}
-
-function assertExecuteParams(input: unknown): WorkerExecuteParams {
-  if (
-    !(
-      isRecord(input) &&
-      isRecord(input.case) &&
-      isRecord(input.task) &&
-      isRecord(input.context) &&
-      isRecord(input.execution_policy) &&
-      typeof input.case.case_id === "string" &&
-      typeof input.task.node_id === "string" &&
-      typeof input.execution_policy.command_id === "string"
-    )
-  ) {
-    throw new Error("Invalid worker.execute params");
-  }
-  return input as unknown as WorkerExecuteParams;
 }

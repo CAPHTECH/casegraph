@@ -1,7 +1,6 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { EdgeType, NodeKind, NodeState } from "@caphtech/casegraph-kernel";
 import {
   addEdge,
   addNode,
@@ -10,6 +9,7 @@ import {
   initWorkspace,
   recordEventNode
 } from "@caphtech/casegraph-core";
+import type { EdgeType, NodeKind, NodeState } from "@caphtech/casegraph-kernel";
 import { createDefaultMutationContext } from "@caphtech/casegraph-kernel";
 
 export async function createTempWorkspace(prefix = "casegraph-"): Promise<string> {

@@ -7,7 +7,7 @@ import {
   CaseGraphError,
   type CommandPluginConfig,
   createJsonRpcStdioClient,
-  type JsonRpcStdioClient,
+  type JsonRpcStdioClient
 } from "@caphtech/casegraph-core";
 import type {
   CaseStateView,

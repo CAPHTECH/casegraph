@@ -3,10 +3,10 @@ import path from "node:path";
 
 import {
   CaseGraphError,
+  type EventEnvelope,
   parseYaml,
   SPEC_VERSION,
   stringifyYaml,
-  type EventEnvelope,
   type WorkspaceRecord
 } from "@caphtech/casegraph-kernel";
 import { withWorkspaceLock } from "./lock.js";

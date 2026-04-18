@@ -4,12 +4,12 @@ import path from "node:path";
 import {
   CACHE_FILENAME,
   CASE_FILENAME,
+  CaseGraphError,
   CONFIG_FILENAME,
   EVENTS_FILENAME,
   LOCK_FILENAME,
   WORKSPACE_DIRNAME,
-  WORKSPACE_FILENAME,
-  CaseGraphError
+  WORKSPACE_FILENAME
 } from "@caphtech/casegraph-kernel";
 
 export interface WorkspacePaths {
