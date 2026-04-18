@@ -8,6 +8,7 @@ Use this guide when preparing the scoped npm release for CaseGraph.
 
 All published packages use the `@caphtech` npm scope:
 
+- `@caphtech/casegraph-kernel`
 - `@caphtech/casegraph-core`
 - `@caphtech/casegraph-cli`
 - `@caphtech/casegraph-importer-markdown`
@@ -40,11 +41,26 @@ pnpm publish:release:dry-run
 `pnpm pack:release` confirms each package tarball includes the intended build output and metadata.  
 `pnpm publish:release:dry-run` confirms publish ordering and registry metadata without publishing.
 
-## Publish order
-
-Publish in dependency order so the CLI can resolve the packages it depends on:
+To publish the full release with one OTP entry, use:
 
 ```bash
+pnpm publish:release -- --otp 123456
+```
+
+If the OTP expires or a later package fails, resume from a specific package:
+
+```bash
+pnpm publish:release -- --from @caphtech/casegraph-worker-shell --otp 654321
+```
+
+For unattended publishing, prefer npm trusted publishing or a granular access token with bypass 2FA. The OTP helper is intended for interactive local releases.
+
+## Publish order
+
+`pnpm publish:release` publishes in dependency order so the CLI can resolve the packages it depends on. The effective order is:
+
+```bash
+pnpm --filter @caphtech/casegraph-kernel publish --access public
 pnpm --filter @caphtech/casegraph-core publish --access public
 pnpm --filter @caphtech/casegraph-importer-markdown publish --access public
 pnpm --filter @caphtech/casegraph-sink-markdown publish --access public
