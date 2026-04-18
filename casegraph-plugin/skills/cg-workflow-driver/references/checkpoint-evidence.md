@@ -85,7 +85,7 @@ Capture:
 - what alternatives were rejected
 - which downstream task now depends on that choice
 
-Do not create decisions for reversible implementation trivia.
+Do not create decisions for reversible trivia.
 
 ## Checkpoint cadence
 

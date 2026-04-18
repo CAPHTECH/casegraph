@@ -1,15 +1,15 @@
 ---
-name: cg-implementation-driver
-description: Use when the user wants multi-step coding work managed through CaseGraph instead of ad hoc chat state. Trigger on phrases like "manage this in cg", "drive implementation from the case", "record evidence for compaction", "resume from cg", "verify before close", or when a task needs durable checkpoints, verification, and guarded closure.
+name: cg-workflow-driver
+description: Use when the user wants multi-step work managed through CaseGraph instead of ad hoc chat state. Trigger on phrases like "manage this in cg", "drive this from the case", "record evidence for compaction", "resume from cg", "verify before close", or whenever durable checkpoints, verification, and guarded closure are needed for implementation, docs, investigation, or review work.
 ---
 
-# Drive implementation through CaseGraph
+# Drive work through CaseGraph
 
 ## Overview
 
-Use CaseGraph as the durable task backbone for implementation, verification, resume, and close. Build only the graph needed to expose sequencing and blockers, record evidence before context can be lost, and treat `cg case close` as an explicit end-state check rather than a synonym for "work feels done".
+Use CaseGraph as the durable task backbone for multi-step delivery, verification, resume, and close. Build only the graph needed to expose sequencing and blockers, record evidence before context can be lost, and treat `cg case close` as an explicit end-state check rather than a synonym for "the conversation sounds done".
 
-Use this skill for direct case management through the `cg` CLI. For normal workspace reading use **casegraph**. For AI-authored graph changes use **casegraph-patch**. For importers, workers, sync, or storage recovery use **casegraph-integrate**.
+Use this skill for workflow orchestration through the `cg` CLI. For direct workspace reading use **casegraph**. For AI-authored graph changes use **casegraph-patch**. For importers, workers, sync, or storage recovery use **casegraph-integrate**.
 
 ## Command bootstrap
 
@@ -26,10 +26,10 @@ In the rest of this skill, `cg ...` means "use the launcher that succeeded here.
 
 Use this skill when:
 
-- the task spans multiple implementation or verification steps
+- the task spans multiple steps or checkpoints
 - the user explicitly asks to manage the work in `cg`
-- compaction, handoff, or long-running execution can erase chat context
-- decisions, evidence, and close state need to survive outside the transcript
+- compaction, handoff, or long-running work can erase chat context
+- evidence, decisions, and close state need to survive outside the transcript
 
 Skip it for tiny one-pass edits that do not need a durable case.
 
@@ -46,8 +46,8 @@ Skip it for tiny one-pass edits that do not need a durable case.
    - Inspect `cg frontier --case <id> --format json`.
    - Start only the task you are actively executing.
    - If the next step is blocked, record the blocker in the case instead of leaving it only in chat.
-4. Change code and checkpoint before context can disappear.
-   - Record evidence for what changed, what was verified, and what remains.
+4. Checkpoint before context can disappear.
+   - Record evidence for what changed, what was checked, and what remains.
    - Use event nodes only for meaningful milestones or external facts.
    - Read [checkpoint-evidence.md](references/checkpoint-evidence.md) for the checkpoint pattern.
 5. Verify before marking tasks done.
@@ -66,7 +66,7 @@ Skip it for tiny one-pass edits that do not need a durable case.
 - Use `event record` only after creating an event node, and only for milestone or external-world facts worth preserving.
 - Keep node titles outcome-oriented so they work as resume anchors.
 - If a task is still being proven, it is not done yet.
-- If the case still has ready work or unresolved warnings, closing needs an explicit judgment.
+- If the case still has ready work or unresolved warnings, closing needs explicit judgment.
 
 ## Command skeleton
 
