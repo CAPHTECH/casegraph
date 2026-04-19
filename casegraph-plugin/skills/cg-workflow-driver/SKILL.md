@@ -30,6 +30,7 @@ Use this skill when:
 - the user explicitly asks to manage the work in `cg`
 - compaction, handoff, or long-running work can erase chat context
 - evidence, decisions, and close state need to survive outside the transcript
+- the case should be mirrored to GitHub Issues so collaborators can follow progress outside `cg`
 
 Skip it for tiny one-pass edits that do not need a durable case.
 
@@ -98,6 +99,7 @@ When resuming after compaction or handoff:
 - [task-templates.md](references/task-templates.md)
 - [checkpoint-evidence.md](references/checkpoint-evidence.md)
 - [close-and-resume-rules.md](references/close-and-resume-rules.md)
+- [github-projection.md](references/github-projection.md)
 
 ## Related
 
