@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file.
 
 The format is based on Keep a Changelog and the project follows semantic versioning for published packages.
 
+## [0.1.3] - 2026-04-19
+
+Published: `@caphtech/casegraph-cli@0.1.3`. `kernel`, `core`, `importer-markdown`, `sink-markdown`, and `worker-*` packages are unchanged.
+
+### Fixed
+
+- **cli**: `cg sync push`, `cg sync pull`, `cg import markdown`, and `cg worker run` now resolve their built-in plugin entrypoints from installed npm packages. Previously the CLI used `createRequire(import.meta.url).resolve(<plugin>)`, which fails with `No "exports" main defined` on packages whose `exports` field only declares the `"import"` condition (all `@caphtech/casegraph-*` plugin packages). Every published CLI release from `0.1.0` through `0.1.2` was affected; installed CLIs could initialize workspaces and manipulate graphs, but any command that spawned a built-in plugin crashed. The fix uses `import.meta.resolve` so the ESM `"import"` condition is respected.
+
+### Verification
+
+- `pnpm build`
+- `pnpm test` (130 tests)
+- `pnpm test:e2e` (6 tests)
+- Packed the CLI with `pnpm --filter @caphtech/casegraph-cli pack`, installed the tarball into a scratch project, and ran `cg sync push --sink markdown --case <c> --apply` end-to-end against published `sink-markdown@0.1.0` — the command now emits `Applied projection to markdown (upsert_item=1)` instead of the exports error.
+
 ## [0.1.2] - 2026-04-19
 
 Published: `@caphtech/casegraph-kernel@0.1.2`, `@caphtech/casegraph-core@0.1.2`, `@caphtech/casegraph-cli@0.1.2`. `importer-markdown`, `sink-markdown`, and `worker-*` packages are unchanged.

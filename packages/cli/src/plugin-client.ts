@@ -1,5 +1,4 @@
 import { existsSync } from "node:fs";
-import { createRequire } from "node:module";
 import { extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -17,7 +16,6 @@ import type {
 } from "@caphtech/casegraph-kernel";
 import { createEvent, defaultActor, generateId, nowUtc } from "@caphtech/casegraph-kernel";
 
-const require = createRequire(import.meta.url);
 const BASE_ENV_KEYS = ["PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "TMP", "TEMP"];
 
 export function builtInPluginCommand(entryFile: string): string[] {
@@ -37,7 +35,8 @@ function resolveBuiltInEntryPath(entry: BuiltInPluginEntry): string {
   if (existsSync(localPath)) {
     return localPath;
   }
-  return require.resolve(entry.packageName);
+  const resolved = import.meta.resolve(entry.packageName);
+  return fileURLToPath(resolved);
 }
 
 export function resolveBuiltInPluginCommand(entry: BuiltInPluginEntry): string[] {
