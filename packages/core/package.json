@@ -1,6 +1,6 @@
 {
   "name": "@caphtech/casegraph-core",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": false,
   "description": "Node runtime and compatibility package for CaseGraph.",
   "license": "Apache-2.0",

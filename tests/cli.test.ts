@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { loadCaseState } from "@caphtech/casegraph-core";
 import { runCli } from "@caphtech/casegraph-cli/app";
+import { loadCaseState } from "@caphtech/casegraph-core";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createTempWorkspace, removeTempWorkspace } from "./helpers/workspace.js";
@@ -202,11 +202,7 @@ describe("cli phase 1 acceptance", () => {
       title: "Publish release now"
     });
 
-    const validate = await runJsonCommand(workspaceRoot, [
-      "validate",
-      "--case",
-      "update-demo"
-    ]);
+    const validate = await runJsonCommand(workspaceRoot, ["validate", "--case", "update-demo"]);
     expect(validate.code).toBe(0);
     expect(validate.json.data).toMatchObject({
       case_id: "update-demo",

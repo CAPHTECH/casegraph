@@ -107,7 +107,7 @@ cg node add --case release-1.8.0 \
 ```
 
 ### `cg node update`
-タイトル、説明、labels、metadata などを更新する。
+タイトル、説明、labels、metadata、`state` を更新する。`--state` を渡した場合は `node.state_changed` イベントとして記録される。他フィールドと併用した場合は state 変更と field 変更が順に 2 イベントとして append される。
 
 ### `cg edge add`
 
@@ -118,6 +118,8 @@ cg edge add --case release-1.8.0 \
   --from task_submit_store \
   --to task_run_regression
 ```
+
+`--from` / `--to` はそれぞれ `--source` / `--target` の alias として同じ意味で受け付ける。
 
 ### `cg edge remove`
 edge を削除する。
@@ -157,7 +159,7 @@ task を `todo` に戻す。
 decision を確定し、必要なら metadata に結果を残す。
 
 ### `cg event record`
-event node を `done` にする。
+`kind: "event"` の node を `done` にする。対象 node が存在しない場合は exit `3 (not_found)`、`kind` が `event` 以外の場合は exit `2 (validation_error)` で reject される。
 
 ### `cg evidence add`
 evidence を追加し、必要なら `verifies` 関係を作る。

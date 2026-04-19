@@ -73,7 +73,7 @@ v0.1 の core operation は次です。
 新しい node を追加。
 
 ### `update_node`
-既存 node の一部フィールド更新。
+既存 node の一部フィールド更新。`changes` は少なくとも 1 つの定義済みフィールドを含む必要があり、`{}` や全フィールド未定義の patch は `patch_update_node_changes_empty` で reject されます。
 
 ### `remove_node`
 既存 node を削除。v0.1 では論理削除でもよい。
@@ -85,7 +85,7 @@ v0.1 の core operation は次です。
 既存 edge を削除。
 
 ### `change_state`
-node の明示状態遷移。
+node の明示状態遷移。`kind: "evidence"` の node は観測の証跡として terminal 扱いなので、`change_state` の対象にすると `patch_change_state_evidence` で reject されます。evidence の取り消しは `detach_evidence` 系 op で表現してください。
 
 ### `attach_evidence`
 evidence node 追加 + verifies edge + attachment reference の sugar でもよい。

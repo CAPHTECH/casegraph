@@ -1,6 +1,6 @@
 {
   "name": "@caphtech/casegraph-kernel",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": false,
   "description": "Pure CaseGraph kernel: graph logic, validation, reducer, and analysis.",
   "license": "Apache-2.0",
