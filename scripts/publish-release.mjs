@@ -40,6 +40,18 @@ async function main() {
     throw new Error("OTP is required. Pass --otp <code> or set NPM_CONFIG_OTP.");
   }
 
+  if (!options.skipSmoke) {
+    console.log("\n==> Running pre-publish install smoke (pnpm test:install-smoke)");
+    const smokeCode = await runCommand("pnpm", ["test:install-smoke"]);
+    if (smokeCode !== 0) {
+      throw new Error(
+        "Install smoke failed. Fix the regression, or pass --skip-smoke to bypass (not recommended)."
+      );
+    }
+  } else {
+    console.log("\n==> Skipping install smoke (--skip-smoke)");
+  }
+
   console.log(
     [
       `Release mode: ${options.dryRun ? "dry-run" : "publish"}`,
@@ -97,6 +109,7 @@ function parseArgs(argv) {
     dryRun: false,
     from: undefined,
     tag: undefined,
+    skipSmoke: false,
     help: false
   };
 
@@ -146,6 +159,11 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === "--skip-smoke") {
+      options.skipSmoke = true;
+      continue;
+    }
+
     throw new Error(`Unknown argument: ${arg}`);
   }
 
@@ -190,6 +208,7 @@ Options:
   --dry-run             run pnpm publish --dry-run for every package
   --from <package>      resume from a specific package name
   --tag <tag>           npm dist-tag to publish under
+  --skip-smoke          skip the pre-publish install smoke (not recommended)
   -h, --help            show this help
 
 Examples:
