@@ -371,12 +371,12 @@ All `gh` calls pass `--repo <owner>/<repo>` explicitly so behaviour does not dep
 
    Record a single observation per run: `depends_on mirror: +N / -M (failed: K)`. Partial failure is acceptable; the next run retries what is still in the diff.
 
-8. **For each mapping entry not in the current frontier** whose internal node just transitioned from a non-terminal state to `done` or `cancelled` in this push (i.e. `old_state ∉ {done, cancelled}` and `node.state ∈ {done, cancelled}`, where `old_state` is the value captured at the top of step 7): close its issue with a short trail:
+8. **For each mapping entry not in the current frontier** whose internal node just transitioned from a non-terminal state to `done` or `cancelled` in this push (i.e. `mapping.nodes[node_id].last_pushed_state ∉ {done, cancelled}` and `node.state ∈ {done, cancelled}`): close its issue with a short trail:
    ```sh
    gh issue comment <n> --repo "<owner>/<repo>" --body "closed by CaseGraph: node reached <state>"
    gh issue close <n> --repo "<owner>/<repo>"  # add --reason not-planned for cancelled
    ```
-   Skip the comment and close when `old_state` is already terminal (the issue has been handled in a previous run and is still on the mapping for idempotency). Leave the mapping entry in place so the number is remembered.
+   Read `last_pushed_state` directly from the mapping (not via the `old_state` captured in step 7, which is only populated for frontier nodes). Since step 7 iterates frontier nodes only and step 8 targets entries **not** in the current frontier, `mapping.nodes[node_id].last_pushed_state` has not been mutated this run. Skip the comment and close when it is already terminal (the issue has been handled in a previous run and is still on the mapping for idempotency). After closing, update `last_pushed_state` to `node.state`. Leave the mapping entry in place so the number is remembered.
 9. Write `mapping.last_pushed_revision = revision.current` and the per-node updates back to `projections/github.yaml`.
 10. Record a checkpoint evidence before returning, per [checkpoint-evidence.md](checkpoint-evidence.md):
     ```sh
