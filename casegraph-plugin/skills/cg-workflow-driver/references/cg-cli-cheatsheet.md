@@ -42,7 +42,7 @@ cg node update --case c1 --id task_x \
   --metadata '{"assignees":["alice"],"priority":"high","due_at":"2026-05-31"}'
 ```
 
-Standard keys consumed by this skill's GitHub projection: `assignees: string[]`, `priority: "high"|"medium"|"low"|number` (see `packages/kernel/src/helpers.ts:123`), `due_at: ISO8601`.
+Standard keys consumed by this skill's GitHub projection: `assignees: string[]`, `priority: "high"|"medium"|"low"|number` (see `metadataPriorityValue` in `packages/kernel/src/helpers.ts`), `due_at: ISO8601`.
 
 ### `--labels` / `--acceptance`
 
