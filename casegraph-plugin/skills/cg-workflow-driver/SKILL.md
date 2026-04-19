@@ -71,6 +71,8 @@ Skip it for tiny one-pass edits that do not need a durable case.
 
 ## Command skeleton
 
+This is the happy-path set only. For any verb, flag, enum, or jq pattern beyond what is shown here, read [cg-cli-cheatsheet.md](references/cg-cli-cheatsheet.md) **before** running `cg <verb> --help` — it is compact and covers the whole Phase 0+ surface (node update, task wait/cancel/fail, analyze, patch, sync, worker, migrate, enums). Fall back to `--help` only when the cheatsheet lacks what you need.
+
 ```sh
 cg case new --id <case_id> --title "<title>"
 cg node add --case <case_id> --id goal_<name> --kind goal --title "<goal>"
@@ -96,6 +98,7 @@ When resuming after compaction or handoff:
 
 ## References
 
+- [cg-cli-cheatsheet.md](references/cg-cli-cheatsheet.md)
 - [task-templates.md](references/task-templates.md)
 - [checkpoint-evidence.md](references/checkpoint-evidence.md)
 - [close-and-resume-rules.md](references/close-and-resume-rules.md)
