@@ -99,9 +99,9 @@ owner: caphtech
 repo: casegraph
 case_id: release-1.8.0
 last_pushed_revision: 57
-root_issue_number: 42
 
 # Per-run bookkeeping for the root issue so body refresh can skip when nothing changed.
+# `root.issue_number` is the canonical root-issue pointer; there is no top-level `root_issue_number`.
 root:
   issue_number: 42
   last_pushed_revision: 57
@@ -185,7 +185,7 @@ All `gh` calls pass `--repo <owner>/<repo>` explicitly so behaviour does not dep
 1. Read `sinks.github` from `.casegraph/config.yaml`. If missing, stop.
 2. `cg --format json case show --case <id>` → note `data.revision.current`, `data.caseRecord.title`, `data.nodes`, `data.edges`.
 3. `cg --format json frontier --case <id>` → `data.nodes[]` (already filtered to the actionable subset).
-4. Load `.casegraph/cases/<id>/projections/github.yaml`, or start from `{sink_name: github, owner, repo, case_id, last_pushed_revision: 0, root_issue_number: null, nodes: {}}`.
+4. Load `.casegraph/cases/<id>/projections/github.yaml`, or start from `{sink_name: github, owner, repo, case_id, last_pushed_revision: 0, root: {issue_number: null}, nodes: {}}`.
 5. If `mapping.last_pushed_revision == revision.current` **and** the opt-ins are already caught up with config, log `nothing to push (revision <n>)` and exit. "Caught up" means:
    - Assignees opt-in: every node's `last_pushed_assignees` matches `metadata.assignees ?? []`.
    - Project opt-in: `mapping.project` is present and every entry in `mapping.nodes` has a `project_item_id`. If optional Project fields are configured (`priority`/`target_date`/`waiting_for`), their `last_pushed_*` values must match the current node metadata and computed waiting-for text.
@@ -194,7 +194,7 @@ All `gh` calls pass `--repo <owner>/<repo>` explicitly so behaviour does not dep
    If an opt-in was just turned on, reset `last_pushed_revision: 0` in the mapping before the next run, or simply make a trivial case change; both force step 5 to fall through.
 6. **Ensure root issue and refresh its body.**
 
-   a. If `root_issue_number` is null, create it:
+   a. If `mapping.root.issue_number` is null, create it:
       ```sh
       gh issue create \
         --repo "<owner>/<repo>" \
@@ -339,7 +339,7 @@ All `gh` calls pass `--repo <owner>/<repo>` explicitly so behaviour does not dep
         ```
       - Persist `last_pushed_waiting_for`. Setting it to an empty string clears the field; this is the desired behaviour when a `waits_for` edge becomes satisfied.
 
-   Apply steps a–d to the root issue (`root_project_item_id` kept alongside `root_issue_number`) so the case appears on the board too. The root's CG State mirrors `caseRecord.state` (`open` / `closed`) — if the single-select does not have an exact match, use `doing` while open and `done` once closed. Priority / Target Date / Waiting For are skipped for the root (they belong to individual nodes, not the case).
+   Apply steps a–d to the root issue (`mapping.root.project_item_id` kept alongside `mapping.root.issue_number`) so the case appears on the board too. The root's CG State mirrors `caseRecord.state` (`open` / `closed`) — if the single-select does not have an exact match, use `doing` while open and `done` once closed. Priority / Target Date / Waiting For are skipped for the root (they belong to individual nodes, not the case).
 
 7.6 **(Opt-in: Issue Dependencies)** If `sinks.github.mirror_dependencies: true`, diff the current set of internal `depends_on` edges (among projected nodes only) against `mapping.dependency_edges` and issue one GraphQL mutation per change.
 
@@ -492,7 +492,7 @@ This matches the "internal graph wins" posture in `docs/spec/08-projections.md �
 2. Hand-write `sinks.github` in `.casegraph/config.yaml` pointing at a repo you own.
 3. Run the push loop. Expect:
    - `gh issue list --repo <repo> --label "cg:case/test-gh-proj"` shows 3 issues (1 root + 2 tasks).
-   - `.casegraph/cases/test-gh-proj/projections/github.yaml` has `root_issue_number` set and entries for both tasks.
+   - `.casegraph/cases/test-gh-proj/projections/github.yaml` has `root.issue_number` set and entries for both tasks.
    - Each body contains the `<!-- casegraph:begin ... :end -->` fence.
 4. Re-run push immediately. Expect: `nothing to push (revision <n>)`, zero `gh` calls.
 5. `cg task start <task_id>`; re-run push. Expect: exactly one `gh issue edit --remove-label cg:state/todo --add-label cg:state/doing`, nothing else.
