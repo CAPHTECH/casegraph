@@ -65,15 +65,21 @@ Unknown keys are ignored. Missing keys skip the corresponding projection — the
    `configure sinks.github.owner and sinks.github.repo in .casegraph/config.yaml before running GitHub projection`.
    Do not silently default to any repo. Opt-in fields are read best-effort and the absence of one does not stop the run.
 
-4. On first run, pre-create labels (`--force` makes this idempotent and ignores "already exists"):
+4. On first run, pre-create labels (`--force` makes this idempotent and ignores "already exists"). `cg:state/*` labels are created dynamically from the states actually present in the case, so newly-introduced states (`proposed`, `failed`, future additions) do not break the push:
 
    ```sh
-   for L in cg:case-root cg:task cg:decision \
-            cg:state/todo cg:state/doing cg:state/waiting cg:state/done cg:state/cancelled ; do
+   for L in cg:case-root cg:task cg:decision "cg:case/<case_id>" ; do
      gh label create "$L" --repo "<owner>/<repo>" --force >/dev/null
    done
-   gh label create "cg:case/<case_id>" --repo "<owner>/<repo>" --force >/dev/null
+   # Enumerate the states actually used in this case and create a label for each.
+   cg --format json case show --case <case_id> \
+     | jq -r '.data.nodes[].state' | sort -u \
+     | while read -r S; do
+         gh label create "cg:state/$S" --repo "<owner>/<repo>" --force >/dev/null
+       done
    ```
+
+   Re-run this step before push whenever a new state is introduced in the case; it is cheap (one `gh label create --force` per distinct state) and keeps the label set in sync without hard-coding a state enumeration.
 
 5. If `project.number` is set, verify the configured fields exist (do not auto-create — an unexpected field on a shared board is worse than a stopped push):
 
@@ -156,9 +162,9 @@ If the file is malformed, refuse to write. Ask the user to repair it rather than
 
 ## Body metadata fence
 
-Every managed issue body ends with this fence:
+Every managed issue body ends with this fence (wrapped in a single HTML comment so the metadata is invisible on GitHub but machine-readable on pull):
 
-```
+```text
 <!-- casegraph:begin
 spec_version: 0.1-draft
 sink: github-cli
@@ -390,10 +396,22 @@ Idempotency rules:
 
 1. Load `.casegraph/cases/<id>/projections/github.yaml`. If empty, nothing to pull.
 2. One bulk query. If `sinks.github.propose_reopen_patches: true`, request `--state all` so reopens are visible in the same page; otherwise restrict to `--state closed` to keep the payload small.
+
+   When `propose_reopen_patches: true`:
    ```sh
    gh issue list \
      --repo "<owner>/<repo>" \
      --state all \
+     --label "cg:case/<case_id>" \
+     --json number,state,title,closedAt \
+     --limit 200
+   ```
+
+   When `propose_reopen_patches` is unset or `false`:
+   ```sh
+   gh issue list \
+     --repo "<owner>/<repo>" \
+     --state closed \
      --label "cg:case/<case_id>" \
      --json number,state,title,closedAt \
      --limit 200
