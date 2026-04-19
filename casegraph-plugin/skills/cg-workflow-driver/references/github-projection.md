@@ -220,7 +220,7 @@ All `gh` calls pass `--repo <owner>/<repo>` explicitly so behaviour does not dep
       Update `mapping.root.last_pushed_revision` and `mapping.root.last_frontier_digest`.
 
    The root issue never closes during normal push — only the explicit `cg case close` flow (out of this runbook's scope) should lead to root closure.
-7. **For each frontier node** in step 3:
+7. **For each frontier node** in step 3, first capture `old_state = mapping.nodes[node_id].last_pushed_state` (treat an absent mapping entry as `old_state = null`) so later steps (7.5d, 8) can still see the pre-push value after this step mutates `last_pushed_state`. Then:
    - If `mapping.nodes[node_id]` is absent → **create**:
      ```sh
      gh issue create \
@@ -299,7 +299,7 @@ All `gh` calls pass `--repo <owner>/<repo>` explicitly so behaviour does not dep
         --field-id <field_ids.node_id> --text "<node_id>"
       ```
 
-   d. If `node.state != last_pushed_state` (the same trigger as the label change in step 7), set the CG State single-select:
+   d. If `old_state != node.state` (use the `old_state` captured at the top of step 7, since step 7 has already written the new value into `last_pushed_state`), set the CG State single-select:
       ```sh
       gh project item-edit \
         --id <project_item_id> --project-id <project_id> \
@@ -371,12 +371,12 @@ All `gh` calls pass `--repo <owner>/<repo>` explicitly so behaviour does not dep
 
    Record a single observation per run: `depends_on mirror: +N / -M (failed: K)`. Partial failure is acceptable; the next run retries what is still in the diff.
 
-8. **For each mapping entry not in the current frontier** whose internal node is now `done` or `cancelled`: close its issue with a short trail:
+8. **For each mapping entry not in the current frontier** whose internal node just transitioned from a non-terminal state to `done` or `cancelled` in this push (i.e. `old_state ∉ {done, cancelled}` and `node.state ∈ {done, cancelled}`, where `old_state` is the value captured at the top of step 7): close its issue with a short trail:
    ```sh
    gh issue comment <n> --repo "<owner>/<repo>" --body "closed by CaseGraph: node reached <state>"
    gh issue close <n> --repo "<owner>/<repo>"  # add --reason not-planned for cancelled
    ```
-   Leave the mapping entry in place so the number is remembered.
+   Skip the comment and close when `old_state` is already terminal (the issue has been handled in a previous run and is still on the mapping for idempotency). Leave the mapping entry in place so the number is remembered.
 9. Write `mapping.last_pushed_revision = revision.current` and the per-node updates back to `projections/github.yaml`.
 10. Record a checkpoint evidence before returning, per [checkpoint-evidence.md](checkpoint-evidence.md):
     ```sh
@@ -404,7 +404,7 @@ Idempotency rules:
      --state all \
      --label "cg:case/<case_id>" \
      --json number,state,title,closedAt \
-     --limit 200
+     --paginate
    ```
 
    When `propose_reopen_patches` is unset or `false`:
@@ -414,8 +414,10 @@ Idempotency rules:
      --state closed \
      --label "cg:case/<case_id>" \
      --json number,state,title,closedAt \
-     --limit 200
+     --paginate
    ```
+
+   `--paginate` concatenates every page of results so cases with more than 100 issues (gh's default page size) are not truncated; drop it only when you know the case is small and want to bound latency.
 3. Build operations (each mapping node contributes at most one op per pull):
    - **Close → done.** For each issue with `state == CLOSED` whose mapping entry has `last_pushed_state ∈ {todo, doing, waiting}`: one `change_state` op with `state: done`.
    - **Reopen → todo (opt-in).** Only if `propose_reopen_patches: true`: for each issue with `state == OPEN` whose mapping entry has `last_pushed_state ∈ {done, cancelled}`: one `change_state` op with `state: todo`. Always propose `todo`, not `doing` — start the node from a neutral state and let the human run `cg task start` if the work actually resumed. Field name is `state`, not `to_state`, per `ChangeStatePatchOperation` in `packages/kernel/src/types.ts:352`.
