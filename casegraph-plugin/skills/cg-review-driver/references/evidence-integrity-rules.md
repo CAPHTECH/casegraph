@@ -15,17 +15,21 @@ Per `packages/kernel/src/types.ts`, the event envelope uses `type` / `timestamp`
 
 ## Rule 1 — `done-without-verifies` (🔴)
 
-**Statement.** For every node with `kind in {task, decision}` and `state == "done"`, there must be at least one edge with `type == "verifies"` whose `target_id` equals that node's `node_id` and whose `source_id` points to a node with `kind == "evidence"`.
+**Statement.** For every node with `kind in {task, decision}` and `state == "done"`, there must be at least one edge with `type == "verifies"` whose `target_id` equals that node's `node_id` and whose `source_id` points to a node with `kind == "evidence"` **and** `state == "done"`. An in-progress or failed evidence node does not count as verification — this matches `packages/kernel/src/validation.ts::hasEvidenceForNode`.
 
 **Detection.**
 
 ```text
-let evidence_nodes := { n.node_id | n in snapshot.nodes, n.kind == "evidence" }
+let done_evidence_nodes := {
+  n.node_id
+  | n in snapshot.nodes,
+    n.kind == "evidence" and n.state == "done"
+}
 let verified_by_evidence := {
   e.target_id
   | e in snapshot.edges,
     e.type == "verifies" and
-    e.source_id in evidence_nodes
+    e.source_id in done_evidence_nodes
 }
 for n in snapshot.nodes:
   if n.kind in {task, decision} and n.state == "done":

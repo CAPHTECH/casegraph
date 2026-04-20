@@ -86,14 +86,15 @@ Full rules live in [evidence-integrity-rules.md](evidence-integrity-rules.md). T
 **Commands.**
 
 ```sh
-# Done task/decision without any incoming verifies edge from an evidence node.
-# A `verifies` edge whose source is not kind=="evidence" is itself a Rule 5 violation and
-# must not be counted as verification here.
+# Done task/decision without any incoming verifies edge from a *done* evidence node.
+# Matches `validation.ts::hasEvidenceForNode` — an in-progress/failed evidence node does
+# not count. A `verifies` edge whose source is not kind=="evidence" is itself a Rule 5
+# violation and must not be counted as verification here either.
 jq '
-  ([.data.nodes[] | select(.kind == "evidence") | .node_id]) as $evidenceIds
+  ([.data.nodes[] | select(.kind == "evidence" and .state == "done") | .node_id]) as $doneEvidenceIds
   | ([.data.edges[]
       | select(.type == "verifies")
-      | select(.source_id as $s | $evidenceIds | index($s))
+      | select(.source_id as $s | $doneEvidenceIds | index($s))
       | .target_id]) as $verified
   | .data.nodes
   | map(select(.kind == "task" or .kind == "decision"))
