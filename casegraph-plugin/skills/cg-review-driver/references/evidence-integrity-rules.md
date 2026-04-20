@@ -36,28 +36,34 @@ for n in snapshot.nodes:
 
 ## Rule 2 — `empty-evidence` (🟡)
 
-**Statement.** An `evidence` node's `description` field must carry substantive content. "Substantive" is defined operationally by the single shared placeholder regex:
+**Statement.** An `evidence` node's `description` field must carry substantive content. "Substantive" is defined operationally by two shared regexes:
 
 ```text
 placeholder_regex := /^(実施|完了|done|ok|yes|finished)[.。]?$/i
+punct_only_regex  := /^[\p{P}\p{S}]+$/u
 ```
 
 A description fails Rule 2 when any of the following holds:
 
 - length < 20 characters, OR
 - trimmed description matches `placeholder_regex`, OR
-- trimmed description is empty (purely whitespace plus punctuation).
+- trimmed description is empty, OR
+- trimmed description matches `punct_only_regex` (e.g. `......`, `——`, `??!!`).
 
-Detection uses the exact same `placeholder_regex` — do not inline a second pattern.
+Detection uses the exact same regexes — do not inline a second pattern.
 
 **Detection.**
 
 ```text
 placeholder_regex := /^(実施|完了|done|ok|yes|finished)[.。]?$/i
+punct_only_regex  := /^[\p{P}\p{S}]+$/u
 for n in snapshot.nodes where n.kind == "evidence":
   desc := n.description or ""
   trimmed := desc.strip()
-  if len(desc) < 20 or trimmed.matches(placeholder_regex) or trimmed == "":
+  if len(desc) < 20
+     or trimmed.matches(placeholder_regex)
+     or trimmed == ""
+     or trimmed.matches(punct_only_regex):
     emit YELLOW empty-evidence { node_id: n.node_id, description_len: len(desc) }
 ```
 
