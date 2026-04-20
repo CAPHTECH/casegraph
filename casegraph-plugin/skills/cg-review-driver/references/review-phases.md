@@ -6,10 +6,12 @@ All commands are read-only. Never emit `cg node ...`, `cg edge ...`, `cg task ..
 
 Inputs the skill accepts:
 - `--case <id>` (required)
-- `--since-revision <n>` (optional) — clip Phase E to events with `revision > n`
-- `--since-timestamp <ISO8601>` (optional) — clip Phase E to events with `created_at >= <ts>`
+- `--since-revision <n>` (optional) — clip Phase E to events with `revision_hint > n`
+- `--since-timestamp <ISO8601>` (optional) — clip Phase E to events with `timestamp >= <ts>`
 
 Output shape is fixed by [report-template.md](report-template.md). Findings accumulate across phases and get rendered in one place at the end.
+
+All CLI results use the shape `{ ok, command, data, revision? }`, so every jq expression below unwraps with `.data...`.
 
 ---
 
@@ -17,23 +19,26 @@ Output shape is fixed by [report-template.md](report-template.md). Findings accu
 
 **Goal.** Know what you are reviewing before judging anything.
 
-**Commands.**
+**Commands.** Use `cg case view` (not `cg case show`) because only `view` exposes the full `nodes[]` / `edges[]` / `derived[]` / `validation[]` arrays used by later phases.
 
 ```sh
-cg case show --case <id> --format json > /tmp/cg-review-snapshot.json
-cat /tmp/cg-review-snapshot.json | jq '.data.revision.current, .data.caseRecord.state'
-cat /tmp/cg-review-snapshot.json | jq '
-  .data.nodes | [to_entries[].value]
-  | group_by(.kind) | map({kind: .[0].kind, total: length,
-      by_state: (group_by(.state) | map({state: .[0].state, n: length}))})
-'
+cg case show --case <id> --format json > /tmp/cg-review-show.json
+cg case view --case <id> --format json > /tmp/cg-review-view.json
+
+jq '.data.revision.current, .data.case.state' /tmp/cg-review-show.json
+jq '
+  .data.nodes
+  | group_by(.kind)
+  | map({ kind: .[0].kind, total: length,
+          by_state: (group_by(.state) | map({ state: .[0].state, n: length })) })
+' /tmp/cg-review-view.json
 ```
 
 **What to look for.**
 
 - Revision range covered by the review. If `--since-revision` was passed, the range is `[since+1, current]`; otherwise `[1, current]`.
 - Composition of the case: how many `goal`, `task`, `decision`, `event`, `evidence` nodes, and their state distribution.
-- Whether `caseRecord.state` is `open` or `closed`. A closed case under review means someone already pulled the trigger on `cg case close`; findings about missing evidence are more severe.
+- Whether the case is `open` or `closed` (from `cg case show`'s `data.case.state`). A closed case under review means someone already pulled the trigger on `cg case close`; findings about missing evidence are more severe.
 
 **Findings.**
 
@@ -56,19 +61,19 @@ cg blockers --case <id> --format json
 
 **What to look for.**
 
-- `validate` returns `errors` and `warnings` counts. Errors > 0 → 🔴.
-- `events verify` confirms each event envelope is well-formed and replayable. Failure → **HARD STOP**.
+- `cg validate` returns graph-level `errors` and `warnings` counts. Errors > 0 → 🔴.
+- `cg events verify` replays the event log (via `replayCaseEvents`). A structural failure (unknown event type, missing `case.created`, patch replay mismatch) throws and the command exits non-zero → **HARD STOP**. Graph-level validation is *not* surfaced here — rely on `cg validate` above for that.
 - `frontier` is empty if the case really is done. Non-empty frontier on a case the user claims is "finished" → 🟡.
 - `blockers` lists active `depends_on` / `waits_for` / `state` / `cycle` reasons. Active blockers in a claimed-done case → 🟡 (or 🔴 if combined with a done-without-verifies finding in Phase C).
 
 **Findings.**
 
-- 🔴 `validation-error`: validation returned errors. Emit one finding per error with the node id and message.
-- 🔴 `event-log-integrity-failure`: events verify failed. Report the first failing event and stop — the rest of the review is unreliable and must be surfaced as "REVIEW ABORTED" in the Verdict block.
+- 🔴 `validation-error`: `cg validate` returned errors. Emit one finding per error with the node id and message.
+- 🔴 `event-log-integrity-failure`: `cg events verify` exited non-zero. Report the exit output and stop — the rest of the review is unreliable and must be surfaced as "REVIEW ABORTED" in the Verdict block.
 - 🟡 `frontier-nonempty-at-review`: case is `open` with `frontier` ≠ ∅ and the user prompted for a completion review.
 - 🟡 `blockers-active-at-review`: unresolved blockers exist at review time.
 
-**Hard stop.** If events verify fails, do not run Phases C–F. Render the report with Verdict = 🔴 Red + Summary = "event log integrity failure — graph not trustworthy".
+**Hard stop.** If `cg events verify` fails, do not run Phases C–F. Render the report with Verdict = 🔴 Red + Summary = "event log integrity failure — graph not trustworthy".
 
 ---
 
@@ -76,25 +81,24 @@ cg blockers --case <id> --format json
 
 **Goal.** Check that every self-declared completion is backed by a `verifies` edge from an `evidence` node, and that the evidence itself is not a token.
 
-Full rules live in [evidence-integrity-rules.md](evidence-integrity-rules.md). This phase applies them against the snapshot.
+Full rules live in [evidence-integrity-rules.md](evidence-integrity-rules.md). This phase applies them against the view snapshot (`/tmp/cg-review-view.json`).
 
 **Commands.**
 
 ```sh
 # Done task/decision without any incoming verifies edge
-cat /tmp/cg-review-snapshot.json | jq '
-  .data.nodes as $n
-  | [.data.edges | to_entries[] | .value | select(.type=="verifies") | .target_id] as $verified
-  | $n | [to_entries[].value]
+jq '
+  ([.data.edges[] | select(.type == "verifies") | .target_id]) as $verified
+  | .data.nodes
   | map(select(.kind == "task" or .kind == "decision"))
   | map(select(.state == "done"))
   | map(select(.node_id as $id | $verified | index($id) | not))
   | map(.node_id)
-'
+' /tmp/cg-review-view.json
 
 # Empty or placeholder evidence
-cat /tmp/cg-review-snapshot.json | jq '
-  .data.nodes | [to_entries[].value]
+jq '
+  .data.nodes
   | map(select(.kind == "evidence"))
   | map({
       node_id,
@@ -104,10 +108,10 @@ cat /tmp/cg-review-snapshot.json | jq '
                    or (.description // "" | test("^(実施|完了|done|ok)$"; "i")))
     })
   | map(select(.suspicious))
-'
+' /tmp/cg-review-view.json
 ```
 
-For just-in-time detection, cross-reference the event log (see Phase E's jq cookbook for the full pattern). Per rule, flag evidence whose `evidence.attached` event's `created_at` is within 2 seconds of the verified node's `node.state_changed` → `done` event.
+For just-in-time detection, cross-reference the event log (see Phase E's jq cookbook for the full pattern). Per rule, flag evidence whose `evidence.attached` event's `timestamp` is within 2 seconds of the verified node's `node.state_changed` → `done` event.
 
 **Findings.**
 
@@ -124,35 +128,35 @@ For just-in-time detection, cross-reference the event log (see Phase E's jq cook
 **Commands.**
 
 ```sh
-cat /tmp/cg-review-snapshot.json | jq '
-  .data.nodes | [to_entries[].value]
+jq '
+  .data.nodes
   | map(select(.kind == "decision"))
   | map({
       node_id, title, state,
-      result: (.metadata.result // null),
+      result: (.metadata.decision_result // .metadata.result // null),
       has_desc: (((.description // "") | length) > 0)
     })
   | map(select(.state == "done"))
   | map(select(.result == null and (.has_desc | not)))
-'
+' /tmp/cg-review-view.json
 
 # Alternative-to edges captured
-cat /tmp/cg-review-snapshot.json | jq '
-  .data.edges | [to_entries[] | .value]
+jq '
+  .data.edges
   | map(select(.type == "alternative_to"))
   | group_by(.source_id)
   | map({decision: .[0].source_id, alternatives: map(.target_id)})
-'
+' /tmp/cg-review-view.json
 ```
 
 **What to look for.**
 
-- A done decision with neither `metadata.result` nor description is a **naked decision**: the choice is recorded but the reasoning is lost.
+- A done decision with neither `metadata.decision_result` nor description is a **naked decision**: the choice is recorded but the reasoning is lost. (`decision_result` is what `cg decision decide --result <text>` writes; older graphs may have `metadata.result`.)
 - Presence of `alternative_to` edges is a bonus signal that the agent considered alternatives. Missing alternatives is a 🟢 note only (common; not a finding on its own).
 
 **Findings.**
 
-- 🟡 `naked-decision`: decision done without `metadata.result` and with empty description.
+- 🟡 `naked-decision`: decision done without a decision result in metadata and with empty description.
 - 🟢 `decision-without-alternatives` (informational only, not a blocker).
 
 ---
@@ -161,7 +165,7 @@ cat /tmp/cg-review-snapshot.json | jq '
 
 **Goal.** Classify `patch.applied` events by actor, detect orphan workers, and list state transitions the agent may have quietly abandoned.
 
-Detailed jq patterns in [event-trail-jq.md](event-trail-jq.md).
+Detailed jq patterns — including the exact payload paths, since payload shapes vary per event type — live in [event-trail-jq.md](event-trail-jq.md).
 
 **Commands (pre-clip for `--since-revision` / `--since-timestamp` if set).**
 
@@ -171,10 +175,10 @@ cg events export --case <id> --format json > /tmp/cg-review-events.json
 
 Then apply the cookbook jq patterns to produce:
 
-1. **Patch applications by actor** — count of `patch.applied` events grouped by `payload.generator.kind` (`human` / `agent` / `worker` / `importer` / `sync` / `planner`).
-2. **AI patches without evidence** — AI-authored `patch.applied` events (`generator.kind in {agent, worker}`) that do not have an `evidence.attached` event in the same revision range. Flag as 🟡.
-3. **Orphan workers** — `worker.dispatched` events without a subsequent `worker.finished` for the same worker + target. Flag as 🔴.
-4. **Failure history** — `node.state_changed` events that transitioned to `cancelled` or `failed`. List title, node id, reason, and whether the failure was later reversed. These are 🟢 notes unless a `failed` is immediately followed by a `done` on the same node without evidence — then 🟡.
+1. **Patch applications by actor** — count of `patch.applied` events grouped by `payload.patch.generator.kind` (`human` / `agent` / `worker` / `importer` / `sync` / `planner`).
+2. **AI patches without evidence** — AI-authored `patch.applied` events (`generator.kind in {agent, worker}`) with no `evidence.attached` whose `verifies_edge.target_id` is in the patch's affected node set, within the clip window. Flag as 🟡.
+3. **Orphan workers** — `worker.dispatched` events without a subsequent `worker.finished` with the same `command_id`. Flag as 🔴.
+4. **Failure history** — `node.state_changed` events that transitioned to `cancelled` or `failed` (via `payload.state`). List title, node id, reason, and whether the failure was later reversed. These are 🟢 notes unless a `failed` is immediately followed by a `done` on the same node without evidence — then 🟡.
 5. **Worker timing outliers (optional)** — worker runs whose `dispatched`→`finished` delta is > 10 minutes. 🟢 note.
 
 **Findings.**
@@ -193,8 +197,8 @@ Then apply the cookbook jq patterns to produce:
 **Commands.**
 
 ```sh
-cat /tmp/cg-review-snapshot.json | jq '
-  .data.nodes | [to_entries[].value]
+jq '
+  .data.nodes
   | map(select(.kind == "evidence"))
   | map({
       evidence_id: .node_id,
@@ -207,7 +211,7 @@ cat /tmp/cg-review-snapshot.json | jq '
       test: .metadata.test
     })
   | map(select(.file or .url or .pr or .commit or .test or ((.description // "") | test("https?://|#[0-9]+|\\bpackages/|\\btests/"))))
-'
+' /tmp/cg-review-view.json
 ```
 
 **What to enumerate.**

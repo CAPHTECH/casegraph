@@ -45,7 +45,7 @@ Out of scope in v0.1: batch review across multiple cases, diff reviews between t
 
 Run in order. Each phase reads from `--format json` and pipes through jq — never emit mutating commands. Detail in [review-phases.md](references/review-phases.md).
 
-1. **Orientation** — `cg case show --case <id> --format json` → snapshot `revision.current`, `caseRecord.state`, count nodes by kind × state. If `--since-revision` is set, scope all later queries to events newer than that revision.
+1. **Orientation** — `cg case show --case <id> --format json` → read `revision.current`, `case.state`. Then `cg case view --case <id> --format json` → full `nodes[]` / `edges[]` / `derived[]` / `validation[]` arrays that later phases query. If `--since-revision` is set, scope all later event-log queries to events newer than that revision.
 2. **State Health** — `cg validate --case <id> --format json` (errors must be 0), `cg events verify --case <id> --format json` (**HARD STOP** if integrity fails — the graph itself is not trustworthy), then `cg frontier --case <id>` and `cg blockers --case <id>`.
 3. **Evidence Integrity** — find done-without-verifies, empty-evidence, and just-in-time evidence per [evidence-integrity-rules.md](references/evidence-integrity-rules.md).
 4. **Decision Traceability** — every `kind:decision` in `state:done` should have `metadata.result` or a non-empty description. Flag naked decisions.

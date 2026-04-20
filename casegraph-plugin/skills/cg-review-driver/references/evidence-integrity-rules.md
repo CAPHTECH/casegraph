@@ -3,8 +3,13 @@
 Formal rules applied in Phase C of the review loop. The ordering is important: each rule has a severity, and a severity downgrade path when specific conditions are met.
 
 All rules operate on:
-- `snapshot` = `cg case show --case <id> --format json | .data`
-- `events` = `cg events export --case <id> --format json | .data`
+- `snapshot` = `cg case view --case <id> --format json | .data` — the view command exposes the full `nodes[]` / `edges[]` arrays. `cg case show` only carries a summary.
+- `events` = `cg events export --case <id> --format json | .data.events` — the full CLI result is `{ ok, data: { case_id, events: [...] } }`.
+
+Per `packages/kernel/src/types.ts`, the event envelope uses `type` / `timestamp` / optional `revision_hint`. Payload shapes cited below:
+- `evidence.attached`: `{ node, verifies_edge?, attachment? }` — the evidence node id is `payload.node.node_id`; the verified target is `payload.verifies_edge.target_id`.
+- `node.state_changed`: `{ node_id, state, metadata? }` — note `state`, not `to_state`.
+- `patch.applied`: `{ patch }` — generator lives at `payload.patch.generator`, operations at `payload.patch.operations`.
 
 ---
 
@@ -55,8 +60,8 @@ for n in snapshot.nodes where n.kind == "evidence":
 **Statement.** The `evidence.attached` event for an evidence node and the `node.state_changed` → `done` event for its verified target must not be suspiciously adjacent in time.
 
 **Definition.** Let:
-- `t_evidence` = `created_at` of the `evidence.attached` event whose payload references the evidence node
-- `t_done` = `created_at` of the `node.state_changed` event with `payload.to_state == "done"` for the target node
+- `t_evidence` = `timestamp` of the `evidence.attached` event whose payload references the evidence node
+- `t_done` = `timestamp` of the `node.state_changed` event with `payload.state == "done"` for the target node
 
 If `|t_done - t_evidence| ≤ 2 seconds`, the evidence is just-in-time. Severity:
 
@@ -67,16 +72,16 @@ If `|t_done - t_evidence| ≤ 2 seconds`, the evidence is just-in-time. Severity
 **Detection.**
 
 ```
-for ev in events where ev.kind == "evidence.attached":
-  evidence_id := ev.payload.node_id
-  target_id := verifies_edge_source(evidence_id)   # via snapshot.edges
+for ev in events where ev.type == "evidence.attached":
+  evidence_id := ev.payload.node.node_id
+  target_id := ev.payload.verifies_edge.target_id    # directly on the event
   if target_id is None: continue
   done_ev := first(events where
-    ev2.kind == "node.state_changed" and
+    ev2.type == "node.state_changed" and
     ev2.payload.node_id == target_id and
-    ev2.payload.to_state == "done")
+    ev2.payload.state == "done")
   if done_ev is None: continue
-  delta := abs(parse_iso(ev.created_at) - parse_iso(done_ev.created_at))
+  delta := abs(parse_iso(ev.timestamp) - parse_iso(done_ev.timestamp))
   if delta <= 2.0:
     emit YELLOW just-in-time-evidence {
       evidence_id, target_id,
@@ -100,15 +105,15 @@ Downgrade requires *verifiable* reference, not a claim. `description: "see PR #4
 ```
 for n in snapshot.nodes where n.state == "done":
   transitions := [ ev for ev in events where
-                    ev.kind == "node.state_changed" and
+                    ev.type == "node.state_changed" and
                     ev.payload.node_id == n.node_id ]
-  if any(ev.payload.to_state == "failed" for ev in transitions):
+  if any(ev.payload.state == "failed" for ev in transitions):
     last_failed := last such event
-    final_done := last event with to_state == "done"
+    final_done := last event with payload.state == "done"
     intervening_evidence := any(ev for ev in events where
-      ev.kind == "evidence.attached" and
-      verifies_edge_source(ev.payload.node_id) == n.node_id and
-      last_failed.created_at < ev.created_at < final_done.created_at)
+      ev.type == "evidence.attached" and
+      ev.payload.verifies_edge.target_id == n.node_id and
+      last_failed.timestamp < ev.timestamp < final_done.timestamp)
     if not intervening_evidence:
       emit YELLOW silent-reversal { node_id: n.node_id, failed_at, done_at }
 ```
