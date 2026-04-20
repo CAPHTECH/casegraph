@@ -13,11 +13,11 @@ Use this skill for workflow orchestration through the `cg` CLI. For direct works
 
 ## Command bootstrap
 
-Resolve a working launcher before using the commands below:
+Resolve a working launcher before using the commands below. Use `cg --version` as the existence check — it prints a single line and is the canonical way to confirm the CLI is installed.
 
-1. If `cg --help` works, use `cg`.
-2. If CaseGraph is installed locally in the current project, use `pnpm exec cg --help` or `npx cg --help`.
-3. If you are inside the CaseGraph repository, run `pnpm install` and `pnpm build`, then use `pnpm cg --help`.
+1. If `cg --version` works, use `cg`.
+2. If CaseGraph is installed locally in the current project, use `pnpm exec cg --version` or `npx cg --version`.
+3. If you are inside the CaseGraph repository, run `pnpm install` and `pnpm build`, then use `pnpm cg --version`.
 4. If none of those work, install `@caphtech/casegraph-cli` and use either global `cg` or project-local `pnpm exec cg`.
 
 In the rest of this skill, `cg ...` means "use the launcher that succeeded here."
