@@ -22,6 +22,8 @@ Resolve a working launcher before using the commands below:
 
 In the rest of this skill, `cg ...` means "use the launcher that succeeded here."
 
+In a fresh workspace (no `.casegraph/` directory yet), run `cg init` once before the first `cg case new` — otherwise `cg case new` will fail with a missing-workspace error.
+
 ## When to use
 
 Use this skill when:
@@ -32,6 +34,8 @@ Use this skill when:
 - evidence, decisions, and close state need to survive outside the transcript
 - the case should be mirrored to GitHub Issues so collaborators can follow progress outside `cg`
 
+When GitHub mirroring is required, read [github-projection.md](references/github-projection.md) before adding the first task node.
+
 Skip it for tiny one-pass edits that do not need a durable case.
 
 ## Operating loop
@@ -41,6 +45,7 @@ Skip it for tiny one-pass edits that do not need a durable case.
    - Otherwise create a case with one goal and the minimum task graph needed to expose the frontier.
 2. Build the minimum useful structure.
    - Add a goal plus concrete task nodes.
+   - Do not mirror one task node per file or per code change. Cut task nodes by work-step divergence (where the agent would pause, verify, or hand off), usually 2-3 nodes total for a focused refactor or migration.
    - Use `depends_on` for hard sequencing, `waits_for` for external blockers, and `contributes_to` from work nodes to the goal.
    - Read [task-templates.md](references/task-templates.md) when deciding how much graph to create.
 3. Execute from the frontier.
@@ -66,7 +71,10 @@ Skip it for tiny one-pass edits that do not need a durable case.
 - Use `decision decide` when an option is chosen and that choice constrains future work.
 - Use `event record` only after creating an event node, and only for milestone or external-world facts worth preserving.
 - Keep node titles outcome-oriented so they work as resume anchors.
+- Add `--description` to every node that is not a one-line atomic action: capture what "done" means, what was considered, and any inputs the next agent needs. Descriptions exist for compaction resilience and resume, not only for GitHub projection.
 - If a task is still being proven, it is not done yet.
+- Before `cg case close`, the goal itself must be in the `done` state. Use `cg task done <goal_id>` (it works on `kind:goal` too) or `cg node update --id <goal_id> --state done` after every contributing task is done and evidence is attached. Do not invent an evidence node just to "mark a goal done".
+- If `cg case close` refuses, read `cg validate --format json` first, fix the reported blocker (usually: a task not yet done, or the goal not yet done), then retry. Do not force close or paper over with fabricated evidence.
 - If the case still has ready work or unresolved warnings, closing needs explicit judgment.
 
 ## Command skeleton
@@ -75,13 +83,15 @@ This is the happy-path set only. For any verb, flag, enum, or jq pattern beyond 
 
 ```sh
 cg case new --id <case_id> --title "<title>"
-cg node add --case <case_id> --id goal_<name> --kind goal --title "<goal>"
-cg node add --case <case_id> --id task_<name> --kind task --title "<task>"
+cg node add --case <case_id> --id goal_<name> --kind goal --title "<goal>" --description "<what done looks like, constraints, out-of-scope>"
+cg node add --case <case_id> --id task_<name> --kind task --title "<task>" --description "<acceptance criteria, inputs, expected artifact>"
 cg edge add --case <case_id> --id edge_<name> --type contributes_to --from task_<name> --to goal_<name>
 cg frontier --case <case_id> --format json
 cg task start --case <case_id> task_<name>
 cg evidence add --case <case_id> --id evidence_<name> --title "<title>" --target task_<name> --description "<summary>"
 cg task done --case <case_id> task_<name>
+# After every contributing task is done, mark the goal done too:
+cg task done --case <case_id> goal_<name>
 cg validate --case <case_id> --format json
 cg case close --case <case_id>
 ```

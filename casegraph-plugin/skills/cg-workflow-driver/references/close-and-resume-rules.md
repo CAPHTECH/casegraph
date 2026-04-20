@@ -51,6 +51,21 @@ After compaction, handoff, or a long pause:
 
 If the case no longer matches the real work, update the graph before executing more code.
 
+## Marking a goal done before close
+
+- Every contributing task finishes, then the goal itself must be in the `done` state before `cg case close` will succeed.
+- `cg task done <goal_id>` works on `kind:goal` today (it is the generic "mark a node as done"). `cg node update --id <goal_id> --state done` is equivalent. Either is fine.
+- Evidence nodes are created by `cg evidence add` and attach via the `verifies` edge. They record proof, not completion — do not synthesize an evidence node just to satisfy close.
+
+## When close refuses
+
+`cg case close` does not fail silently on a whim. If it refuses:
+
+1. run `cg validate --case <id> --format json` and read the `blockers` / `warnings` fields.
+2. if a task is the blocker, finish or cancel it.
+3. if the goal is the blocker, mark it done via `cg task done <goal_id>` or `cg node update --state done`.
+4. only then retry `cg case close`. Use `--force` only for a warning you have explicitly judged safe to ignore.
+
 ## Anti-patterns
 
 - Closing because all chat messages look settled
@@ -59,3 +74,5 @@ If the case no longer matches the real work, update the graph before executing m
 - Recording every small action as an event
 - Using `doing` to hide external waiting
 - Forcing close to silence unresolved blockers
+- Creating a new evidence node just to mark a goal as complete (evidence records proof, not completion)
+- Forgetting to mark the goal done and then assuming `cg case close` is broken
