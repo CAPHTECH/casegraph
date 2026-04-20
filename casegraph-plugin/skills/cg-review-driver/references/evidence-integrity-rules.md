@@ -20,11 +20,16 @@ Per `packages/kernel/src/types.ts`, the event envelope uses `type` / `timestamp`
 **Detection.**
 
 ```text
-let verified := { e.target_id | e in snapshot.edges, e.type == "verifies" }
-let evidence_sources := { e.source_id | e in snapshot.edges, e.type == "verifies" } ∩ { n.node_id | n in snapshot.nodes, n.kind == "evidence" }
+let evidence_nodes := { n.node_id | n in snapshot.nodes, n.kind == "evidence" }
+let verified_by_evidence := {
+  e.target_id
+  | e in snapshot.edges,
+    e.type == "verifies" and
+    e.source_id in evidence_nodes
+}
 for n in snapshot.nodes:
   if n.kind in {task, decision} and n.state == "done":
-    if n.node_id not in verified:
+    if n.node_id not in verified_by_evidence:
       emit RED done-without-verifies { node_id: n.node_id, kind: n.kind, title: n.title }
 ```
 
@@ -111,7 +116,7 @@ for ev in events where ev.type == "evidence.attached":
 
 **Downgrade to 🟢 note.** When the evidence description contains a verifiable artifact reference whose native timestamp is materially older than the evidence event — PR URL with a known `created_at`, commit SHA resolvable via `git show`, test run log with an earlier execution timestamp — the timing finding is downgraded. The artifact existed before the evidence, so the "just-in-time" appearance is a documentation delay rather than fabrication.
 
-Downgrade requires *verifiable* reference, not a claim. `description: "see PR #42"` is not enough unless `metadata.pr_url` is populated or `#42` appears with a `github.com` URL that the report can emit as a Phase F cross-check item.
+Downgrade requires *verifiable* reference, not a claim. `description: "see PR #42"` is not enough unless `metadata.pr_url` is populated or `#42` appears with a GitHub URL that the report can emit as a Phase F cross-check item.
 
 ---
 
