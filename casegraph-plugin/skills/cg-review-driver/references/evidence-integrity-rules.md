@@ -19,7 +19,7 @@ Per `packages/kernel/src/types.ts`, the event envelope uses `type` / `timestamp`
 
 **Detection.**
 
-```
+```text
 let verified := { e.target_id | e in snapshot.edges, e.type == "verifies" }
 let evidence_sources := { e.source_id | e in snapshot.edges, e.type == "verifies" } ∩ { n.node_id | n in snapshot.nodes, n.kind == "evidence" }
 for n in snapshot.nodes:
@@ -38,7 +38,7 @@ for n in snapshot.nodes:
 
 **Statement.** An `evidence` node's `description` field must carry substantive content. "Substantive" is defined operationally by the single shared placeholder regex:
 
-```
+```text
 placeholder_regex := /^(実施|完了|done|ok|yes|finished)[.。]?$/i
 ```
 
@@ -52,7 +52,7 @@ Detection uses the exact same `placeholder_regex` — do not inline a second pat
 
 **Detection.**
 
-```
+```text
 placeholder_regex := /^(実施|完了|done|ok|yes|finished)[.。]?$/i
 for n in snapshot.nodes where n.kind == "evidence":
   desc := n.description or ""
@@ -81,7 +81,7 @@ If `|t_done - t_evidence| ≤ 2 seconds`, the evidence is just-in-time. Severity
 
 **Detection.** When a target node transitions through `done` more than once (e.g. `done → failed → done`), pick the `done` event nearest to the evidence in time — prefer the first `done` at or after the evidence, otherwise the nearest done by absolute timestamp delta. Fixing on `first(done)` would misjudge late-reopened tasks.
 
-```
+```text
 for ev in events where ev.type == "evidence.attached":
   evidence_id := ev.payload.node.node_id
   target_id := ev.payload.verifies_edge.target_id    # directly on the event
@@ -115,7 +115,7 @@ Downgrade requires *verifiable* reference, not a claim. `description: "see PR #4
 
 **Detection.**
 
-```
+```text
 for n in snapshot.nodes where n.state == "done":
   transitions := [ ev for ev in events where
                     ev.type == "node.state_changed" and
@@ -123,10 +123,12 @@ for n in snapshot.nodes where n.state == "done":
   if any(ev.payload.state == "failed" for ev in transitions):
     last_failed := last such event
     final_done := last event with payload.state == "done"
+    failed_at := last_failed.timestamp
+    done_at := final_done.timestamp
     intervening_evidence := any(ev for ev in events where
       ev.type == "evidence.attached" and
       ev.payload.verifies_edge.target_id == n.node_id and
-      last_failed.timestamp < ev.timestamp < final_done.timestamp)
+      failed_at < ev.timestamp < done_at)
     if not intervening_evidence:
       emit YELLOW silent-reversal { node_id: n.node_id, failed_at, done_at }
 ```
@@ -141,7 +143,7 @@ for n in snapshot.nodes where n.state == "done":
 
 **Detection.**
 
-```
+```text
 for e in snapshot.edges where e.type == "verifies":
   src := lookup_node(e.source_id)
   if src is None or src.kind != "evidence":

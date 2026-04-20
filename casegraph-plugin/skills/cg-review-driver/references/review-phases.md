@@ -231,7 +231,7 @@ jq '
 
 **Findings.**
 
-- Always emitted as a dedicated "Manual cross-check required" section, not as 🔴/🟡/🟢 findings. The number of items gates the Verdict: a Green graph with 0 Phase F items is fully approved; with >0 items, the skill says "Green graph, N external checks pending — human owns final approval".
+- Always emitted as a dedicated "Manual cross-check required" section, not as 🔴/🟡/🟢 findings. Final approval remains human-owned in every case — a Green graph means the graph side passes, not that the PR is approved. With >0 items, the skill says "Green graph, N external checks pending — human owns final approval"; with 0 items, the skill says "Green graph, no external checks pending — final approval remains human-owned".
 
 ---
 
