@@ -36,18 +36,28 @@ for n in snapshot.nodes:
 
 ## Rule 2 — `empty-evidence` (🟡)
 
-**Statement.** An `evidence` node's `description` field must carry substantive content. "Substantive" is defined operationally:
+**Statement.** An `evidence` node's `description` field must carry substantive content. "Substantive" is defined operationally by the single shared placeholder regex:
 
-- length ≥ 20 characters, AND
-- does not match (case-insensitive) the regex `^(実施|完了|done|ok|yes|finished)[.。]?$`, AND
-- is not purely whitespace plus punctuation.
+```
+placeholder_regex := /^(実施|完了|done|ok|yes|finished)[.。]?$/i
+```
+
+A description fails Rule 2 when any of the following holds:
+
+- length < 20 characters, OR
+- trimmed description matches `placeholder_regex`, OR
+- trimmed description is empty (purely whitespace plus punctuation).
+
+Detection uses the exact same `placeholder_regex` — do not inline a second pattern.
 
 **Detection.**
 
 ```
+placeholder_regex := /^(実施|完了|done|ok|yes|finished)[.。]?$/i
 for n in snapshot.nodes where n.kind == "evidence":
   desc := n.description or ""
-  if len(desc) < 20 or desc.matches(placeholder_regex):
+  trimmed := desc.strip()
+  if len(desc) < 20 or trimmed.matches(placeholder_regex) or trimmed == "":
     emit YELLOW empty-evidence { node_id: n.node_id, description_len: len(desc) }
 ```
 
@@ -69,19 +79,22 @@ If `|t_done - t_evidence| ≤ 2 seconds`, the evidence is just-in-time. Severity
 - 1–2 s delta: weak suspicion. Emit 🟡 with `severity_hint: plausible-batch`.
 - \> 2 s delta: no finding.
 
-**Detection.**
+**Detection.** When a target node transitions through `done` more than once (e.g. `done → failed → done`), pick the `done` event nearest to the evidence in time — prefer the first `done` at or after the evidence, otherwise the nearest done by absolute timestamp delta. Fixing on `first(done)` would misjudge late-reopened tasks.
 
 ```
 for ev in events where ev.type == "evidence.attached":
   evidence_id := ev.payload.node.node_id
   target_id := ev.payload.verifies_edge.target_id    # directly on the event
   if target_id is None: continue
-  done_ev := first(events where
-    ev2.type == "node.state_changed" and
-    ev2.payload.node_id == target_id and
-    ev2.payload.state == "done")
-  if done_ev is None: continue
-  delta := abs(parse_iso(ev.timestamp) - parse_iso(done_ev.timestamp))
+  done_candidates := [ ev2 for ev2 in events where
+                        ev2.type == "node.state_changed" and
+                        ev2.payload.node_id == target_id and
+                        ev2.payload.state == "done" ]
+  if done_candidates is empty: continue
+  t_ev := parse_iso(ev.timestamp)
+  done_ev := first(d in done_candidates where parse_iso(d.timestamp) >= t_ev)
+             or min_by(abs(parse_iso(d.timestamp) - t_ev) for d in done_candidates)
+  delta := abs(parse_iso(done_ev.timestamp) - t_ev)
   if delta <= 2.0:
     emit YELLOW just-in-time-evidence {
       evidence_id, target_id,

@@ -86,9 +86,15 @@ Full rules live in [evidence-integrity-rules.md](evidence-integrity-rules.md). T
 **Commands.**
 
 ```sh
-# Done task/decision without any incoming verifies edge
+# Done task/decision without any incoming verifies edge from an evidence node.
+# A `verifies` edge whose source is not kind=="evidence" is itself a Rule 5 violation and
+# must not be counted as verification here.
 jq '
-  ([.data.edges[] | select(.type == "verifies") | .target_id]) as $verified
+  ([.data.nodes[] | select(.kind == "evidence") | .node_id]) as $evidenceIds
+  | ([.data.edges[]
+      | select(.type == "verifies")
+      | select(.source_id as $s | $evidenceIds | index($s))
+      | .target_id]) as $verified
   | .data.nodes
   | map(select(.kind == "task" or .kind == "decision"))
   | map(select(.state == "done"))
@@ -96,7 +102,8 @@ jq '
   | map(.node_id)
 ' /tmp/cg-review-view.json
 
-# Empty or placeholder evidence
+# Empty or placeholder evidence — the placeholder regex matches
+# evidence-integrity-rules.md Rule 2 verbatim.
 jq '
   .data.nodes
   | map(select(.kind == "evidence"))
@@ -105,7 +112,7 @@ jq '
       description_len: (.description // "" | length),
       title,
       suspicious: ((.description // "" | length) < 20
-                   or (.description // "" | test("^(実施|完了|done|ok)$"; "i")))
+                   or (.description // "" | test("^(実施|完了|done|ok|yes|finished)[.。]?$"; "i")))
     })
   | map(select(.suspicious))
 ' /tmp/cg-review-view.json
