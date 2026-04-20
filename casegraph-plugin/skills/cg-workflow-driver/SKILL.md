@@ -69,6 +69,7 @@ Skip it for tiny one-pass edits that do not need a durable case.
 - Model outcomes, blockers, and proof; do not mirror every conversational thought into the graph.
 - Prefer evidence for compaction resilience. The next agent should be able to resume from the case without replaying the full chat.
 - Use `decision decide` when an option is chosen and that choice constrains future work.
+- On any direction pivot (abandoning an approach, switching strategy, reframing the problem), create a dedicated `decision` node whose body holds the rationale and the rejected alternative. Do not bury the pivot reason inside `evidence.description` — evidence records what was observed or produced, not why the course changed. A pivot without a decision node is not a recorded pivot.
 - Use `event record` only after creating an event node, and only for milestone or external-world facts worth preserving.
 - Keep node titles outcome-oriented so they work as resume anchors.
 - Add `--description` to every node that is not a one-line atomic action: capture what "done" means, what was considered, and any inputs the next agent needs. Descriptions exist for compaction resilience and resume, not only for GitHub projection.
