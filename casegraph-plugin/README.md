@@ -20,11 +20,11 @@ The skills are split so that the highest-risk surfaces stay explicit: day-to-day
 From the Claude Code CLI:
 
 ```
-/plugin marketplace add <this-repo-path-or-URL>
+/plugin marketplace add CAPHTECH/casegraph
 /plugin install casegraph-plugin@casegraph-marketplace
 ```
 
-Marketplace manifest: `../.claude-plugin/marketplace.json`.
+`CAPHTECH/casegraph` is the GitHub `owner/repo` shorthand; a full HTTPS URL also works. Marketplace manifest: `../.claude-plugin/marketplace.json`.
 
 ## Relationship to CaseGraph core
 
