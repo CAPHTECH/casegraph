@@ -233,7 +233,7 @@ jq '
 **What to enumerate.**
 
 - **Files**: values in `metadata.file`, or paths matched by regex in description. Render as `- git log -- <path>  # verify touched` in the report.
-- **PRs / issues**: `metadata.pr_url`, or `#N` / `github.com` strings in description. Render as `- gh pr view <n> / gh issue view <n>  # confirm exists`.
+- **PRs / issues**: `metadata.pr_url`, or `#N` / GitHub URL strings in description. Render as `- gh pr view <n> / gh issue view <n>  # confirm exists`.
 - **Commits**: `metadata.commit_sha`. Render as `- git show <sha>  # confirm applies`.
 - **Tests**: `metadata.test` or description substrings like `pnpm test <name>`. Render as `- pnpm test <name>  # rerun`.
 - **URLs**: anything else. Render as a clickable link with no auto-action.
