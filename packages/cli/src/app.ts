@@ -1,4 +1,6 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   addEdge,
   addEvidence,
@@ -66,6 +68,10 @@ import {
 import { runSinkPull, runSinkPush } from "./sink-host.js";
 import { runWorkerExecute, type WorkerRunResult } from "./worker-host.js";
 
+const cliPackage = JSON.parse(
+  readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8")
+) as { version: string };
+
 interface WorkerRunCommandOptions {
   worker: string;
   case: string;
@@ -85,6 +91,7 @@ export async function runCli(
   program
     .name("cg")
     .description("CaseGraph CLI")
+    .version(cliPackage.version, "-V, --version", "Show CaseGraph CLI version")
     .option("--workspace <path>")
     .option("--format <format>", "text or json", "text")
     .option("--quiet")

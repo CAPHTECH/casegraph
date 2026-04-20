@@ -34,6 +34,28 @@ describe("cli phase 1 acceptance", () => {
     expect(stderr.join("")).not.toContain("internal_error");
   });
 
+  it("prints the CLI package version for --version and -V", async () => {
+    const packageJson = JSON.parse(
+      await readFile(path.resolve(import.meta.dirname, "../packages/cli/package.json"), "utf8")
+    ) as { version: string };
+
+    for (const flag of ["--version", "-V"]) {
+      const stdout: string[] = [];
+      const stderr: string[] = [];
+
+      const code = await runCli([flag], {
+        io: {
+          stdout: (text) => stdout.push(text),
+          stderr: (text) => stderr.push(text)
+        }
+      });
+
+      expect(code).toBe(0);
+      expect(stdout.join("").trim()).toBe(packageJson.version);
+      expect(stderr.join("")).toBe("");
+    }
+  });
+
   it("creates a release case and exposes frontier/blockers in JSON", async () => {
     const workspaceRoot = await createTempWorkspace("casegraph-cli-");
     createdWorkspaces.push(workspaceRoot);
