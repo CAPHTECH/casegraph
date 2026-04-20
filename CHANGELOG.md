@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 The format is based on Keep a Changelog and the project follows semantic versioning for published packages.
 
+## [0.1.4] - 2026-04-20
+
+Published: `@caphtech/casegraph-cli@0.1.4`. `kernel`, `core`, `importer-markdown`, `sink-markdown`, and `worker-*` packages are unchanged.
+
+### Added
+
+- **cli**: `cg --version` / `cg -V` now print the installed CLI version. `isCommanderDisplayExit` already whitelisted `commander.version` as a non-fatal exit, but `program.version(...)` was never registered, so the flag was unavailable. The version is loaded from the CLI `package.json` via `import.meta.url`, so both the TypeScript source (under the vitest alias) and the compiled `dist` entry resolve correctly.
+
+### Docs
+
+- Rewrote the top-level `README.md` demo, EN/JA quickstart guides, and EN/JA manual-acceptance guides so users who installed via `npm install -g @caphtech/casegraph-cli` can follow them without cloning the repo. Prerequisites now list Node 22+ and the npm global install; every command line uses `cg` instead of `pnpm run cg`. The contributor fallback (`pnpm run cg` from source) is preserved as a one-line note.
+
+### Verification
+
+- `pnpm build`
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm test:install-smoke`
+
 ## [0.1.3] - 2026-04-19
 
 Published: `@caphtech/casegraph-cli@0.1.3`. `kernel`, `core`, `importer-markdown`, `sink-markdown`, and `worker-*` packages are unchanged.
