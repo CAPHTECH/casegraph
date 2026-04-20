@@ -31,22 +31,20 @@ Current implementation includes:
 
 Prerequisites:
 
-- Node.js 24+
-- `pnpm` 10+
+- Node.js 22+
 
 ```bash
-pnpm install
-pnpm build
+npm install -g @caphtech/casegraph-cli
 export WORKSPACE="$(mktemp -d /tmp/casegraph-demo.XXXXXX)"
 
-pnpm run cg --workspace "$WORKSPACE" init --title "CaseGraph Demo"
-pnpm run cg --workspace "$WORKSPACE" case new --id release-demo --title "Release demo"
-pnpm run cg --workspace "$WORKSPACE" node add --case release-demo --id goal_release_demo --kind goal --title "Release demo ready"
-pnpm run cg --workspace "$WORKSPACE" node add --case release-demo --id task_write_notes --kind task --title "Write release notes" --state todo
-pnpm run cg --workspace "$WORKSPACE" node add --case release-demo --id task_publish --kind task --title "Publish build" --state todo
-pnpm run cg --workspace "$WORKSPACE" edge add --case release-demo --id edge_publish_depends_notes --type depends_on --from task_publish --to task_write_notes
-pnpm run cg --workspace "$WORKSPACE" frontier --case release-demo
-pnpm run cg --workspace "$WORKSPACE" blockers --case release-demo
+cg --workspace "$WORKSPACE" init --title "CaseGraph Demo"
+cg --workspace "$WORKSPACE" case new --id release-demo --title "Release demo"
+cg --workspace "$WORKSPACE" node add --case release-demo --id goal_release_demo --kind goal --title "Release demo ready"
+cg --workspace "$WORKSPACE" node add --case release-demo --id task_write_notes --kind task --title "Write release notes" --state todo
+cg --workspace "$WORKSPACE" node add --case release-demo --id task_publish --kind task --title "Publish build" --state todo
+cg --workspace "$WORKSPACE" edge add --case release-demo --id edge_publish_depends_notes --type depends_on --from task_publish --to task_write_notes
+cg --workspace "$WORKSPACE" frontier --case release-demo
+cg --workspace "$WORKSPACE" blockers --case release-demo
 ```
 
 For the full walkthrough:
@@ -93,6 +91,8 @@ Release and verification guides:
 - [Manual acceptance (JA)](docs/guides/manual-acceptance.ja.md)
 
 ## Development
+
+This section is for contributors working from a clone of this repository. External users should follow the [Quickstart](#quickstart) and [Install](#install) sections above.
 
 Common commands:
 
