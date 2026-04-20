@@ -73,7 +73,7 @@ cg blockers --case <id> --format json
 - 🟡 `frontier-nonempty-at-review`: case is `open` with `frontier` ≠ ∅ and the user prompted for a completion review.
 - 🟡 `blockers-active-at-review`: unresolved blockers exist at review time.
 
-**Hard stop.** If `cg events verify` fails, do not run Phases C–F. Render the report with Verdict = 🔴 Red + Summary = "event log integrity failure — graph not trustworthy".
+**Hard stop.** If `cg events verify` fails, do not run Phases C–F. Render the report with Verdict = ⛔ REVIEW ABORTED + Summary = "event log integrity failure — graph not trustworthy".
 
 ---
 
@@ -103,18 +103,26 @@ jq '
   | map(.node_id)
 ' /tmp/cg-review-view.json
 
-# Empty or placeholder evidence — the placeholder regex matches
-# evidence-integrity-rules.md Rule 2 verbatim.
+# Empty or placeholder evidence — mirrors evidence-integrity-rules.md Rule 2.
+# Suspicious when any of: length<20 | trimmed placeholder | trimmed empty | trimmed punct-only.
 jq '
   .data.nodes
   | map(select(.kind == "evidence"))
-  | map({
-      node_id,
-      description_len: (.description // "" | length),
-      title,
-      suspicious: ((.description // "" | length) < 20
-                   or (.description // "" | test("^(実施|完了|done|ok|yes|finished)[.。]?$"; "i")))
-    })
+  | map(
+      . as $n
+      | ((.description // "") | gsub("^\\s+|\\s+$"; "")) as $trimmed
+      | {
+          node_id,
+          description_len: (($n.description // "") | length),
+          title,
+          suspicious: (
+            (($n.description // "") | length) < 20
+            or ($trimmed == "")
+            or ($trimmed | test("^(実施|完了|done|ok|yes|finished)[.。]?$"; "i"))
+            or ($trimmed | test("^[\\p{P}\\p{S}]+$"; "u"))
+          )
+        }
+    )
   | map(select(.suspicious))
 ' /tmp/cg-review-view.json
 ```
