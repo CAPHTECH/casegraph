@@ -80,11 +80,11 @@ Skip it for tiny one-pass edits that do not need a durable case.
 
 ## Context economy
 
-Every `cg` invocation and its output become a tool_use + tool_result in the session history, which the next API call re-sends in full. For long workflows, call volume — not single-command size — drives context growth.
+Every `cg` invocation and its output become a tool_use + tool_result in the session history, which the next API call re-sends in full. For long workflows, call volume — not single-command size — drives context growth. Trim where it does not cost correctness; `cg frontier` is the authoritative ready-set and is the point of using cg, so keep reading it — cut other noise instead.
 
 - Prefer default text format for status reads (`cg case show`, `cg validate`). Reach for `--format json` only when the agent will actually parse a field. `cg frontier` is the exception: agents typically need `node_id` values, so json is the right default there.
-- Do not re-read `cg frontier` between every task unless a prior step can plausibly have changed the ready set (new node added, edge added, dependency unblocked). After `task done` alone, the next frontier is predictable from the graph you already built.
 - Batch node/edge creation up front when the plan is known; avoid interleaving node adds with execution just to "see the graph grow" in the transcript.
+- Attach `cg evidence add` for outcomes and checkpoints that must survive compaction, not for narration of each intermediate step.
 
 ## Command skeleton
 
