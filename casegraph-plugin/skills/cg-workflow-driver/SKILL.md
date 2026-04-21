@@ -46,6 +46,7 @@ Skip it for tiny one-pass edits that do not need a durable case.
 2. Build the minimum useful structure.
    - Add a goal plus concrete task nodes.
    - Do not mirror one task node per file or per code change. Cut task nodes by work-step divergence (where the agent would pause, verify, or hand off), usually 2-3 nodes total for a focused refactor or migration.
+   - When the task type is not obvious, read [decomposition-patterns.md](references/decomposition-patterns.md), select the closest case type, and use its 2-4 task cut.
    - Use `depends_on` for hard sequencing, `waits_for` for external blockers, and `contributes_to` from work nodes to the goal.
    - Read [task-templates.md](references/task-templates.md) when deciding how much graph to create.
 3. Execute from the frontier.
@@ -115,10 +116,13 @@ When resuming after compaction or handoff:
 4. unresolved waiting or failed nodes
 5. recent decisions and event nodes
 
+For a fresh handoff worker session, first check the case against the handoff-ready requirements in [decomposition-patterns.md](references/decomposition-patterns.md). If the goal, task proof conditions, or frontier are underspecified, repair the graph before editing source files.
+
 ## References
 
 - [cg-cli-cheatsheet.md](references/cg-cli-cheatsheet.md)
 - [task-templates.md](references/task-templates.md)
+- [decomposition-patterns.md](references/decomposition-patterns.md)
 - [checkpoint-evidence.md](references/checkpoint-evidence.md)
 - [close-and-resume-rules.md](references/close-and-resume-rules.md)
 - [github-projection.md](references/github-projection.md)
