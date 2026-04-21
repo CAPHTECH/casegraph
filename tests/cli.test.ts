@@ -1338,7 +1338,7 @@ describe("cli frontier/blockers lean JSON output", () => {
     expect(node).not.toHaveProperty("derived");
   });
 
-  it("keeps non-empty node fields and emits derived without node_id when non-trivial", async () => {
+  it("keeps non-empty node fields and strips trivial derived from frontier/blockers", async () => {
     const workspaceRoot = await createTempWorkspace("casegraph-cli-");
     createdWorkspaces.push(workspaceRoot);
 
