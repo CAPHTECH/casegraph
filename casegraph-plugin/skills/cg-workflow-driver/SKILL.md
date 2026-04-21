@@ -78,6 +78,14 @@ Skip it for tiny one-pass edits that do not need a durable case.
 - If `cg case close` refuses, read `cg validate --format json` first, fix the reported blocker (usually: a task not yet done, or the goal not yet done), then retry. Do not force close or paper over with fabricated evidence.
 - If the case still has ready work or unresolved warnings, closing needs explicit judgment.
 
+## Context economy
+
+Every `cg` invocation and its output become a tool_use + tool_result in the session history, which the next API call re-sends in full. For long workflows, call volume — not single-command size — drives context growth.
+
+- Prefer default text format for status reads (`cg case show`, `cg validate`). Reach for `--format json` only when the agent will actually parse a field. `cg frontier` is the exception: agents typically need `node_id` values, so json is the right default there.
+- Do not re-read `cg frontier` between every task unless a prior step can plausibly have changed the ready set (new node added, edge added, dependency unblocked). After `task done` alone, the next frontier is predictable from the graph you already built.
+- Batch node/edge creation up front when the plan is known; avoid interleaving node adds with execution just to "see the graph grow" in the transcript.
+
 ## Command skeleton
 
 This is the happy-path set only. For any verb, flag, enum, or jq pattern beyond what is shown here, read [cg-cli-cheatsheet.md](references/cg-cli-cheatsheet.md) **before** running `cg <verb> --help` — it is compact and covers the whole Phase 0+ surface (node update, task wait/cancel/fail, analyze, patch, sync, worker, migrate, enums). Fall back to `--help` only when the cheatsheet lacks what you need.

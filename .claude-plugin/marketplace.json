@@ -12,7 +12,7 @@
       "name": "casegraph-plugin",
       "source": "./casegraph-plugin",
       "description": "CaseGraph CLI integration for Claude Code. Skills for workspace reading/authoring/analysis, cg-driven workflow orchestration, GraphPatch proposals, and external integrations (importer / sink / worker / storage recovery).",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "author": {
         "name": "Ryoichi Izumita"
       },
