@@ -51,6 +51,7 @@ import { generateId } from "@caphtech/casegraph-kernel";
 import { Command } from "commander";
 import { buildCaseViewData } from "./case-view.js";
 import { ingestMarkdownPatch } from "./importer-host.js";
+import { compactBlockedItem, compactFrontierItem } from "./lean-output.js";
 import { loadPatchValidation, loadValidPatch, writeStructuredFile } from "./patch-file.js";
 import { successResult } from "./result.js";
 import {
@@ -476,7 +477,15 @@ export async function runCli(
       const options = command.opts() as { case: string };
       await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
         const data = await getFrontierItems(workspaceRoot, options.case);
-        return successResult("frontier", data, data.revision);
+        return successResult(
+          "frontier",
+          {
+            case_id: data.case_id,
+            revision: data.revision,
+            nodes: data.nodes.map(compactFrontierItem)
+          },
+          data.revision
+        );
       });
     });
 
@@ -487,7 +496,15 @@ export async function runCli(
       const options = command.opts() as { case: string };
       await runWorkspaceCommand(runtime, command, async (workspaceRoot) => {
         const data = await listBlockedItems(workspaceRoot, options.case);
-        return successResult("blockers", data, data.revision);
+        return successResult(
+          "blockers",
+          {
+            case_id: data.case_id,
+            revision: data.revision,
+            items: data.items.map(compactBlockedItem)
+          },
+          data.revision
+        );
       });
     });
 

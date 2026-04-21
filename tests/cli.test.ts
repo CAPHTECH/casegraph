@@ -1302,6 +1302,117 @@ describe("cli phase 1 acceptance", () => {
   });
 });
 
+describe("cli frontier/blockers lean JSON output", () => {
+  it("omits empty-default node fields and the trivial derived block", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-cli-");
+    createdWorkspaces.push(workspaceRoot);
+
+    await runJsonCommand(workspaceRoot, ["case", "new", "--id", "lean", "--title", "Lean"]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "lean",
+      "--kind",
+      "task",
+      "--id",
+      "t1",
+      "--title",
+      "Plain task"
+    ]);
+
+    const frontier = await runJsonCommand(workspaceRoot, ["frontier", "--case", "lean"]);
+    expect(frontier.code).toBe(0);
+    const nodes = frontier.json.data.nodes as Record<string, unknown>[];
+    expect(nodes).toHaveLength(1);
+    const node = nodes[0] as Record<string, unknown>;
+    expect(node.node_id).toBe("t1");
+    expect(node.kind).toBe("task");
+    expect(node.title).toBe("Plain task");
+    expect(node.state).toBe("todo");
+    expect(node).not.toHaveProperty("description");
+    expect(node).not.toHaveProperty("labels");
+    expect(node).not.toHaveProperty("acceptance");
+    expect(node).not.toHaveProperty("metadata");
+    expect(node).not.toHaveProperty("extensions");
+    expect(node).not.toHaveProperty("derived");
+  });
+
+  it("keeps non-empty node fields and emits derived without node_id when non-trivial", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-cli-");
+    createdWorkspaces.push(workspaceRoot);
+
+    await runJsonCommand(workspaceRoot, ["case", "new", "--id", "lean2", "--title", "Lean2"]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "lean2",
+      "--kind",
+      "task",
+      "--id",
+      "t_lead",
+      "--title",
+      "Lead task",
+      "--description",
+      "has details",
+      "--labels",
+      "urgent"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "node",
+      "add",
+      "--case",
+      "lean2",
+      "--kind",
+      "task",
+      "--id",
+      "t_dep",
+      "--title",
+      "Dependent"
+    ]);
+    await runJsonCommand(workspaceRoot, [
+      "edge",
+      "add",
+      "--case",
+      "lean2",
+      "--id",
+      "e1",
+      "--type",
+      "depends_on",
+      "--from",
+      "t_dep",
+      "--to",
+      "t_lead"
+    ]);
+
+    const frontier = await runJsonCommand(workspaceRoot, ["frontier", "--case", "lean2"]);
+    expect(frontier.code).toBe(0);
+    const frontNodes = frontier.json.data.nodes as Record<string, unknown>[];
+    expect(frontNodes).toHaveLength(1);
+    const leadNode = frontNodes[0] as Record<string, unknown>;
+    expect(leadNode.node_id).toBe("t_lead");
+    expect(leadNode.description).toBe("has details");
+    expect(leadNode.labels).toEqual(["urgent"]);
+    expect(leadNode).not.toHaveProperty("acceptance");
+    expect(leadNode).not.toHaveProperty("metadata");
+    expect(leadNode).not.toHaveProperty("extensions");
+    expect(leadNode).not.toHaveProperty("derived");
+
+    const blockers = await runJsonCommand(workspaceRoot, ["blockers", "--case", "lean2"]);
+    expect(blockers.code).toBe(0);
+    const items = blockers.json.data.items as Array<{
+      node: Record<string, unknown>;
+      reasons: Array<Record<string, unknown>>;
+    }>;
+    expect(items).toHaveLength(1);
+    expect(items[0]?.node.node_id).toBe("t_dep");
+    expect(items[0]?.node).not.toHaveProperty("description");
+    expect(items[0]?.node).not.toHaveProperty("labels");
+    expect(items[0]?.reasons.length).toBeGreaterThan(0);
+  });
+});
+
 async function runJsonCommand(workspaceRoot: string, args: string[]) {
   const stdout: string[] = [];
   const stderr: string[] = [];
