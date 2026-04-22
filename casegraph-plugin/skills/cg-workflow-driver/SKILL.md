@@ -45,9 +45,10 @@ Skip it for tiny one-pass edits that do not need a durable case.
    - Otherwise create a case with one goal and the minimum task graph needed to expose the frontier.
 2. Build the minimum useful structure.
    - Add a goal plus concrete task nodes.
-   - Do not mirror one task node per file or per code change. Cut task nodes by work-step divergence (where the agent would pause, verify, or hand off), usually 2-3 nodes total for a focused refactor or migration.
+   - Do not mirror one task node per file or per code change. Cut task nodes by work-step divergence (where the agent would pause, verify, or hand off), usually 2-3 nodes total for a focused implementation refactor or migration.
+   - Treat the 2-task minimal graph as an implementation/evaluation default, not as a universal cg rule. For broader planning, investigation, handoff, migration, or operational cases, decompose the work into the task graph the case actually needs.
    - When the task type is not obvious, read [decomposition-patterns.md](references/decomposition-patterns.md), select the closest case type, and use its 2-4 task cut.
-   - Use `depends_on` for hard sequencing, `waits_for` for external blockers, and `contributes_to` from work nodes to the goal.
+   - Use `depends_on` for hard sequencing whenever one task produces the contract, evidence, or artifact another task needs. Use `waits_for` for external blockers, and `contributes_to` from work nodes to the goal.
    - Read [task-templates.md](references/task-templates.md) when deciding how much graph to create.
 3. Execute from the frontier.
    - Inspect `cg frontier --case <id> --format json`.

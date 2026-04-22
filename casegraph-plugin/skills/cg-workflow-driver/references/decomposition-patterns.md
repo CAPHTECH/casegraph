@@ -4,10 +4,12 @@ Use this reference before creating task nodes. Pick the closest case type, then 
 
 ## Selection rules
 
+- Use the minimal 2-task graph as the default for focused implementation evaluation, not as a general CaseGraph rule.
 - Use 2 task nodes when the work has one core change boundary and one consumer/verification boundary.
 - Use 3 task nodes when diagnosis, implementation, and verification are meaningfully separate.
 - Use 4 task nodes only when rollback/ops/security/adversarial proof is a separate deliverable.
 - Do not split by file unless each file has a different owner, blocker, or proof condition.
+- Add `depends_on` edges for real sequencing: contract before consumer, diagnosis before fix, implementation before verification, migration before cleanup, or any task that consumes another task's artifact.
 - Every task must state the check or evidence that proves it is done.
 
 ## Case types
