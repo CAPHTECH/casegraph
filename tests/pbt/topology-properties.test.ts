@@ -91,33 +91,35 @@ describe("property: topology analysis invariants", () => {
 
 function summarizeResult(result: ReturnType<typeof analyzeTopology>) {
   return {
-    node_count: result.node_count,
-    edge_count: result.edge_count,
-    beta_0: result.beta_0,
-    beta_1: result.beta_1,
-    components: result.components,
+    ...summarizeBase(result),
     warnings: result.warnings
   };
 }
 
 function summarizeReference(reference: TopologyReferenceSummary) {
   return {
-    node_count: reference.node_count,
-    edge_count: reference.edge_count,
-    beta_0: reference.beta_0,
-    beta_1: reference.beta_1,
-    components: reference.components,
+    ...summarizeBase(reference),
     warnings: reference.warnings
   };
 }
 
 function summarizeResultWithoutWarnings(result: ReturnType<typeof analyzeTopology>) {
+  return summarizeBase(result);
+}
+
+function summarizeBase<TComponents>(value: {
+  node_count: number;
+  edge_count: number;
+  beta_0: number;
+  beta_1: number;
+  components: TComponents;
+}) {
   return {
-    node_count: result.node_count,
-    edge_count: result.edge_count,
-    beta_0: result.beta_0,
-    beta_1: result.beta_1,
-    components: result.components
+    node_count: value.node_count,
+    edge_count: value.edge_count,
+    beta_0: value.beta_0,
+    beta_1: value.beta_1,
+    components: value.components
   };
 }
 

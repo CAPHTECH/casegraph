@@ -71,6 +71,7 @@
               "missing_estimates_present",
               "duration_path_unavailable_due_to_missing_estimates"
             ],
+            "expected_warning_count": 2,
             "top_k_contains": ["task_collect_quotes", "task_compare_quotes"]
           }
         },
@@ -82,7 +83,8 @@
             "expected_warning_ids": [
               "missing_estimates_present",
               "slack_unavailable_due_to_missing_estimates"
-            ]
+            ],
+            "expected_warning_count": 2
           }
         }
       ]
@@ -130,7 +132,8 @@
           "labels": {
             "expected_beta_0": 0,
             "expected_beta_1": 0,
-            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+            "expected_warning_ids": ["scope_has_no_unresolved_nodes"],
+            "expected_warning_count": 1
           }
         },
         {
@@ -184,7 +187,8 @@
           "projection": "hard_unresolved",
           "labels": {
             "top_k_contains": ["task_prepare"],
-            "expected_warning_ids": ["bottleneck_signal_unavailable_due_to_cycles"]
+            "expected_warning_ids": ["bottleneck_signal_unavailable_due_to_cycles"],
+            "expected_warning_count": 1
           }
         }
       ]
@@ -201,6 +205,7 @@
             "expected_beta_0": 4,
             "expected_beta_1": 2,
             "expected_warning_ids": ["self_loop_ignored"],
+            "expected_warning_count": 1,
             "expected_component_node_sets": [
               ["task_a", "task_b", "task_c", "task_d", "task_e"],
               ["task_forest_a", "task_forest_b"],
@@ -218,7 +223,8 @@
               ["task_a", "task_b", "task_c"],
               ["task_c", "task_d", "task_e"]
             ],
-            "expected_warning_ids": ["self_loop_ignored"]
+            "expected_warning_ids": ["self_loop_ignored"],
+            "expected_warning_count": 1
           }
         },
         {
@@ -230,6 +236,7 @@
             "expected_beta_0": 1,
             "expected_beta_1": 2,
             "expected_warning_ids": ["self_loop_ignored"],
+            "expected_warning_count": 1,
             "expected_component_node_sets": [["task_a", "task_b", "task_c", "task_d", "task_e"]]
           }
         },
@@ -254,7 +261,8 @@
           "labels": {
             "expected_beta_0": 0,
             "expected_beta_1": 0,
-            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+            "expected_warning_ids": ["scope_has_no_unresolved_nodes"],
+            "expected_warning_count": 1
           }
         },
         {
@@ -265,7 +273,8 @@
           "labels": {
             "expected_beta_0": 0,
             "expected_beta_1": 0,
-            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+            "expected_warning_ids": ["scope_has_no_unresolved_nodes"],
+            "expected_warning_count": 1
           }
         }
       ]
