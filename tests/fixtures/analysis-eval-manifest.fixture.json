@@ -181,20 +181,18 @@
     },
     {
       "corpus_id": "topology-edge-cases",
-      "events_file": "./analysis-eval.topology-edge-cases.events.json",
+      "fixture_file": "./structure-analysis-edge-cases.fixture.json",
       "queries": [
         {
           "name": "hard unresolved topology keeps forest splits and figure-eight cycles",
           "kind": "topology",
           "projection": "hard_unresolved",
           "labels": {
-            "expected_beta_0": 6,
+            "expected_beta_0": 4,
             "expected_beta_1": 2,
             "expected_warning_ids": ["self_loop_ignored"],
             "expected_component_node_sets": [
-              ["goal_figure_ready"],
-              ["goal_noise_ready"],
-              ["task_fig_a", "task_fig_b", "task_fig_c", "task_fig_d", "task_fig_e"],
+              ["task_a", "task_b", "task_c", "task_d", "task_e"],
               ["task_forest_a", "task_forest_b"],
               ["task_forest_c", "task_forest_d"],
               ["task_noise_a", "task_noise_b"]
@@ -207,8 +205,8 @@
           "projection": "hard_unresolved",
           "labels": {
             "expected_cycle_node_sets": [
-              ["task_fig_a", "task_fig_b", "task_fig_c"],
-              ["task_fig_c", "task_fig_d", "task_fig_e"]
+              ["task_a", "task_b", "task_c"],
+              ["task_c", "task_d", "task_e"]
             ],
             "expected_warning_ids": ["self_loop_ignored"]
           }
@@ -221,9 +219,9 @@
           "labels": {
             "expected_beta_0": 1,
             "expected_beta_1": 2,
-            "expected_warning_ids": [],
+            "expected_warning_ids": ["self_loop_ignored"],
             "expected_component_node_sets": [
-              ["task_fig_a", "task_fig_b", "task_fig_c", "task_fig_d", "task_fig_e"]
+              ["task_a", "task_b", "task_c", "task_d", "task_e"]
             ]
           }
         },
@@ -235,7 +233,7 @@
           "labels": {
             "expected_beta_0": 1,
             "expected_beta_1": 0,
-            "expected_warning_ids": ["self_loop_ignored"],
+            "expected_warning_ids": [],
             "expected_component_node_sets": [["task_noise_a", "task_noise_b"]]
           }
         },

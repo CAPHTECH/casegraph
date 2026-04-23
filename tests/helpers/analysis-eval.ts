@@ -29,6 +29,7 @@ import {
   analyzeTopology,
   type TopologyAnalysisResult
 } from "@caphtech/casegraph-core/experimental";
+import { buildReplayStateFromFixture, type ReplayFixture } from "./replay-fixture.js";
 
 export type EvalQueryKind =
   | "impact"
@@ -75,7 +76,8 @@ export interface EvalQuerySpec {
 
 export interface EvalCorpusSpec {
   corpus_id: string;
-  events_file: string;
+  events_file?: string;
+  fixture_file?: string;
   queries: EvalQuerySpec[];
 }
 
@@ -144,8 +146,7 @@ export async function collectEventEvalMetrics(options: {
     const manifest = await loadEvalManifest(manifestPath);
     corpusCount += manifest.corpora.length;
     for (const corpus of manifest.corpora) {
-      const events = await loadEventsFile(manifestPath, corpus.events_file);
-      const state = replayCaseEvents(events);
+      const state = await loadEvalCorpusState(manifestPath, corpus);
 
       for (const query of corpus.queries) {
         queryMetrics.push(
@@ -202,6 +203,32 @@ async function loadEventsFile(
     .split(/\r?\n/)
     .filter((line) => line.trim().length > 0)
     .map((line) => JSON.parse(line) as EventEnvelope);
+}
+
+async function loadEvalCorpusState(
+  manifestPath: string,
+  corpus: EvalCorpusSpec
+): Promise<ReturnType<typeof replayCaseEvents>> {
+  if (corpus.events_file && corpus.fixture_file) {
+    throw new Error(
+      `Eval corpus ${corpus.corpus_id} must define either events_file or fixture_file, not both`
+    );
+  }
+
+  if (corpus.fixture_file) {
+    const resolvedPath = path.resolve(path.dirname(manifestPath), corpus.fixture_file);
+    const fixture = JSON.parse(await readFile(resolvedPath, "utf8")) as ReplayFixture;
+    return buildReplayStateFromFixture(fixture);
+  }
+
+  if (corpus.events_file) {
+    const events = await loadEventsFile(manifestPath, corpus.events_file);
+    return replayCaseEvents(events);
+  }
+
+  throw new Error(
+    `Eval corpus ${corpus.corpus_id} must define one of events_file or fixture_file`
+  );
 }
 
 async function evaluateQueryMetric(
