@@ -21,6 +21,7 @@ import structureAnalysisFixture from "../fixtures/structure-analysis.fixture.jso
 import structureAnalysisEdgeCasesFixture from "../fixtures/structure-analysis-edge-cases.fixture.json";
 import topologyAnalysisFixture from "../fixtures/topology-analysis.fixture.json";
 import vendorSelectionAnalysisFixture from "../fixtures/vendor-selection-analysis.fixture.json";
+import { buildReplayStateFromFixture, type ReplayFixture } from "./replay-fixture.js";
 import {
   applyFixtureActions,
   createTempWorkspace,
@@ -28,7 +29,6 @@ import {
   removeTempWorkspace,
   seedFixture
 } from "./workspace.js";
-import { buildReplayStateFromFixture, type ReplayFixture } from "./replay-fixture.js";
 
 export interface GoldenFixture extends ReplayFixture {
   scenarios: GoldenScenario[];

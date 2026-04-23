@@ -24,16 +24,22 @@ properties:
     level: L0-L2
     file: tests/pbt/topology-properties.test.ts
     generator: tests/pbt/generators/topology.ts::topologyBlueprintArb
-    law: hard_unresolved projection matches the simple undirected normalization model
+    law: hard_unresolved projection matches the simple undirected normalization model over depends_on and waits_for edges
   - id: PBT-topology-hard-goal-scope-reference
     kind: reference_model
     level: L0-L2
     file: tests/pbt/topology-properties.test.ts
     generator: tests/pbt/generators/topology.ts::goalScopedTopologyBlueprintArb
-    law: hard_goal_scope projection equals contributor closure plus unresolved prerequisites
+    law: hard_goal_scope projection equals unresolved contributor closure plus unresolved hard prerequisites
   - id: PBT-topology-normalization-metamorphic
     kind: metamorphic
     level: L1-L2
     file: tests/pbt/topology-properties.test.ts
     generator: tests/pbt/generators/topology.ts::simpleTopologyBlueprintArb
     law: duplicate hard edges and self-loops do not change the normalized topology surface
+  - id: PBT-topology-resolved-contributor-exclusion
+    kind: invariant
+    level: L1-L2
+    file: tests/pbt/topology-properties.test.ts
+    generator: tests/pbt/generators/topology.ts::resolvedContributorScopeBlueprintArb
+    law: resolved contributors do not seed goal-scoped unresolved prerequisite closure

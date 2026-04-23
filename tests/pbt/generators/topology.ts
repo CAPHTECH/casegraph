@@ -1,6 +1,7 @@
 import {
   createEvent,
   defaultActor,
+  type EdgeType,
   type NodeState,
   replayCaseEvents
 } from "@caphtech/casegraph-core";
@@ -15,6 +16,7 @@ export interface TopologyTaskBlueprint {
 
 export interface TopologyHardEdgeBlueprint {
   edge_id: string;
+  type: Extract<EdgeType, "depends_on" | "waits_for">;
   source_id: string;
   target_id: string;
 }
@@ -45,6 +47,10 @@ const topologyTaskStateArb = fc.constantFrom<TopologyTaskState>(
   "waiting",
   "failed",
   "done"
+);
+const topologyHardEdgeTypeArb = fc.constantFrom<Extract<EdgeType, "depends_on" | "waits_for">>(
+  "depends_on",
+  "waits_for"
 );
 
 export const topologyBlueprintArb: fc.Arbitrary<TopologyBlueprint> = fc
@@ -112,6 +118,38 @@ export const goalScopedTopologyBlueprintArb: fc.Arbitrary<TopologyBlueprint> =
         contributorTaskIds: [...contributorTaskIds].sort((left, right) => left.localeCompare(right))
       }))
   );
+
+export const resolvedContributorScopeBlueprintArb: fc.Arbitrary<TopologyBlueprint> =
+  topologyBlueprintArb
+    .filter((blueprint) => blueprint.tasks.some((task) => task.state !== "done"))
+    .map((blueprint) => {
+      const prerequisiteTaskId =
+        blueprint.tasks.find((task) => task.state !== "done")?.node_id ?? "task_fallback";
+
+      return {
+        ...blueprint,
+        caseId: `${blueprint.caseId}-resolved-contributor`,
+        tasks: [
+          ...blueprint.tasks,
+          {
+            node_id: "task_resolved_bridge",
+            state: "done"
+          }
+        ],
+        goalNodeId: "goal_release_ready",
+        goalState: "done",
+        contributorTaskIds: ["task_resolved_bridge"],
+        hardEdges: [
+          ...blueprint.hardEdges,
+          {
+            edge_id: "resolved_bridge_wait",
+            type: "waits_for",
+            source_id: "task_resolved_bridge",
+            target_id: prerequisiteTaskId
+          }
+        ]
+      };
+    });
 
 export function buildTopologyState(blueprint: TopologyBlueprint) {
   const timestamp = "2026-01-01T00:00:00.000Z";
@@ -194,7 +232,7 @@ export function buildTopologyState(blueprint: TopologyBlueprint) {
         payload: {
           edge: {
             edge_id: edge.edge_id,
-            type: "depends_on",
+            type: edge.type,
             source_id: edge.source_id,
             target_id: edge.target_id,
             metadata: {},
@@ -237,11 +275,13 @@ export function buildReferenceTopology(
 export function addNormalizationNoise(blueprint: TopologyBlueprint): TopologyBlueprint {
   const duplicateEdges = blueprint.hardEdges.slice(0, 3).map((edge, index) => ({
     edge_id: `dup_${index}_${edge.edge_id}`,
+    type: edge.type,
     source_id: index % 2 === 0 ? edge.source_id : edge.target_id,
     target_id: index % 2 === 0 ? edge.target_id : edge.source_id
   }));
   const selfLoops = blueprint.tasks.slice(0, 2).map((task, index) => ({
     edge_id: `self_${index}_${task.node_id}`,
+    type: index % 2 === 0 ? "depends_on" : "waits_for",
     source_id: task.node_id,
     target_id: task.node_id
   }));
@@ -262,7 +302,8 @@ function arbitraryHardEdges(
       fc.tuple(
         fc.integer({ min: 0, max: taskIds.length - 1 }),
         fc.integer({ min: 0, max: taskIds.length - 1 }),
-        fc.boolean()
+        fc.boolean(),
+        topologyHardEdgeTypeArb
       ),
       { minLength: 0, maxLength: taskIds.length * 3 }
     )
@@ -320,7 +361,9 @@ function collectScopedNodeIds(
     return [...unresolvedNodeIds].sort(sortStrings);
   }
 
-  const scopedSeedIds = new Set(blueprint.contributorTaskIds ?? []);
+  const scopedSeedIds = new Set(
+    (blueprint.contributorTaskIds ?? []).filter((nodeId) => unresolvedNodeIds.has(nodeId))
+  );
   expandWithUnresolvedPrerequisites(scopedSeedIds, blueprint.hardEdges, unresolvedNodeIds);
   return [...scopedSeedIds].filter((nodeId) => unresolvedNodeIds.has(nodeId)).sort(sortStrings);
 }
@@ -457,13 +500,13 @@ function countEdgesWithinComponent(componentNodeIds: string[], edgeKeys: string[
 
 function materializeHardEdges(
   taskIds: string[],
-  entries: Array<[number, number, boolean]>,
+  entries: Array<[number, number, boolean, Extract<EdgeType, "depends_on" | "waits_for">]>,
   options: { allowDuplicates: boolean; allowSelfLoops: boolean }
 ): TopologyHardEdgeBlueprint[] {
   const hardEdges: TopologyHardEdgeBlueprint[] = [];
   const seenUndirectedPairs = new Set<string>();
 
-  for (const [leftIndex, rightIndex, keepDirection] of entries) {
+  for (const [leftIndex, rightIndex, keepDirection, edgeType] of entries) {
     const leftNodeId = taskIds[leftIndex] as string;
     const rightNodeId = taskIds[rightIndex] as string;
     const undirectedKey = edgeKey(leftNodeId, rightNodeId);
@@ -475,7 +518,9 @@ function materializeHardEdges(
     }
 
     seenUndirectedPairs.add(undirectedKey);
-    hardEdges.push(buildHardEdge(hardEdges.length, leftNodeId, rightNodeId, keepDirection));
+    hardEdges.push(
+      buildHardEdge(hardEdges.length, leftNodeId, rightNodeId, keepDirection, edgeType)
+    );
   }
 
   return hardEdges;
@@ -501,10 +546,12 @@ function buildHardEdge(
   index: number,
   leftNodeId: string,
   rightNodeId: string,
-  keepDirection: boolean
+  keepDirection: boolean,
+  edgeType: Extract<EdgeType, "depends_on" | "waits_for">
 ): TopologyHardEdgeBlueprint {
   return {
     edge_id: `hard_${index}`,
+    type: edgeType,
     source_id: keepDirection ? leftNodeId : rightNodeId,
     target_id: keepDirection ? rightNodeId : leftNodeId
   };

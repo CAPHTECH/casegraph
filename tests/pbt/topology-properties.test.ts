@@ -7,6 +7,7 @@ import {
   buildReferenceTopology,
   buildTopologyState,
   goalScopedTopologyBlueprintArb,
+  resolvedContributorScopeBlueprintArb,
   simpleTopologyBlueprintArb,
   type TopologyReferenceSummary,
   topologyBlueprintArb
@@ -64,6 +65,23 @@ describe("property: topology analysis invariants", () => {
         );
         expect(noisyResult.cycle_witnesses).toEqual(baseResult.cycle_witnesses);
         expect(noisyResult.warnings).toEqual(noisyReference.warnings);
+      }),
+      { numRuns: 40 }
+    );
+  });
+
+  it("P4 resolved contributors do not seed prerequisite closure", () => {
+    fc.assert(
+      fc.property(resolvedContributorScopeBlueprintArb, (blueprint) => {
+        const result = analyzeTopology(buildTopologyState(blueprint), {
+          projection: "hard_goal_scope",
+          goalNodeId: blueprint.goalNodeId as string
+        });
+
+        expect(result.node_count).toBe(0);
+        expect(result.edge_count).toBe(0);
+        expect(result.components).toEqual([]);
+        expect(result.warnings).toEqual(["scope_has_no_unresolved_nodes"]);
       }),
       { numRuns: 40 }
     );

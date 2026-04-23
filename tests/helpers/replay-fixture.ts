@@ -1,9 +1,9 @@
 import {
   createEvent,
   defaultActor,
-  replayCaseEvents,
   type NodeKind,
-  type NodeState
+  type NodeState,
+  replayCaseEvents
 } from "@caphtech/casegraph-core";
 
 export interface ReplayFixture {

@@ -18,3 +18,12 @@ counterexamples:
       beta_1: 0
       warnings:
         - scope_has_no_unresolved_nodes
+  - id: issue-9-resolved-contributor-exclusion
+    source: critical-code-review follow-up
+    fixture: tests/fixtures/structure-analysis-edge-cases.fixture.json
+    regression_test: tests/analysis-topology.test.ts::does not seed goal scope from resolved contributors
+    expectation:
+      node_count: 0
+      edge_count: 0
+      warnings:
+        - scope_has_no_unresolved_nodes

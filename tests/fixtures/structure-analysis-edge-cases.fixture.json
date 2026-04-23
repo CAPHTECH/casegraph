@@ -25,6 +25,12 @@
       "state": "done"
     },
     {
+      "node_id": "goal_resolved_ready",
+      "kind": "goal",
+      "title": "Resolved ready",
+      "state": "done"
+    },
+    {
       "node_id": "task_archived",
       "kind": "task",
       "title": "Archived",
@@ -95,6 +101,12 @@
       "kind": "task",
       "title": "Noise B",
       "state": "todo"
+    },
+    {
+      "node_id": "task_resolved_bridge",
+      "kind": "task",
+      "title": "Resolved Bridge",
+      "state": "done"
     }
   ],
   "edges": [
@@ -172,7 +184,7 @@
     },
     {
       "edge_id": "edge_noise_b_a",
-      "type": "depends_on",
+      "type": "waits_for",
       "source_id": "task_noise_b",
       "target_id": "task_noise_a"
     },
@@ -187,6 +199,18 @@
       "type": "contributes_to",
       "source_id": "task_noise_b",
       "target_id": "goal_noise_ready"
+    },
+    {
+      "edge_id": "edge_resolved_bridge_wait",
+      "type": "waits_for",
+      "source_id": "task_resolved_bridge",
+      "target_id": "task_noise_a"
+    },
+    {
+      "edge_id": "edge_resolved_bridge_goal",
+      "type": "contributes_to",
+      "source_id": "task_resolved_bridge",
+      "target_id": "goal_resolved_ready"
     }
   ],
   "scenarios": [
@@ -194,10 +218,7 @@
       "name": "cycles on figure-eight graph ignore self-loop noise",
       "cycles": {
         "cycle_count": 2,
-        "cycle_node_sets": [
-          ["task_a", "task_b", "task_c"],
-          ["task_c", "task_d", "task_e"]
-        ],
+        "cycle_node_sets": [["task_a", "task_b", "task_c"], ["task_c", "task_d", "task_e"]],
         "warnings": ["self_loop_ignored"]
       }
     },
@@ -248,10 +269,7 @@
           "task_noise_b"
         ],
         "top_node_id": "task_c",
-        "warnings": [
-          "bottleneck_signal_unavailable_due_to_cycles",
-          "self_loop_ignored"
-        ]
+        "warnings": ["bottleneck_signal_unavailable_due_to_cycles", "self_loop_ignored"]
       }
     },
     {
@@ -261,6 +279,15 @@
         "component_count": 1,
         "component_node_sets": [["task_a", "task_b", "task_c", "task_d", "task_e"]],
         "warnings": ["self_loop_ignored"]
+      }
+    },
+    {
+      "name": "resolved contributors do not seed goal-scoped prerequisites",
+      "components": {
+        "goal_node_id": "goal_resolved_ready",
+        "component_count": 0,
+        "component_node_sets": [],
+        "warnings": ["scope_has_no_unresolved_nodes"]
       }
     },
     {

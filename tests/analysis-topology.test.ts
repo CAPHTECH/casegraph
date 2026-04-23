@@ -197,6 +197,81 @@ describe("analyzeTopology", () => {
     expect(result.beta_1).toBe(1);
   });
 
+  it("treats waits_for edges as hard prerequisites in goal scope", () => {
+    const state = buildState({
+      caseId: "goal-scope-waits-for-case",
+      nodes: [
+        { node_id: "goal_release_ready", kind: "goal" },
+        { node_id: "task_publish" },
+        { node_id: "task_review", state: "waiting" }
+      ],
+      edges: [
+        {
+          edge_id: "e1",
+          type: "waits_for",
+          source_id: "task_publish",
+          target_id: "task_review"
+        },
+        {
+          edge_id: "e2",
+          type: "contributes_to",
+          source_id: "task_publish",
+          target_id: "goal_release_ready"
+        }
+      ]
+    });
+
+    const result = analyzeTopology(state, {
+      projection: "hard_goal_scope",
+      goalNodeId: "goal_release_ready"
+    });
+
+    expect(result.components).toEqual([
+      {
+        node_ids: ["task_publish", "task_review"],
+        edge_count: 1
+      }
+    ]);
+    expect(result.edge_count).toBe(1);
+    expect(result.beta_0).toBe(1);
+    expect(result.beta_1).toBe(0);
+  });
+
+  it("does not seed goal scope from resolved contributors", () => {
+    const state = buildState({
+      caseId: "goal-scope-resolved-contributor-case",
+      nodes: [
+        { node_id: "goal_release_ready", kind: "goal", state: "done" },
+        { node_id: "task_publish", state: "done" },
+        { node_id: "task_review", state: "waiting" }
+      ],
+      edges: [
+        {
+          edge_id: "e1",
+          type: "waits_for",
+          source_id: "task_publish",
+          target_id: "task_review"
+        },
+        {
+          edge_id: "e2",
+          type: "contributes_to",
+          source_id: "task_publish",
+          target_id: "goal_release_ready"
+        }
+      ]
+    });
+
+    const result = analyzeTopology(state, {
+      projection: "hard_goal_scope",
+      goalNodeId: "goal_release_ready"
+    });
+
+    expect(result.node_count).toBe(0);
+    expect(result.edge_count).toBe(0);
+    expect(result.components).toEqual([]);
+    expect(result.warnings).toEqual(["scope_has_no_unresolved_nodes"]);
+  });
+
   it("warns when the scoped graph has no unresolved nodes", () => {
     const state = buildState({
       caseId: "empty-scope-case",

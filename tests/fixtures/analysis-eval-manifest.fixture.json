@@ -220,9 +220,7 @@
             "expected_beta_0": 1,
             "expected_beta_1": 2,
             "expected_warning_ids": ["self_loop_ignored"],
-            "expected_component_node_sets": [
-              ["task_a", "task_b", "task_c", "task_d", "task_e"]
-            ]
+            "expected_component_node_sets": [["task_a", "task_b", "task_c", "task_d", "task_e"]]
           }
         },
         {
@@ -235,6 +233,17 @@
             "expected_beta_1": 0,
             "expected_warning_ids": [],
             "expected_component_node_sets": [["task_noise_a", "task_noise_b"]]
+          }
+        },
+        {
+          "name": "goal scoped topology ignores unresolved prerequisites behind resolved contributors",
+          "kind": "topology",
+          "projection": "hard_goal_scope",
+          "goal_node_id": "goal_resolved_ready",
+          "labels": {
+            "expected_beta_0": 0,
+            "expected_beta_1": 0,
+            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
           }
         },
         {

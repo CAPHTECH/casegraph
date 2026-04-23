@@ -226,9 +226,7 @@ async function loadEvalCorpusState(
     return replayCaseEvents(events);
   }
 
-  throw new Error(
-    `Eval corpus ${corpus.corpus_id} must define one of events_file or fixture_file`
-  );
+  throw new Error(`Eval corpus ${corpus.corpus_id} must define one of events_file or fixture_file`);
 }
 
 async function evaluateQueryMetric(
