@@ -31,7 +31,7 @@ describe("property: topology analysis invariants", () => {
   it("P2 hard_goal_scope matches contributor and prerequisite closure", () => {
     fc.assert(
       fc.property(goalScopedTopologyBlueprintArb, (blueprint) => {
-        const goalNodeId = blueprint.goalNodeId as string;
+        const goalNodeId = requireGoalNodeId(blueprint.goalNodeId);
         const result = analyzeTopology(buildTopologyState(blueprint), {
           projection: "hard_goal_scope",
           goalNodeId
@@ -74,7 +74,7 @@ describe("property: topology analysis invariants", () => {
       fc.property(resolvedContributorScopeBlueprintArb, (blueprint) => {
         const result = analyzeTopology(buildTopologyState(blueprint), {
           projection: "hard_goal_scope",
-          goalNodeId: blueprint.goalNodeId as string
+          goalNodeId: requireGoalNodeId(blueprint.goalNodeId)
         });
 
         expect(result.node_count).toBe(0);
@@ -117,6 +117,13 @@ function summarizeResultWithoutWarnings(result: ReturnType<typeof analyzeTopolog
     beta_1: result.beta_1,
     components: result.components
   };
+}
+
+function requireGoalNodeId(goalNodeId: string | undefined): string {
+  if (typeof goalNodeId !== "string") {
+    throw new Error("Invariant violation: goalNodeId must be defined");
+  }
+  return goalNodeId;
 }
 
 function expectCycleWitnessesToReferenceEdges(
