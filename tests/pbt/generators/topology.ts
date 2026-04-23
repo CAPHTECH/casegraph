@@ -248,7 +248,7 @@ export function buildTopologyState(blueprint: TopologyBlueprint) {
 
 export function buildReferenceTopology(
   blueprint: TopologyBlueprint,
-  options: { projection?: "hard_unresolved" | "hard_goal_scope"; goalNodeId?: string } = {}
+  options: { projection?: "hard_unresolved" | "hard_goal_scope" } = {}
 ): TopologyReferenceSummary {
   const projection = resolveProjection(blueprint, options);
   const unresolvedNodeIds = collectUnresolvedNodeIds(blueprint.tasks);
@@ -256,7 +256,7 @@ export function buildReferenceTopology(
   const { edgeKeys, warnings } = collectReferenceEdges(blueprint.hardEdges, scopedNodeIds);
   const components = collectReferenceComponents(scopedNodeIds, edgeKeys);
 
-  if (scopedNodeIds.length === 0) {
+  if (projection === "hard_goal_scope" && scopedNodeIds.length === 0) {
     warnings.add("scope_has_no_unresolved_nodes");
   }
 
@@ -342,10 +342,9 @@ function contributionEventsFromBlueprint(
 
 function resolveProjection(
   blueprint: TopologyBlueprint,
-  options: { projection?: "hard_unresolved" | "hard_goal_scope"; goalNodeId?: string }
+  options: { projection?: "hard_unresolved" | "hard_goal_scope" }
 ): "hard_unresolved" | "hard_goal_scope" {
-  const goalNodeId = options.goalNodeId ?? blueprint.goalNodeId;
-  return options.projection ?? (goalNodeId ? "hard_goal_scope" : "hard_unresolved");
+  return options.projection ?? (blueprint.goalNodeId ? "hard_goal_scope" : "hard_unresolved");
 }
 
 function collectUnresolvedNodeIds(tasks: TopologyTaskBlueprint[]): Set<string> {

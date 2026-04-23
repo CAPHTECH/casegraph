@@ -44,7 +44,7 @@ export function analyzeFragility(
     ...cutpointResult.warnings
   ]);
 
-  if (projected.graph.nodes.size === 0) {
+  if (projected.projection === "hard_goal_scope" && projected.graph.nodes.size === 0) {
     warnings.add("scope_has_no_unresolved_nodes");
   }
 

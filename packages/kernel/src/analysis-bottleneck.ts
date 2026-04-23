@@ -65,7 +65,7 @@ export function analyzeBottlenecks(
   stableTopologicalOrder(scopedGraph);
 
   const warnings: string[] = [];
-  if (scopedGraph.nodes.size === 0) {
+  if (goalNodeId && scopedGraph.nodes.size === 0) {
     warnings.push("scope_has_no_unresolved_nodes");
   }
 

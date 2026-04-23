@@ -42,7 +42,7 @@ export function analyzeTopology(
   const cycleWitnesses = collectCycleWitnesses(projected.graph, components);
   const warnings = new Set(projected.graph.warnings);
 
-  if (projected.graph.nodes.size === 0) {
+  if (projected.projection === "hard_goal_scope" && projected.graph.nodes.size === 0) {
     warnings.add("scope_has_no_unresolved_nodes");
   }
   if (cycleWitnesses.length < beta1) {

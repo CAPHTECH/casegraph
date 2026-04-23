@@ -37,8 +37,7 @@ describe("property: topology analysis invariants", () => {
           goalNodeId
         });
         const expected = buildReferenceTopology(blueprint, {
-          projection: "hard_goal_scope",
-          goalNodeId
+          projection: "hard_goal_scope"
         });
 
         expect(summarizeResult(result)).toEqual(summarizeReference(expected));

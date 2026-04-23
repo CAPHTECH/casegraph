@@ -303,6 +303,25 @@ describe("analyzeTopology", () => {
     expect(result.warnings).toEqual(["scope_has_no_unresolved_nodes"]);
   });
 
+  it("does not warn when hard_unresolved has no unresolved nodes", () => {
+    const state = buildState({
+      caseId: "empty-hard-unresolved-case",
+      nodes: [
+        { node_id: "task_done_a", state: "done" },
+        { node_id: "task_done_b", state: "done" }
+      ],
+      edges: [{ edge_id: "e1", source_id: "task_done_a", target_id: "task_done_b" }]
+    });
+
+    const result = analyzeTopology(state);
+
+    expect(result.node_count).toBe(0);
+    expect(result.edge_count).toBe(0);
+    expect(result.beta_0).toBe(0);
+    expect(result.beta_1).toBe(0);
+    expect(result.warnings).toEqual([]);
+  });
+
   it("requires a goal node for hard goal scope", () => {
     const state = buildState({
       caseId: "missing-goal-case",
