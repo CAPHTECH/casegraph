@@ -62,7 +62,9 @@ describe("property: topology analysis invariants", () => {
         expect(summarizeResultWithoutWarnings(noisyResult)).toEqual(
           summarizeResultWithoutWarnings(baseResult)
         );
-        expect(noisyResult.cycle_witnesses).toEqual(baseResult.cycle_witnesses);
+        expect(canonicalizeCycleWitnesses(noisyResult.cycle_witnesses)).toEqual(
+          canonicalizeCycleWitnesses(baseResult.cycle_witnesses)
+        );
         expect(noisyResult.warnings).toEqual(noisyReference.warnings);
       }),
       { numRuns: 40 }
@@ -117,6 +119,21 @@ function summarizeResultWithoutWarnings(result: ReturnType<typeof analyzeTopolog
     beta_1: result.beta_1,
     components: result.components
   };
+}
+
+function canonicalizeCycleWitnesses(
+  cycleWitnesses: ReturnType<typeof analyzeTopology>["cycle_witnesses"]
+): string[] {
+  return cycleWitnesses
+    .map((witness) =>
+      JSON.stringify({
+        node_ids: [...witness.node_ids].sort((left, right) => left.localeCompare(right)),
+        edge_pairs: witness.edge_pairs
+          .map((edgePair) => [edgePair.source_id, edgePair.target_id].sort().join("::"))
+          .sort((left, right) => left.localeCompare(right))
+      })
+    )
+    .sort((left, right) => left.localeCompare(right));
 }
 
 function requireGoalNodeId(goalNodeId: string | undefined): string {

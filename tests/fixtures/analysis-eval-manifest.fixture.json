@@ -12,6 +12,7 @@
             "must_include_node_ids": ["task_submit_store", "goal_release_ready"],
             "must_not_include_node_ids": ["task_monitor_post_release"],
             "expected_warning_ids": [],
+            "expected_warning_count": 0,
             "top_k_contains": ["task_submit_store"]
           }
         }
@@ -28,6 +29,7 @@
           "labels": {
             "must_include_node_ids": ["task_prepare", "task_monitor", "event_release_window"],
             "expected_warning_ids": [],
+            "expected_warning_count": 0,
             "top_k_contains": ["task_prepare"]
           }
         },
@@ -38,6 +40,7 @@
           "labels": {
             "must_include_node_ids": ["task_prepare", "event_release_window"],
             "expected_warning_ids": [],
+            "expected_warning_count": 0,
             "top_k_contains": ["task_prepare"]
           }
         },
@@ -48,6 +51,7 @@
           "labels": {
             "must_include_node_ids": ["task_prepare", "event_release_window"],
             "expected_warning_ids": [],
+            "expected_warning_count": 0,
             "top_k_contains": ["task_prepare"]
           }
         }
@@ -95,6 +99,7 @@
             "expected_beta_0": 3,
             "expected_beta_1": 1,
             "expected_warning_ids": [],
+            "expected_warning_count": 0,
             "expected_component_node_sets": [
               ["goal_release_ready"],
               ["task_archive", "task_cleanup"],
@@ -111,6 +116,7 @@
             "expected_beta_0": 1,
             "expected_beta_1": 1,
             "expected_warning_ids": [],
+            "expected_warning_count": 0,
             "expected_component_node_sets": [
               ["task_docs", "task_prepare", "task_publish", "task_review"]
             ]
@@ -133,7 +139,8 @@
           "projection": "hard_unresolved",
           "labels": {
             "expected_cycle_node_sets": [["task_prepare", "task_publish", "task_review"]],
-            "expected_warning_ids": []
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         },
         {
@@ -147,7 +154,8 @@
               ["task_archive", "task_cleanup"],
               ["task_docs", "task_prepare", "task_publish", "task_review"]
             ],
-            "expected_warning_ids": []
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         },
         {
@@ -156,7 +164,8 @@
           "projection": "hard_unresolved",
           "labels": {
             "expected_bridge_pairs": ["task_archive::task_cleanup", "task_docs::task_prepare"],
-            "expected_warning_ids": []
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         },
         {
@@ -165,7 +174,8 @@
           "projection": "hard_unresolved",
           "labels": {
             "expected_cutpoint_ids": ["task_prepare"],
-            "expected_warning_ids": []
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         },
         {
@@ -232,6 +242,7 @@
             "expected_beta_0": 1,
             "expected_beta_1": 0,
             "expected_warning_ids": [],
+            "expected_warning_count": 0,
             "expected_component_node_sets": [["task_noise_a", "task_noise_b"]]
           }
         },

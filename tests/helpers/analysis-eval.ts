@@ -54,6 +54,7 @@ export interface EvalQueryLabels {
   must_include_node_ids?: string[];
   must_not_include_node_ids?: string[];
   expected_warning_ids?: string[];
+  expected_warning_count?: number;
   expected_beta_0?: number;
   expected_beta_1?: number;
   expected_component_count?: number;
@@ -527,6 +528,9 @@ function evaluatePartialLabelChecks(
     checks.expected_warning_ids = labels.expected_warning_ids.every((warningId) =>
       warnings.includes(warningId)
     );
+  }
+  if (labels.expected_warning_count !== undefined) {
+    checks.expected_warning_count = warnings.length === labels.expected_warning_count;
   }
   applyExpectedTopologyChecks(checks, queryResult, labels);
   applyExpectedStructureChecks(checks, queryResult, labels);
