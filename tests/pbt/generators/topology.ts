@@ -70,7 +70,7 @@ export const topologyBlueprintArb: fc.Arbitrary<TopologyBlueprint> = fc
             caseId: `topology-prop-${taskIds.join("-")}`,
             tasks: taskIds.map((taskId, index) => ({
               node_id: taskId,
-              state: states[index] as TopologyTaskState
+              state: readTopologyTaskState(states, index, taskId)
             })),
             hardEdges
           }));
@@ -94,7 +94,7 @@ export const simpleTopologyBlueprintArb: fc.Arbitrary<TopologyBlueprint> = fc
             caseId: `topology-simple-prop-${taskIds.join("-")}`,
             tasks: taskIds.map((taskId, index) => ({
               node_id: taskId,
-              state: states[index] as TopologyTaskState
+              state: readTopologyTaskState(states, index, taskId)
             })),
             hardEdges
           }));
@@ -350,6 +350,28 @@ function resolveProjection(
 
 function collectUnresolvedNodeIds(tasks: TopologyTaskBlueprint[]): Set<string> {
   return new Set(tasks.filter((task) => task.state !== "done").map((task) => task.node_id));
+}
+
+function readTopologyTaskState(
+  states: readonly TopologyTaskState[],
+  index: number,
+  taskId: string
+): TopologyTaskState {
+  const state = states[index];
+  if (!isTopologyTaskState(state)) {
+    throw new Error(`Missing topology task state for ${taskId} at index ${index}`);
+  }
+  return state;
+}
+
+function isTopologyTaskState(value: NodeState | undefined): value is TopologyTaskState {
+  return (
+    value === "todo" ||
+    value === "doing" ||
+    value === "waiting" ||
+    value === "failed" ||
+    value === "done"
+  );
 }
 
 function collectScopedNodeIds(

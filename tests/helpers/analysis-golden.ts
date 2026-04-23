@@ -279,19 +279,22 @@ export async function collectAnalysisGoldenMetrics(): Promise<AnalysisGoldenMetr
   const scenarioMetrics: ScenarioMetric[] = [];
 
   for (const fixture of fixtures) {
-    for (const scenario of fixture.scenarios) {
-      if (fixture.seed_mode === "event_replay") {
+    if (fixture.seed_mode === "event_replay") {
+      const replayState = buildReplayStateFromFixture(fixture);
+
+      for (const scenario of fixture.scenarios) {
         if ((scenario.setup_actions ?? []).length > 0) {
           throw new Error(
             `Replay-only fixture ${fixture.case.case_id} does not support setup_actions`
           );
         }
-        scenarioMetrics.push(
-          evaluateReplayOnlyScenario(buildReplayStateFromFixture(fixture), fixture, scenario)
-        );
-        continue;
+        scenarioMetrics.push(evaluateReplayOnlyScenario(replayState, fixture, scenario));
       }
 
+      continue;
+    }
+
+    for (const scenario of fixture.scenarios) {
       const workspaceRoot = await createTempWorkspace("casegraph-analysis-golden-");
       try {
         await seedFixture(workspaceRoot, fixture);
