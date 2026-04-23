@@ -1,0 +1,21 @@
+case_id: issue-9-topology-analysis-surface
+title: "Issue #9: Stabilize Betti-0/1 topology analysis surface"
+description: "Stabilize the Betti-0/1 topology substrate so product-facing
+  structural analyses can depend on it. Done means: projection semantics for
+  hard_unresolved and hard_goal_scope(goal_node_id) are explicit; the normalized
+  simple-undirected unresolved-hard graph contract is consistent across
+  topology, cycles, components, bridges, cutpoints, and fragility; golden/eval
+  coverage proves forests, simple cycles, figure-eight cycles, self-loops,
+  multi-edges, empty goal scopes, and goal-scoped projections; docs and exports
+  keep raw topology experimental and do not promote a stable cg analyze topology
+  command. Out of scope: a stable raw topology CLI, temporal topology APIs, and
+  unrelated analysis surfaces."
+state: closed
+labels: []
+metadata: {}
+extensions: {}
+created_at: 2026-04-23T07:49:56.178Z
+updated_at: 2026-04-23T08:23:56.270Z
+case_revision:
+  current: 41
+  last_event_id: 01KPWQ0HKG6J9ATBWY2HPKVJ7D

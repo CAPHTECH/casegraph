@@ -183,6 +183,53 @@ describe("user-facing structure analyses", () => {
       }
     ]);
   });
+
+  it("warns consistently when goal scoping resolves to no unresolved nodes", () => {
+    const state = buildState({
+      caseId: "empty-goal-structure-case",
+      nodes: [
+        { node_id: "goal_archive_ready", kind: "goal", state: "done" },
+        { node_id: "task_archived", state: "done" }
+      ],
+      edges: [
+        {
+          edge_id: "e1",
+          type: "contributes_to",
+          source_id: "task_archived",
+          target_id: "goal_archive_ready"
+        }
+      ]
+    });
+
+    const options = {
+      projection: "hard_goal_scope" as const,
+      goalNodeId: "goal_archive_ready"
+    };
+
+    const cycles = analyzeCycles(state, options);
+    expect(cycles.cycle_count).toBe(0);
+    expect(cycles.cycles).toEqual([]);
+    expect(cycles.warnings).toEqual(["scope_has_no_unresolved_nodes"]);
+
+    const components = analyzeComponents(state, options);
+    expect(components.component_count).toBe(0);
+    expect(components.components).toEqual([]);
+    expect(components.warnings).toEqual(["scope_has_no_unresolved_nodes"]);
+
+    const bridges = analyzeBridges(state, options);
+    expect(bridges.bridge_count).toBe(0);
+    expect(bridges.bridges).toEqual([]);
+    expect(bridges.warnings).toEqual(["scope_has_no_unresolved_nodes"]);
+
+    const cutpoints = analyzeCutpoints(state, options);
+    expect(cutpoints.cutpoint_count).toBe(0);
+    expect(cutpoints.cutpoints).toEqual([]);
+    expect(cutpoints.warnings).toEqual(["scope_has_no_unresolved_nodes"]);
+
+    const fragility = analyzeFragility(state, options);
+    expect(fragility.nodes).toEqual([]);
+    expect(fragility.warnings).toEqual(["scope_has_no_unresolved_nodes"]);
+  });
 });
 
 function buildState(input: { caseId: string; nodes: TestNodeInput[]; edges: TestEdgeInput[] }) {

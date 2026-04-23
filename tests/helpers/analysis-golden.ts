@@ -23,6 +23,7 @@ import {
 import incidentAnalysisFixture from "../fixtures/incident-analysis.fixture.json";
 import releaseAnalysisFixture from "../fixtures/release-analysis.fixture.json";
 import structureAnalysisFixture from "../fixtures/structure-analysis.fixture.json";
+import structureAnalysisEdgeCasesFixture from "../fixtures/structure-analysis-edge-cases.fixture.json";
 import topologyAnalysisFixture from "../fixtures/topology-analysis.fixture.json";
 import vendorSelectionAnalysisFixture from "../fixtures/vendor-selection-analysis.fixture.json";
 import {
@@ -289,6 +290,7 @@ const fixtures: GoldenFixture[] = [
   releaseAnalysisFixture as GoldenFixture,
   incidentAnalysisFixture as GoldenFixture,
   structureAnalysisFixture as GoldenFixture,
+  structureAnalysisEdgeCasesFixture as GoldenFixture,
   topologyAnalysisFixture as GoldenFixture,
   vendorSelectionAnalysisFixture as GoldenFixture
 ];

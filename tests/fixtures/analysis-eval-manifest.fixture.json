@@ -178,6 +178,79 @@
           }
         }
       ]
+    },
+    {
+      "corpus_id": "topology-edge-cases",
+      "events_file": "./analysis-eval.topology-edge-cases.events.json",
+      "queries": [
+        {
+          "name": "hard unresolved topology keeps forest splits and figure-eight cycles",
+          "kind": "topology",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_beta_0": 6,
+            "expected_beta_1": 2,
+            "expected_warning_ids": ["self_loop_ignored"],
+            "expected_component_node_sets": [
+              ["goal_figure_ready"],
+              ["goal_noise_ready"],
+              ["task_fig_a", "task_fig_b", "task_fig_c", "task_fig_d", "task_fig_e"],
+              ["task_forest_a", "task_forest_b"],
+              ["task_forest_c", "task_forest_d"],
+              ["task_noise_a", "task_noise_b"]
+            ]
+          }
+        },
+        {
+          "name": "raw cycles surface keeps both figure-eight witnesses",
+          "kind": "cycles",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_cycle_node_sets": [
+              ["task_fig_a", "task_fig_b", "task_fig_c"],
+              ["task_fig_c", "task_fig_d", "task_fig_e"]
+            ],
+            "expected_warning_ids": ["self_loop_ignored"]
+          }
+        },
+        {
+          "name": "goal scoped topology keeps contributing figure-eight component",
+          "kind": "topology",
+          "projection": "hard_goal_scope",
+          "goal_node_id": "goal_figure_ready",
+          "labels": {
+            "expected_beta_0": 1,
+            "expected_beta_1": 2,
+            "expected_warning_ids": [],
+            "expected_component_node_sets": [
+              ["task_fig_a", "task_fig_b", "task_fig_c", "task_fig_d", "task_fig_e"]
+            ]
+          }
+        },
+        {
+          "name": "goal scoped topology normalizes noisy pair",
+          "kind": "topology",
+          "projection": "hard_goal_scope",
+          "goal_node_id": "goal_noise_ready",
+          "labels": {
+            "expected_beta_0": 1,
+            "expected_beta_1": 0,
+            "expected_warning_ids": ["self_loop_ignored"],
+            "expected_component_node_sets": [["task_noise_a", "task_noise_b"]]
+          }
+        },
+        {
+          "name": "empty goal scope topology warns instead of failing",
+          "kind": "topology",
+          "projection": "hard_goal_scope",
+          "goal_node_id": "goal_archive_ready",
+          "labels": {
+            "expected_beta_0": 0,
+            "expected_beta_1": 0,
+            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+          }
+        }
+      ]
     }
   ]
 }

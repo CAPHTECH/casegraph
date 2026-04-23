@@ -31,8 +31,13 @@ v1 で扱う projection は次の 2 種類だけに固定する。
 
 1. `hard_unresolved`
    - case 全体の unresolved hard graph
+   - unresolved node は `todo` / `doing` / `waiting` / `failed` に固定する
+   - graph edge は unresolved node 同士の `depends_on` / `waits_for` だけを使う
 2. `hard_goal_scope(goal_node_id)`
-   - goal に `contributes_to` で到達する unresolved node と、その hard prerequisite closure
+   - goal に `contributes_to` で到達する unresolved node と、その unresolved hard prerequisite closure
+   - `contributes_to` は scope の切り出し専用で、normalized graph edge には入れない
+   - goal node 自体や resolved contributor は projection node に入れない
+   - scope が空でも failure にはせず、empty graph + warning で返す
 
 ### Node scope
 
@@ -42,6 +47,9 @@ projection に含める unresolved state は、現行 critical-path/slack/bottle
 - `doing`
 - `waiting`
 - `failed`
+
+`done` / `cancelled` / `proposed` は、goal scope を切るときの `contributes_to` 上に存在しても
+projection node には含めない。
 
 ### Edge scope
 
@@ -58,7 +66,8 @@ projection に含める edge は hard dependency だけにする。
 - projection 後の計算対象は **simple undirected graph** とする
 - edge direction は Betti 計算には持ち込まない
 - multi-edge は endpoint が同じなら 1 本に正規化する
-- self-loop は validation issue として扱い、topology result には warning を返す
+- self-loop は normalized graph から除外し、warning `self_loop_ignored` を返す
+- self-loop が validation で別途検出されることは妨げないが、topology 計算は loop を数えない
 
 ### Result shape (design-only)
 
@@ -79,6 +88,11 @@ cycle_witnesses:
 warnings: []
 ```
 
+warning contract は最小限として次を固定する。
+
+- `scope_has_no_unresolved_nodes`: `hard_goal_scope(goal_node_id)` が unresolved node を 1 件も含まない
+- `self_loop_ignored`: 入力に self-loop hard edge があり、normalized graph では無視した
+
 ### Algebraic quantities
 
 - `beta_0`: connected component count
@@ -86,6 +100,15 @@ warnings: []
 
 `cycle_witnesses` は full basis を保証しない。
 まずは representative cycle を返す説明用 surface とする。
+
+### Boundary to stable surfaces
+
+この ADR が固定するのは raw topology の projection semantics と warning semantics であり、
+stable CLI 名ではない。
+
+- `cycles` / `components` / `bridges` / `cutpoints` / `fragility` は、この simple-undirected unresolved-hard substrate を共有する user-facing surface とする
+- `cg analyze topology` や raw `beta_0` / `beta_1` / component witness は experimental core / eval surface に留める
+- raw topology は `@caphtech/casegraph-core/experimental` からのみ参照可能とし、root export や stable CLI へ昇格しない
 
 ## Consequences
 
