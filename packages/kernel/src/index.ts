@@ -4,6 +4,7 @@ export * from "./analysis-bridges.js";
 export * from "./analysis-components.js";
 export * from "./analysis-cutpoints.js";
 export * from "./analysis-cycles.js";
+export * from "./analysis-explanations.js";
 export * from "./analysis-fragility.js";
 export * from "./analysis-slack.js";
 export * from "./analysis-structural.js";

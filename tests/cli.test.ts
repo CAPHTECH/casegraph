@@ -1300,6 +1300,108 @@ describe("cli phase 1 acceptance", () => {
     });
     expect(fragility.json.data.warnings).toEqual([]);
   });
+
+  it("returns structural explanations in JSON and preserves warnings in text", async () => {
+    const workspaceRoot = await createTempWorkspace("casegraph-cli-");
+    createdWorkspaces.push(workspaceRoot);
+    const caseId = "explanation-output";
+
+    await runJsonCommand(workspaceRoot, [
+      "case",
+      "new",
+      "--id",
+      caseId,
+      "--title",
+      "Explanation output"
+    ]);
+    await addCliNode(workspaceRoot, caseId, { id: "goal_release_ready", kind: "goal" });
+    await addCliNode(workspaceRoot, caseId, { id: "task_a" });
+    await addCliNode(workspaceRoot, caseId, { id: "task_b" });
+    await addCliNode(workspaceRoot, caseId, { id: "task_c" });
+    await addCliEdge(workspaceRoot, caseId, {
+      id: "edge_b_a",
+      type: "depends_on",
+      from: "task_b",
+      to: "task_a"
+    });
+    await addCliEdge(workspaceRoot, caseId, {
+      id: "edge_c_b",
+      type: "depends_on",
+      from: "task_c",
+      to: "task_b"
+    });
+    await addCliEdge(workspaceRoot, caseId, {
+      id: "edge_c_goal",
+      type: "contributes_to",
+      from: "task_c",
+      to: "goal_release_ready"
+    });
+
+    const bridgesJson = await runJsonCommand(workspaceRoot, [
+      "analyze",
+      "bridges",
+      "--case",
+      caseId,
+      "--goal",
+      "goal_release_ready"
+    ]);
+    expect(bridgesJson.code).toBe(0);
+    expect(bridgesJson.json.data.explanations).toHaveLength(2);
+    expect(bridgesJson.json.data.explanations[0]).toMatchObject({
+      kind: "bridge",
+      label: "single dependency edge 1"
+    });
+    expect(bridgesJson.json.data.explanations[0].evidence).toEqual({
+      projection: "hard_goal_scope",
+      goal_node_id: "goal_release_ready",
+      warnings: [],
+      bridge_index: 1,
+      bridge_count: 2,
+      source_id: bridgesJson.json.data.bridges[0].source_id,
+      target_id: bridgesJson.json.data.bridges[0].target_id,
+      left_node_ids: bridgesJson.json.data.bridges[0].left_node_ids,
+      right_node_ids: bridgesJson.json.data.bridges[0].right_node_ids
+    });
+
+    const bridgesText = await runTextCommand(workspaceRoot, [
+      "analyze",
+      "bridges",
+      "--case",
+      caseId,
+      "--goal",
+      "goal_release_ready"
+    ]);
+    expect(bridgesText.code).toBe(0);
+    expect(bridgesText.stdout).toContain(
+      "single dependency edge 1: Hard dependency between task_a and task_b"
+    );
+    expect(bridgesText.stdout).not.toContain("task_a::task_b split=");
+
+    await addCliNode(workspaceRoot, caseId, {
+      id: "goal_archive_ready",
+      kind: "goal",
+      state: "done"
+    });
+    await addCliNode(workspaceRoot, caseId, { id: "task_archived", state: "done" });
+    await addCliEdge(workspaceRoot, caseId, {
+      id: "edge_archived_goal",
+      type: "contributes_to",
+      from: "task_archived",
+      to: "goal_archive_ready"
+    });
+
+    const emptyScopeText = await runTextCommand(workspaceRoot, [
+      "analyze",
+      "components",
+      "--case",
+      caseId,
+      "--goal",
+      "goal_archive_ready"
+    ]);
+    expect(emptyScopeText.code).toBe(0);
+    expect(emptyScopeText.stdout).toContain("components=-");
+    expect(emptyScopeText.stdout).toContain("! scope_has_no_unresolved_nodes");
+  });
 });
 
 describe("cli frontier/blockers lean JSON output", () => {
@@ -1433,6 +1535,72 @@ async function runJsonCommand(workspaceRoot: string, args: string[]) {
     stderr: errorOutput,
     json: payload.length > 0 ? JSON.parse(payload) : null
   };
+}
+
+async function runTextCommand(workspaceRoot: string, args: string[]) {
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  const code = await runCli(args, {
+    cwd: workspaceRoot,
+    io: {
+      stdout: (text) => stdout.push(text),
+      stderr: (text) => stderr.push(text)
+    }
+  });
+
+  return {
+    code,
+    stdout: stdout.join("").trim(),
+    stderr: stderr.join("").trim()
+  };
+}
+
+async function addCliNode(
+  workspaceRoot: string,
+  caseId: string,
+  node: { id: string; kind?: string; title?: string; state?: string }
+) {
+  const result = await runJsonCommand(workspaceRoot, [
+    "node",
+    "add",
+    "--case",
+    caseId,
+    "--id",
+    node.id,
+    "--kind",
+    node.kind ?? "task",
+    "--title",
+    node.title ?? node.id,
+    "--state",
+    node.state ?? "todo"
+  ]);
+
+  expect(result.code).toBe(0);
+  expect(result.json?.ok).toBe(true);
+}
+
+async function addCliEdge(
+  workspaceRoot: string,
+  caseId: string,
+  edge: { id: string; type: string; from: string; to: string }
+) {
+  const result = await runJsonCommand(workspaceRoot, [
+    "edge",
+    "add",
+    "--case",
+    caseId,
+    "--id",
+    edge.id,
+    "--type",
+    edge.type,
+    "--from",
+    edge.from,
+    "--to",
+    edge.to
+  ]);
+
+  expect(result.code).toBe(0);
+  expect(result.json?.ok).toBe(true);
 }
 
 function nodeIds(nodes: NodeLike[]): string[] {

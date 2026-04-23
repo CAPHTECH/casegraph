@@ -1,3 +1,7 @@
+import {
+  buildCutpointExplanations,
+  type CutpointRiskExplanation
+} from "./analysis-explanations.js";
 import { collectStructuralCutpoints } from "./analysis-structural.js";
 import {
   collectTopologyComponents,
@@ -20,6 +24,7 @@ export interface CutpointAnalysisResult {
   goal_node_id: string | null;
   cutpoint_count: number;
   cutpoints: CutpointSummary[];
+  explanations: CutpointRiskExplanation[];
   warnings: string[];
 }
 
@@ -42,6 +47,7 @@ export function analyzeCutpoints(
   }));
 
   cutpoints.sort((left, right) => left.node_id.localeCompare(right.node_id));
+  const warningList = [...warnings].sort((left, right) => left.localeCompare(right));
 
   return {
     case_id: state.caseRecord.case_id,
@@ -50,6 +56,14 @@ export function analyzeCutpoints(
     goal_node_id: projected.goal_node_id,
     cutpoint_count: cutpoints.length,
     cutpoints,
-    warnings: [...warnings].sort((left, right) => left.localeCompare(right))
+    explanations: buildCutpointExplanations(
+      {
+        projection: projected.projection,
+        goal_node_id: projected.goal_node_id,
+        warnings: warningList
+      },
+      cutpoints
+    ),
+    warnings: warningList
   };
 }

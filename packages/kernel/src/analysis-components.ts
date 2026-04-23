@@ -1,4 +1,8 @@
 import {
+  buildComponentExplanations,
+  type ComponentRiskExplanation
+} from "./analysis-explanations.js";
+import {
   collectTopologyComponents,
   projectTopologyGraph,
   type TopologyAnalysisOptions,
@@ -18,6 +22,7 @@ export interface ComponentAnalysisResult {
   goal_node_id: string | null;
   component_count: number;
   components: ComponentSummary[];
+  explanations: ComponentRiskExplanation[];
   warnings: string[];
 }
 
@@ -35,6 +40,7 @@ export function analyzeComponents(
   if (projected.projection === "hard_goal_scope" && projected.graph.nodes.size === 0) {
     warnings.add("scope_has_no_unresolved_nodes");
   }
+  const warningList = [...warnings].sort((left, right) => left.localeCompare(right));
 
   return {
     case_id: state.caseRecord.case_id,
@@ -43,6 +49,14 @@ export function analyzeComponents(
     goal_node_id: projected.goal_node_id,
     component_count: components.length,
     components,
-    warnings: [...warnings].sort((left, right) => left.localeCompare(right))
+    explanations: buildComponentExplanations(
+      {
+        projection: projected.projection,
+        goal_node_id: projected.goal_node_id,
+        warnings: warningList
+      },
+      components
+    ),
+    warnings: warningList
   };
 }

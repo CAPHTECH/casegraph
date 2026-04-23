@@ -1,3 +1,4 @@
+import { buildCycleExplanations, type CycleRiskExplanation } from "./analysis-explanations.js";
 import {
   analyzeTopology,
   type TopologyAnalysisOptions,
@@ -13,6 +14,7 @@ export interface CycleAnalysisResult {
   goal_node_id: string | null;
   cycle_count: number;
   cycles: TopologyCycleWitness[];
+  explanations: CycleRiskExplanation[];
   warnings: string[];
 }
 
@@ -21,6 +23,7 @@ export function analyzeCycles(
   options: TopologyAnalysisOptions = {}
 ): CycleAnalysisResult {
   const topology = analyzeTopology(state, options);
+  const warnings = topology.warnings;
 
   return {
     case_id: topology.case_id,
@@ -29,6 +32,14 @@ export function analyzeCycles(
     goal_node_id: topology.goal_node_id,
     cycle_count: topology.cycle_witnesses.length,
     cycles: topology.cycle_witnesses,
-    warnings: topology.warnings
+    explanations: buildCycleExplanations(
+      {
+        projection: topology.projection,
+        goal_node_id: topology.goal_node_id,
+        warnings
+      },
+      topology.cycle_witnesses
+    ),
+    warnings
   };
 }

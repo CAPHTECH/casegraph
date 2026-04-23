@@ -1,0 +1,20 @@
+case_id: issue-12-structural-risk-explanations
+title: "Issue #12: Expose structural risk explanations for topology analyses"
+description: "Create a user-facing explanation layer for structural topology
+  analyses. Done means cycles, components, bridges, cutpoints, and fragility can
+  be explained in CaseGraph work language while JSON keeps machine-readable
+  evidence such as node ids, edge pairs, separated components, projection
+  metadata, and raw fields where useful. The implementation must stay read-only,
+  must not mutate case state, and must not create a new source-of-truth surface.
+  Inputs: GitHub issue #12 and the topology substrate stabilized by issue #9.
+  Out of scope: new topology projections, temporal topology, higher-order
+  topology, and a stable raw topology CLI."
+state: closed
+labels: []
+metadata: {}
+extensions: {}
+created_at: 2026-04-23T21:40:25.250Z
+updated_at: 2026-04-23T22:48:49.308Z
+case_revision:
+  current: 33
+  last_event_id: 01KPY8G6CYP5TM38WD5K9Y6VE1

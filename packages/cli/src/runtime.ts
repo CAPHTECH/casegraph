@@ -356,6 +356,18 @@ function appendAnalyzeWarnings(lines: string[], warnings: string[] | undefined):
   return [...lines, ...warnings.map((warning) => `! ${warning}`)].join("\n");
 }
 
+function renderExplanationText(
+  fallbackLines: string[],
+  explanations: Array<{ label: string; summary: string }> | undefined,
+  warnings: string[] | undefined
+): string {
+  const lines =
+    explanations && explanations.length > 0
+      ? explanations.map((explanation) => `${explanation.label}: ${explanation.summary}`)
+      : fallbackLines;
+  return appendAnalyzeWarnings(lines, warnings);
+}
+
 function renderAnalyzeSlackText(result: CommandSuccess<unknown>): string {
   const data = (result as CommandSuccess<SlackAnalysisResult>).data;
   const criticalNodeIds = data.nodes.filter((node) => node.is_critical).map((node) => node.node_id);
@@ -381,71 +393,61 @@ function renderAnalyzeBottlenecksText(result: CommandSuccess<unknown>): string {
 
 function renderAnalyzeCyclesText(result: CommandSuccess<unknown>): string {
   const data = (result as CommandSuccess<CycleAnalysisResult>).data;
-  if (data.cycles.length === 0) {
-    return "cycles=-";
-  }
-
-  return data.cycles
-    .map((cycle, index) => `cycle_${index + 1}=${cycle.node_ids.join(",")}`)
-    .join("\n");
+  const fallbackLines =
+    data.cycles.length === 0
+      ? ["cycles=-"]
+      : data.cycles.map((cycle, index) => `cycle_${index + 1}=${cycle.node_ids.join(",")}`);
+  return renderExplanationText(fallbackLines, data.explanations, data.warnings);
 }
 
 function renderAnalyzeComponentsText(result: CommandSuccess<unknown>): string {
   const data = (result as CommandSuccess<ComponentAnalysisResult>).data;
-  if (data.components.length === 0) {
-    return "components=-";
-  }
-
-  return data.components
-    .map(
-      (component, index) =>
-        `component_${index + 1}:nodes=${component.node_ids.join(",")} edges=${component.edge_count}`
-    )
-    .join("\n");
+  const fallbackLines =
+    data.components.length === 0
+      ? ["components=-"]
+      : data.components.map(
+          (component, index) =>
+            `component_${index + 1}:nodes=${component.node_ids.join(",")} edges=${component.edge_count}`
+        );
+  return renderExplanationText(fallbackLines, data.explanations, data.warnings);
 }
 
 function renderAnalyzeBridgesText(result: CommandSuccess<unknown>): string {
   const data = (result as CommandSuccess<BridgeAnalysisResult>).data;
-  if (data.bridges.length === 0) {
-    return "bridges=-";
-  }
-
-  return data.bridges
-    .map(
-      (bridge) =>
-        `${bridge.source_id}::${bridge.target_id} split=${bridge.left_node_ids.join(",")} | ${bridge.right_node_ids.join(",")}`
-    )
-    .join("\n");
+  const fallbackLines =
+    data.bridges.length === 0
+      ? ["bridges=-"]
+      : data.bridges.map(
+          (bridge) =>
+            `${bridge.source_id}::${bridge.target_id} split=${bridge.left_node_ids.join(",")} | ${bridge.right_node_ids.join(",")}`
+        );
+  return renderExplanationText(fallbackLines, data.explanations, data.warnings);
 }
 
 function renderAnalyzeCutpointsText(result: CommandSuccess<unknown>): string {
   const data = (result as CommandSuccess<CutpointAnalysisResult>).data;
-  if (data.cutpoints.length === 0) {
-    return "cutpoints=-";
-  }
-
-  return data.cutpoints
-    .map(
-      (cutpoint) =>
-        `${cutpoint.node_id}:components=${cutpoint.separated_component_node_sets
-          .map((nodeIds) => `[${nodeIds.join(",")}]`)
-          .join(" ")}`
-    )
-    .join("\n");
+  const fallbackLines =
+    data.cutpoints.length === 0
+      ? ["cutpoints=-"]
+      : data.cutpoints.map(
+          (cutpoint) =>
+            `${cutpoint.node_id}:components=${cutpoint.separated_component_node_sets
+              .map((nodeIds) => `[${nodeIds.join(",")}]`)
+              .join(" ")}`
+        );
+  return renderExplanationText(fallbackLines, data.explanations, data.warnings);
 }
 
 function renderAnalyzeFragilityText(result: CommandSuccess<unknown>): string {
   const data = (result as CommandSuccess<FragilityAnalysisResult>).data;
-  if (data.nodes.length === 0) {
-    return "fragility=-";
-  }
-
-  return data.nodes
-    .map(
-      (node) =>
-        `${node.node_id}:score=${node.fragility_score},tags=${node.reason_tags.join("+") || "-"}`
-    )
-    .join("\n");
+  const fallbackLines =
+    data.nodes.length === 0
+      ? ["fragility=-"]
+      : data.nodes.map(
+          (node) =>
+            `${node.node_id}:score=${node.fragility_score},tags=${node.reason_tags.join("+") || "-"}`
+        );
+  return renderExplanationText(fallbackLines, data.explanations, data.warnings);
 }
 
 function renderAnalyzeUnblockText(result: CommandSuccess<unknown>): string {

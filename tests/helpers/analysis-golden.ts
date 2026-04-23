@@ -23,6 +23,13 @@ import topologyAnalysisFixture from "../fixtures/topology-analysis.fixture.json"
 import vendorSelectionAnalysisFixture from "../fixtures/vendor-selection-analysis.fixture.json";
 import { buildReplayStateFromFixture, type ReplayFixture } from "./replay-fixture.js";
 import {
+  bridgeExplanationEvidenceMatches,
+  componentExplanationEvidenceMatches,
+  cutpointExplanationEvidenceMatches,
+  cycleExplanationEvidenceMatches,
+  fragilityExplanationEvidenceMatches
+} from "./structural-explanation-evidence.js";
+import {
   applyFixtureActions,
   createTempWorkspace,
   type FixtureAction,
@@ -337,6 +344,7 @@ function evaluateReplayOnlyScenario(
         result.cycles.map((cycle) => cycle.node_ids),
         scenario.cycles.cycle_node_sets
       ),
+      explanation_evidence: cycleExplanationEvidenceMatches(result),
       warnings: sameStringArray(result.warnings, scenario.cycles.warnings)
     });
   }
@@ -351,6 +359,7 @@ function evaluateReplayOnlyScenario(
         result.components.map((component) => component.node_ids),
         scenario.components.component_node_sets
       ),
+      explanation_evidence: componentExplanationEvidenceMatches(result),
       warnings: sameStringArray(result.warnings, scenario.components.warnings)
     });
   }
@@ -364,6 +373,7 @@ function evaluateReplayOnlyScenario(
         result.bridges.map((bridge) => `${bridge.source_id}::${bridge.target_id}`),
         scenario.bridges.bridge_pairs
       ),
+      explanation_evidence: bridgeExplanationEvidenceMatches(result),
       warnings: sameStringArray(result.warnings, scenario.bridges.warnings)
     });
   }
@@ -386,6 +396,7 @@ function evaluateReplayOnlyScenario(
         ),
         scenario.cutpoints.separated_component_node_sets_by_node
       ),
+      explanation_evidence: cutpointExplanationEvidenceMatches(result),
       warnings: sameStringArray(result.warnings, scenario.cutpoints.warnings)
     });
   }
@@ -400,6 +411,7 @@ function evaluateReplayOnlyScenario(
         scenario.fragility.node_ids
       ),
       top_node_id: (result.nodes[0]?.node_id ?? null) === scenario.fragility.top_node_id,
+      explanation_evidence: fragilityExplanationEvidenceMatches(result),
       warnings: sameStringArray(result.warnings, scenario.fragility.warnings)
     });
   }
@@ -566,6 +578,7 @@ async function evaluateWorkspaceStructureScenario(
           result.cycles.map((cycle) => cycle.node_ids),
           scenario.cycles.cycle_node_sets
         ),
+        explanation_evidence: cycleExplanationEvidenceMatches(result),
         warnings: sameStringArray(result.warnings, scenario.cycles.warnings)
       }
     };
@@ -583,6 +596,7 @@ async function evaluateWorkspaceStructureScenario(
           result.components.map((component) => component.node_ids),
           scenario.components.component_node_sets
         ),
+        explanation_evidence: componentExplanationEvidenceMatches(result),
         warnings: sameStringArray(result.warnings, scenario.components.warnings)
       }
     };
@@ -599,6 +613,7 @@ async function evaluateWorkspaceStructureScenario(
           result.bridges.map((bridge) => `${bridge.source_id}::${bridge.target_id}`),
           scenario.bridges.bridge_pairs
         ),
+        explanation_evidence: bridgeExplanationEvidenceMatches(result),
         warnings: sameStringArray(result.warnings, scenario.bridges.warnings)
       }
     };
@@ -624,6 +639,7 @@ async function evaluateWorkspaceStructureScenario(
           ),
           scenario.cutpoints.separated_component_node_sets_by_node
         ),
+        explanation_evidence: cutpointExplanationEvidenceMatches(result),
         warnings: sameStringArray(result.warnings, scenario.cutpoints.warnings)
       }
     };
@@ -641,6 +657,7 @@ async function evaluateWorkspaceStructureScenario(
           scenario.fragility.node_ids
         ),
         top_node_id: (result.nodes[0]?.node_id ?? null) === scenario.fragility.top_node_id,
+        explanation_evidence: fragilityExplanationEvidenceMatches(result),
         warnings: sameStringArray(result.warnings, scenario.fragility.warnings)
       }
     };
