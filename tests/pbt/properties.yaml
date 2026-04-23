@@ -1,0 +1,39 @@
+module: topology-analysis
+owners:
+  - packages/kernel/src/analysis-topology.ts
+  - packages/kernel/src/analysis-topology-shared.ts
+unit_tests:
+  representative:
+    - file: tests/analysis-topology.test.ts
+      cases:
+        - extracts a single cycle witness from a simple loop
+        - extracts two witnesses from a figure-eight graph
+        - applies hard goal scoping to contributing unresolved nodes and prerequisites
+  boundary:
+    - file: tests/analysis-topology.test.ts
+      cases:
+        - deduplicates multi-edges and ignores self-loops
+        - warns when the scoped graph has no unresolved nodes
+        - requires a goal node for hard goal scope
+        - rejects a goal node id on hard unresolved projection
+        - requires the scoped node to be a goal
+        - requires the scoped goal node to exist
+properties:
+  - id: PBT-topology-hard-unresolved-reference
+    kind: reference_model
+    level: L0-L2
+    file: tests/pbt/topology-properties.test.ts
+    generator: tests/pbt/generators/topology.ts::topologyBlueprintArb
+    law: hard_unresolved projection matches the simple undirected normalization model
+  - id: PBT-topology-hard-goal-scope-reference
+    kind: reference_model
+    level: L0-L2
+    file: tests/pbt/topology-properties.test.ts
+    generator: tests/pbt/generators/topology.ts::goalScopedTopologyBlueprintArb
+    law: hard_goal_scope projection equals contributor closure plus unresolved prerequisites
+  - id: PBT-topology-normalization-metamorphic
+    kind: metamorphic
+    level: L1-L2
+    file: tests/pbt/topology-properties.test.ts
+    generator: tests/pbt/generators/topology.ts::simpleTopologyBlueprintArb
+    law: duplicate hard edges and self-loops do not change the normalized topology surface

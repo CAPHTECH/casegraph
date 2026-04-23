@@ -243,6 +243,66 @@ describe("analyzeTopology", () => {
     );
   });
 
+  it("rejects a goal node id on hard unresolved projection", () => {
+    const state = buildState({
+      caseId: "invalid-unresolved-goal-case",
+      nodes: [{ node_id: "goal_release_ready", kind: "goal" }, { node_id: "task_prepare" }],
+      edges: []
+    });
+
+    expect(() =>
+      analyzeTopology(state, {
+        projection: "hard_unresolved",
+        goalNodeId: "goal_release_ready"
+      })
+    ).toThrowError(
+      expect.objectContaining({
+        code: "analysis_goal_node_invalid_for_projection",
+        exitCode: 2
+      })
+    );
+  });
+
+  it("requires the scoped node to be a goal", () => {
+    const state = buildState({
+      caseId: "non-goal-scope-case",
+      nodes: [{ node_id: "task_prepare" }, { node_id: "task_review" }],
+      edges: [{ edge_id: "e1", source_id: "task_review", target_id: "task_prepare" }]
+    });
+
+    expect(() =>
+      analyzeTopology(state, {
+        projection: "hard_goal_scope",
+        goalNodeId: "task_prepare"
+      })
+    ).toThrowError(
+      expect.objectContaining({
+        code: "node_not_goal",
+        exitCode: 2
+      })
+    );
+  });
+
+  it("requires the scoped goal node to exist", () => {
+    const state = buildState({
+      caseId: "unknown-goal-scope-case",
+      nodes: [{ node_id: "task_prepare" }],
+      edges: []
+    });
+
+    expect(() =>
+      analyzeTopology(state, {
+        projection: "hard_goal_scope",
+        goalNodeId: "goal_missing"
+      })
+    ).toThrowError(
+      expect.objectContaining({
+        code: "node_not_found",
+        exitCode: 3
+      })
+    );
+  });
+
   it("loads topology analysis through the workspace wrapper", async () => {
     const workspaceRoot = await createTempWorkspace("casegraph-topology-");
     createdWorkspaces.push(workspaceRoot);
