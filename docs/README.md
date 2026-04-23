@@ -190,6 +190,13 @@ The user-facing surface is not raw topology itself, but analysis surfaces that e
 These are deterministic analyses over `depends_on`, `waits_for`, and `contributes_to`,  
 and they are continuously checked against the current reference implementation and golden corpus.
 
+The shared substrate is fixed narrowly:
+
+- `hard_unresolved` means unresolved nodes in `todo` / `doing` / `waiting` / `failed` plus only hard edges (`depends_on`, `waits_for`) between them
+- `hard_goal_scope(goal_node_id)` starts from unresolved contributors that reach the goal through `contributes_to`, then closes over unresolved hard prerequisites; the goal node itself and resolved nodes are not injected into the projected graph
+- after scoping, the graph is normalized to a simple undirected form: direction is erased, duplicate endpoint pairs collapse to one edge, and self-loops are ignored with warning `self_loop_ignored`
+- if a goal-scoped projection has no unresolved nodes, the result stays empty and returns warning `scope_has_no_unresolved_nodes` instead of failing
+
 `topology` itself remains an experimental mechanism for core and evaluation use.  
 It is only exposed through `@caphtech/casegraph-core/experimental`, not the root `@caphtech/casegraph-core`,  
 and it is not surfaced directly as a stable user-facing command.
@@ -205,6 +212,7 @@ At the moment, the experimental core surface fixes the following as the v1 targe
 - `Betti-0` over an undirected projection
 - `Betti-1` over an undirected projection
 - explanation surfaces for component and cycle witnesses
+- `hard_unresolved` and `hard_goal_scope(goal_node_id)` as the only supported projection names for raw topology
 
 Out of scope:
 
@@ -214,7 +222,8 @@ Out of scope:
 - new stable CLI or public schema additions
 
 In the reference implementation, the raw topology API in `packages/core` is isolated under `@caphtech/casegraph-core/experimental`,  
-and the `analysis-eval` harness continuously checks `beta_0`, `beta_1`, and component sets.
+the stable CLI stays on `cycles`, `components`, `bridges`, `cutpoints`, and `fragility`,  
+and the `analysis-eval` harness continuously checks `beta_0`, `beta_1`, component sets, and warning behavior on scoped edge cases.
 
 See [ADR-0006](docs/adr/0006-topology-projections-and-betti-v1.md) for details.
 

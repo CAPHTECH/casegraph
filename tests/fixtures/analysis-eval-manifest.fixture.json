@@ -12,6 +12,7 @@
             "must_include_node_ids": ["task_submit_store", "goal_release_ready"],
             "must_not_include_node_ids": ["task_monitor_post_release"],
             "expected_warning_ids": [],
+            "expected_warning_count": 0,
             "top_k_contains": ["task_submit_store"]
           }
         }
@@ -28,6 +29,7 @@
           "labels": {
             "must_include_node_ids": ["task_prepare", "task_monitor", "event_release_window"],
             "expected_warning_ids": [],
+            "expected_warning_count": 0,
             "top_k_contains": ["task_prepare"]
           }
         },
@@ -38,6 +40,7 @@
           "labels": {
             "must_include_node_ids": ["task_prepare", "event_release_window"],
             "expected_warning_ids": [],
+            "expected_warning_count": 0,
             "top_k_contains": ["task_prepare"]
           }
         },
@@ -48,6 +51,7 @@
           "labels": {
             "must_include_node_ids": ["task_prepare", "event_release_window"],
             "expected_warning_ids": [],
+            "expected_warning_count": 0,
             "top_k_contains": ["task_prepare"]
           }
         }
@@ -67,6 +71,7 @@
               "missing_estimates_present",
               "duration_path_unavailable_due_to_missing_estimates"
             ],
+            "expected_warning_count": 2,
             "top_k_contains": ["task_collect_quotes", "task_compare_quotes"]
           }
         },
@@ -78,7 +83,8 @@
             "expected_warning_ids": [
               "missing_estimates_present",
               "slack_unavailable_due_to_missing_estimates"
-            ]
+            ],
+            "expected_warning_count": 2
           }
         }
       ]
@@ -95,6 +101,7 @@
             "expected_beta_0": 3,
             "expected_beta_1": 1,
             "expected_warning_ids": [],
+            "expected_warning_count": 0,
             "expected_component_node_sets": [
               ["goal_release_ready"],
               ["task_archive", "task_cleanup"],
@@ -111,6 +118,7 @@
             "expected_beta_0": 1,
             "expected_beta_1": 1,
             "expected_warning_ids": [],
+            "expected_warning_count": 0,
             "expected_component_node_sets": [
               ["task_docs", "task_prepare", "task_publish", "task_review"]
             ]
@@ -124,7 +132,8 @@
           "labels": {
             "expected_beta_0": 0,
             "expected_beta_1": 0,
-            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+            "expected_warning_ids": ["scope_has_no_unresolved_nodes"],
+            "expected_warning_count": 1
           }
         },
         {
@@ -133,7 +142,8 @@
           "projection": "hard_unresolved",
           "labels": {
             "expected_cycle_node_sets": [["task_prepare", "task_publish", "task_review"]],
-            "expected_warning_ids": []
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         },
         {
@@ -147,7 +157,8 @@
               ["task_archive", "task_cleanup"],
               ["task_docs", "task_prepare", "task_publish", "task_review"]
             ],
-            "expected_warning_ids": []
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         },
         {
@@ -156,7 +167,8 @@
           "projection": "hard_unresolved",
           "labels": {
             "expected_bridge_pairs": ["task_archive::task_cleanup", "task_docs::task_prepare"],
-            "expected_warning_ids": []
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         },
         {
@@ -165,7 +177,8 @@
           "projection": "hard_unresolved",
           "labels": {
             "expected_cutpoint_ids": ["task_prepare"],
-            "expected_warning_ids": []
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         },
         {
@@ -174,7 +187,94 @@
           "projection": "hard_unresolved",
           "labels": {
             "top_k_contains": ["task_prepare"],
-            "expected_warning_ids": ["bottleneck_signal_unavailable_due_to_cycles"]
+            "expected_warning_ids": ["bottleneck_signal_unavailable_due_to_cycles"],
+            "expected_warning_count": 1
+          }
+        }
+      ]
+    },
+    {
+      "corpus_id": "topology-edge-cases",
+      "fixture_file": "./structure-analysis-edge-cases.fixture.json",
+      "queries": [
+        {
+          "name": "hard unresolved topology keeps forest splits and figure-eight cycles",
+          "kind": "topology",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_beta_0": 4,
+            "expected_beta_1": 2,
+            "expected_warning_ids": ["self_loop_ignored"],
+            "expected_warning_count": 1,
+            "expected_component_node_sets": [
+              ["task_a", "task_b", "task_c", "task_d", "task_e"],
+              ["task_forest_a", "task_forest_b"],
+              ["task_forest_c", "task_forest_d"],
+              ["task_noise_a", "task_noise_b"]
+            ]
+          }
+        },
+        {
+          "name": "raw cycles surface keeps both figure-eight witnesses",
+          "kind": "cycles",
+          "projection": "hard_unresolved",
+          "labels": {
+            "expected_cycle_node_sets": [
+              ["task_a", "task_b", "task_c"],
+              ["task_c", "task_d", "task_e"]
+            ],
+            "expected_warning_ids": ["self_loop_ignored"],
+            "expected_warning_count": 1
+          }
+        },
+        {
+          "name": "goal scoped topology keeps contributing figure-eight component",
+          "kind": "topology",
+          "projection": "hard_goal_scope",
+          "goal_node_id": "goal_figure_ready",
+          "labels": {
+            "expected_beta_0": 1,
+            "expected_beta_1": 2,
+            "expected_warning_ids": ["self_loop_ignored"],
+            "expected_warning_count": 1,
+            "expected_component_node_sets": [["task_a", "task_b", "task_c", "task_d", "task_e"]]
+          }
+        },
+        {
+          "name": "goal scoped topology normalizes noisy pair",
+          "kind": "topology",
+          "projection": "hard_goal_scope",
+          "goal_node_id": "goal_noise_ready",
+          "labels": {
+            "expected_beta_0": 1,
+            "expected_beta_1": 0,
+            "expected_warning_ids": [],
+            "expected_warning_count": 0,
+            "expected_component_node_sets": [["task_noise_a", "task_noise_b"]]
+          }
+        },
+        {
+          "name": "goal scoped topology ignores unresolved prerequisites behind resolved contributors",
+          "kind": "topology",
+          "projection": "hard_goal_scope",
+          "goal_node_id": "goal_resolved_ready",
+          "labels": {
+            "expected_beta_0": 0,
+            "expected_beta_1": 0,
+            "expected_warning_ids": ["scope_has_no_unresolved_nodes"],
+            "expected_warning_count": 1
+          }
+        },
+        {
+          "name": "empty goal scope topology warns instead of failing",
+          "kind": "topology",
+          "projection": "hard_goal_scope",
+          "goal_node_id": "goal_archive_ready",
+          "labels": {
+            "expected_beta_0": 0,
+            "expected_beta_1": 0,
+            "expected_warning_ids": ["scope_has_no_unresolved_nodes"],
+            "expected_warning_count": 1
           }
         }
       ]

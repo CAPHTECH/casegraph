@@ -242,8 +242,9 @@ function collectGoalScopedNodeIds(
       "source_id"
     )
   );
+  const unresolvedScoped = new Set([...scoped].filter((nodeId) => unresolvedById.has(nodeId)));
   expandScopeWithHardPrerequisites(
-    scoped,
+    unresolvedScoped,
     buildStringAdjacency(
       state.edges,
       (edge) => HARD_DEPENDENCY_TYPES.has(edge.type),
@@ -253,7 +254,7 @@ function collectGoalScopedNodeIds(
     unresolvedById
   );
 
-  return [...scoped].sort((left, right) => left.localeCompare(right));
+  return [...unresolvedScoped].sort((left, right) => left.localeCompare(right));
 }
 
 function buildStringAdjacency(

@@ -197,6 +197,81 @@ describe("analyzeTopology", () => {
     expect(result.beta_1).toBe(1);
   });
 
+  it("treats waits_for edges as hard prerequisites in goal scope", () => {
+    const state = buildState({
+      caseId: "goal-scope-waits-for-case",
+      nodes: [
+        { node_id: "goal_release_ready", kind: "goal" },
+        { node_id: "task_publish" },
+        { node_id: "task_review", state: "waiting" }
+      ],
+      edges: [
+        {
+          edge_id: "e1",
+          type: "waits_for",
+          source_id: "task_publish",
+          target_id: "task_review"
+        },
+        {
+          edge_id: "e2",
+          type: "contributes_to",
+          source_id: "task_publish",
+          target_id: "goal_release_ready"
+        }
+      ]
+    });
+
+    const result = analyzeTopology(state, {
+      projection: "hard_goal_scope",
+      goalNodeId: "goal_release_ready"
+    });
+
+    expect(result.components).toEqual([
+      {
+        node_ids: ["task_publish", "task_review"],
+        edge_count: 1
+      }
+    ]);
+    expect(result.edge_count).toBe(1);
+    expect(result.beta_0).toBe(1);
+    expect(result.beta_1).toBe(0);
+  });
+
+  it("does not seed goal scope from resolved contributors", () => {
+    const state = buildState({
+      caseId: "goal-scope-resolved-contributor-case",
+      nodes: [
+        { node_id: "goal_release_ready", kind: "goal", state: "done" },
+        { node_id: "task_publish", state: "done" },
+        { node_id: "task_review", state: "waiting" }
+      ],
+      edges: [
+        {
+          edge_id: "e1",
+          type: "waits_for",
+          source_id: "task_publish",
+          target_id: "task_review"
+        },
+        {
+          edge_id: "e2",
+          type: "contributes_to",
+          source_id: "task_publish",
+          target_id: "goal_release_ready"
+        }
+      ]
+    });
+
+    const result = analyzeTopology(state, {
+      projection: "hard_goal_scope",
+      goalNodeId: "goal_release_ready"
+    });
+
+    expect(result.node_count).toBe(0);
+    expect(result.edge_count).toBe(0);
+    expect(result.components).toEqual([]);
+    expect(result.warnings).toEqual(["scope_has_no_unresolved_nodes"]);
+  });
+
   it("warns when the scoped graph has no unresolved nodes", () => {
     const state = buildState({
       caseId: "empty-scope-case",
@@ -228,6 +303,25 @@ describe("analyzeTopology", () => {
     expect(result.warnings).toEqual(["scope_has_no_unresolved_nodes"]);
   });
 
+  it("does not warn when hard_unresolved has no unresolved nodes", () => {
+    const state = buildState({
+      caseId: "empty-hard-unresolved-case",
+      nodes: [
+        { node_id: "task_done_a", state: "done" },
+        { node_id: "task_done_b", state: "done" }
+      ],
+      edges: [{ edge_id: "e1", source_id: "task_done_a", target_id: "task_done_b" }]
+    });
+
+    const result = analyzeTopology(state);
+
+    expect(result.node_count).toBe(0);
+    expect(result.edge_count).toBe(0);
+    expect(result.beta_0).toBe(0);
+    expect(result.beta_1).toBe(0);
+    expect(result.warnings).toEqual([]);
+  });
+
   it("requires a goal node for hard goal scope", () => {
     const state = buildState({
       caseId: "missing-goal-case",
@@ -239,6 +333,66 @@ describe("analyzeTopology", () => {
       expect.objectContaining({
         code: "analysis_goal_node_required",
         exitCode: 2
+      })
+    );
+  });
+
+  it("rejects a goal node id on hard unresolved projection", () => {
+    const state = buildState({
+      caseId: "invalid-unresolved-goal-case",
+      nodes: [{ node_id: "goal_release_ready", kind: "goal" }, { node_id: "task_prepare" }],
+      edges: []
+    });
+
+    expect(() =>
+      analyzeTopology(state, {
+        projection: "hard_unresolved",
+        goalNodeId: "goal_release_ready"
+      })
+    ).toThrowError(
+      expect.objectContaining({
+        code: "analysis_goal_node_invalid_for_projection",
+        exitCode: 2
+      })
+    );
+  });
+
+  it("requires the scoped node to be a goal", () => {
+    const state = buildState({
+      caseId: "non-goal-scope-case",
+      nodes: [{ node_id: "task_prepare" }, { node_id: "task_review" }],
+      edges: [{ edge_id: "e1", source_id: "task_review", target_id: "task_prepare" }]
+    });
+
+    expect(() =>
+      analyzeTopology(state, {
+        projection: "hard_goal_scope",
+        goalNodeId: "task_prepare"
+      })
+    ).toThrowError(
+      expect.objectContaining({
+        code: "node_not_goal",
+        exitCode: 2
+      })
+    );
+  });
+
+  it("requires the scoped goal node to exist", () => {
+    const state = buildState({
+      caseId: "unknown-goal-scope-case",
+      nodes: [{ node_id: "task_prepare" }],
+      edges: []
+    });
+
+    expect(() =>
+      analyzeTopology(state, {
+        projection: "hard_goal_scope",
+        goalNodeId: "goal_missing"
+      })
+    ).toThrowError(
+      expect.objectContaining({
+        code: "node_not_found",
+        exitCode: 3
       })
     );
   });

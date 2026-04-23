@@ -180,6 +180,22 @@ describe("analyzeBottlenecks", () => {
     expect(result.nodes).toEqual([]);
     expect(result.warnings).toEqual(["scope_has_no_unresolved_nodes"]);
   });
+
+  it("does not warn when hard_unresolved has no unresolved nodes", () => {
+    const state = buildState({
+      caseId: "empty-hard-unresolved-bottleneck-case",
+      nodes: [
+        { node_id: "task_done_a", state: "done" },
+        { node_id: "task_done_b", state: "done" }
+      ],
+      edges: [{ edge_id: "e1", source_id: "task_done_a", target_id: "task_done_b" }]
+    });
+
+    const result = analyzeBottlenecks(state);
+
+    expect(result.nodes).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
 });
 
 function buildState(input: { caseId: string; nodes: TestNodeInput[]; edges: TestEdgeInput[] }) {

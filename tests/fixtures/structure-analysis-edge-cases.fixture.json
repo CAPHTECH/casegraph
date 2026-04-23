@@ -1,0 +1,338 @@
+{
+  "seed_mode": "event_replay",
+  "case": {
+    "case_id": "structure-edge-cases",
+    "title": "Structure edge cases",
+    "description": "User-facing structure analysis edge cases"
+  },
+  "nodes": [
+    {
+      "node_id": "goal_archive_ready",
+      "kind": "goal",
+      "title": "Archive ready",
+      "state": "done"
+    },
+    {
+      "node_id": "goal_figure_ready",
+      "kind": "goal",
+      "title": "Figure ready",
+      "state": "done"
+    },
+    {
+      "node_id": "goal_noise_ready",
+      "kind": "goal",
+      "title": "Noise ready",
+      "state": "done"
+    },
+    {
+      "node_id": "goal_resolved_ready",
+      "kind": "goal",
+      "title": "Resolved ready",
+      "state": "done"
+    },
+    {
+      "node_id": "task_archived",
+      "kind": "task",
+      "title": "Archived",
+      "state": "done"
+    },
+    {
+      "node_id": "task_a",
+      "kind": "task",
+      "title": "A",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_b",
+      "kind": "task",
+      "title": "B",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_c",
+      "kind": "task",
+      "title": "C",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_d",
+      "kind": "task",
+      "title": "D",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_e",
+      "kind": "task",
+      "title": "E",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_forest_a",
+      "kind": "task",
+      "title": "Forest A",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_forest_b",
+      "kind": "task",
+      "title": "Forest B",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_forest_c",
+      "kind": "task",
+      "title": "Forest C",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_forest_d",
+      "kind": "task",
+      "title": "Forest D",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_noise_a",
+      "kind": "task",
+      "title": "Noise A",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_noise_b",
+      "kind": "task",
+      "title": "Noise B",
+      "state": "todo"
+    },
+    {
+      "node_id": "task_resolved_bridge",
+      "kind": "task",
+      "title": "Resolved Bridge",
+      "state": "done"
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "edge_archived_goal",
+      "type": "contributes_to",
+      "source_id": "task_archived",
+      "target_id": "goal_archive_ready"
+    },
+    {
+      "edge_id": "edge_b_a",
+      "type": "depends_on",
+      "source_id": "task_b",
+      "target_id": "task_a"
+    },
+    {
+      "edge_id": "edge_c_b",
+      "type": "depends_on",
+      "source_id": "task_c",
+      "target_id": "task_b"
+    },
+    {
+      "edge_id": "edge_a_c",
+      "type": "depends_on",
+      "source_id": "task_a",
+      "target_id": "task_c"
+    },
+    {
+      "edge_id": "edge_d_c",
+      "type": "depends_on",
+      "source_id": "task_d",
+      "target_id": "task_c"
+    },
+    {
+      "edge_id": "edge_e_d",
+      "type": "depends_on",
+      "source_id": "task_e",
+      "target_id": "task_d"
+    },
+    {
+      "edge_id": "edge_c_e",
+      "type": "depends_on",
+      "source_id": "task_c",
+      "target_id": "task_e"
+    },
+    {
+      "edge_id": "edge_a_b_duplicate",
+      "type": "depends_on",
+      "source_id": "task_a",
+      "target_id": "task_b"
+    },
+    {
+      "edge_id": "edge_a_a_self",
+      "type": "depends_on",
+      "source_id": "task_a",
+      "target_id": "task_a"
+    },
+    {
+      "edge_id": "edge_e_goal",
+      "type": "contributes_to",
+      "source_id": "task_e",
+      "target_id": "goal_figure_ready"
+    },
+    {
+      "edge_id": "edge_forest_b_a",
+      "type": "depends_on",
+      "source_id": "task_forest_b",
+      "target_id": "task_forest_a"
+    },
+    {
+      "edge_id": "edge_forest_d_c",
+      "type": "depends_on",
+      "source_id": "task_forest_d",
+      "target_id": "task_forest_c"
+    },
+    {
+      "edge_id": "edge_noise_b_a",
+      "type": "waits_for",
+      "source_id": "task_noise_b",
+      "target_id": "task_noise_a"
+    },
+    {
+      "edge_id": "edge_noise_a_b_duplicate",
+      "type": "depends_on",
+      "source_id": "task_noise_a",
+      "target_id": "task_noise_b"
+    },
+    {
+      "edge_id": "edge_noise_goal",
+      "type": "contributes_to",
+      "source_id": "task_noise_b",
+      "target_id": "goal_noise_ready"
+    },
+    {
+      "edge_id": "edge_resolved_bridge_wait",
+      "type": "waits_for",
+      "source_id": "task_resolved_bridge",
+      "target_id": "task_noise_a"
+    },
+    {
+      "edge_id": "edge_resolved_bridge_goal",
+      "type": "contributes_to",
+      "source_id": "task_resolved_bridge",
+      "target_id": "goal_resolved_ready"
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "cycles on figure-eight graph ignore self-loop noise",
+      "cycles": {
+        "cycle_count": 2,
+        "cycle_node_sets": [["task_a", "task_b", "task_c"], ["task_c", "task_d", "task_e"]],
+        "warnings": ["self_loop_ignored"]
+      }
+    },
+    {
+      "name": "components on mixed edge-case graph expose four normalized regions",
+      "components": {
+        "component_count": 4,
+        "component_node_sets": [
+          ["task_a", "task_b", "task_c", "task_d", "task_e"],
+          ["task_forest_a", "task_forest_b"],
+          ["task_forest_c", "task_forest_d"],
+          ["task_noise_a", "task_noise_b"]
+        ],
+        "warnings": ["self_loop_ignored"]
+      }
+    },
+    {
+      "name": "bridges on mixed edge-case graph keep only forest and noise cuts",
+      "bridges": {
+        "bridge_pairs": [
+          "task_forest_a::task_forest_b",
+          "task_forest_c::task_forest_d",
+          "task_noise_a::task_noise_b"
+        ],
+        "warnings": ["self_loop_ignored"]
+      }
+    },
+    {
+      "name": "cutpoints on noisy figure-eight graph keep the shared center",
+      "cutpoints": {
+        "cutpoint_ids": ["task_c"],
+        "separated_component_node_sets_by_node": {
+          "task_c": [["task_a", "task_b"], ["task_d", "task_e"]]
+        },
+        "warnings": ["self_loop_ignored"]
+      }
+    },
+    {
+      "name": "fragility on mixed edge-case graph ranks the articulation center",
+      "fragility": {
+        "node_ids": [
+          "task_c",
+          "task_forest_a",
+          "task_forest_b",
+          "task_forest_c",
+          "task_forest_d",
+          "task_noise_a",
+          "task_noise_b"
+        ],
+        "top_node_id": "task_c",
+        "warnings": ["bottleneck_signal_unavailable_due_to_cycles", "self_loop_ignored"]
+      }
+    },
+    {
+      "name": "goal-scoped components keep only the contributing figure-eight",
+      "components": {
+        "goal_node_id": "goal_figure_ready",
+        "component_count": 1,
+        "component_node_sets": [["task_a", "task_b", "task_c", "task_d", "task_e"]],
+        "warnings": ["self_loop_ignored"]
+      }
+    },
+    {
+      "name": "resolved contributors do not seed goal-scoped prerequisites",
+      "components": {
+        "goal_node_id": "goal_resolved_ready",
+        "component_count": 0,
+        "component_node_sets": [],
+        "warnings": ["scope_has_no_unresolved_nodes"]
+      }
+    },
+    {
+      "name": "cycles warn on empty goal scope",
+      "cycles": {
+        "goal_node_id": "goal_archive_ready",
+        "cycle_count": 0,
+        "cycle_node_sets": [],
+        "warnings": ["scope_has_no_unresolved_nodes"]
+      }
+    },
+    {
+      "name": "components warn on empty goal scope",
+      "components": {
+        "goal_node_id": "goal_archive_ready",
+        "component_count": 0,
+        "component_node_sets": [],
+        "warnings": ["scope_has_no_unresolved_nodes"]
+      }
+    },
+    {
+      "name": "bridges warn on empty goal scope",
+      "bridges": {
+        "goal_node_id": "goal_archive_ready",
+        "bridge_pairs": [],
+        "warnings": ["scope_has_no_unresolved_nodes"]
+      }
+    },
+    {
+      "name": "cutpoints warn on empty goal scope",
+      "cutpoints": {
+        "goal_node_id": "goal_archive_ready",
+        "cutpoint_ids": [],
+        "separated_component_node_sets_by_node": {},
+        "warnings": ["scope_has_no_unresolved_nodes"]
+      }
+    },
+    {
+      "name": "fragility warns on empty goal scope",
+      "fragility": {
+        "goal_node_id": "goal_archive_ready",
+        "node_ids": [],
+        "top_node_id": null,
+        "warnings": ["scope_has_no_unresolved_nodes"]
+      }
+    }
+  ]
+}

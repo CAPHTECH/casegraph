@@ -11,7 +11,8 @@
           "labels": {
             "expected_beta_0": 0,
             "expected_beta_1": 0,
-            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         }
       ]
@@ -27,7 +28,8 @@
           "labels": {
             "expected_beta_0": 0,
             "expected_beta_1": 0,
-            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         }
       ]
@@ -43,7 +45,8 @@
           "labels": {
             "expected_beta_0": 0,
             "expected_beta_1": 0,
-            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         }
       ]
@@ -59,7 +62,8 @@
           "labels": {
             "expected_beta_0": 0,
             "expected_beta_1": 0,
-            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         }
       ]
@@ -78,7 +82,8 @@
             "expected_component_node_sets": [
               ["task_docs", "task_prepare", "task_publish", "task_review"]
             ],
-            "expected_warning_ids": []
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         },
         {
@@ -87,7 +92,8 @@
           "projection": "hard_unresolved",
           "labels": {
             "expected_bridge_pairs": ["task_docs::task_prepare"],
-            "expected_warning_ids": []
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         },
         {
@@ -96,7 +102,8 @@
           "projection": "hard_unresolved",
           "labels": {
             "expected_cutpoint_ids": ["task_prepare"],
-            "expected_warning_ids": []
+            "expected_warning_ids": [],
+            "expected_warning_count": 0
           }
         }
       ]
