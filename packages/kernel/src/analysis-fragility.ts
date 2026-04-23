@@ -2,6 +2,10 @@ import { analyzeBottlenecks } from "./analysis-bottleneck.js";
 import { analyzeBridges } from "./analysis-bridges.js";
 import { analyzeCutpoints } from "./analysis-cutpoints.js";
 import {
+  buildFragilityExplanations,
+  type FragilityRiskExplanation
+} from "./analysis-explanations.js";
+import {
   projectTopologyGraph,
   type TopologyAnalysisOptions,
   type TopologyProjection
@@ -28,6 +32,7 @@ export interface FragilityAnalysisResult {
   projection: TopologyProjection;
   goal_node_id: string | null;
   nodes: FragilityNodeSummary[];
+  explanations: FragilityRiskExplanation[];
   warnings: string[];
 }
 
@@ -122,6 +127,7 @@ export function analyzeFragility(
     })
     .filter((node) => node.fragility_score > 0)
     .sort(compareFragilityNodes);
+  const warningList = [...warnings].sort((left, right) => left.localeCompare(right));
 
   return {
     case_id: state.caseRecord.case_id,
@@ -129,7 +135,15 @@ export function analyzeFragility(
     projection: projected.projection,
     goal_node_id: projected.goal_node_id,
     nodes,
-    warnings: [...warnings].sort((left, right) => left.localeCompare(right))
+    explanations: buildFragilityExplanations(
+      {
+        projection: projected.projection,
+        goal_node_id: projected.goal_node_id,
+        warnings: warningList
+      },
+      nodes
+    ),
+    warnings: warningList
   };
 }
 

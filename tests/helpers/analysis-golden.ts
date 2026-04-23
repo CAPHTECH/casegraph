@@ -12,7 +12,12 @@ import {
   analyzeFragilityForCase,
   analyzeImpactForCase,
   analyzeMinimalUnblockSetForCase,
-  analyzeSlackForCase
+  analyzeSlackForCase,
+  type BridgeAnalysisResult,
+  type ComponentAnalysisResult,
+  type CutpointAnalysisResult,
+  type CycleAnalysisResult,
+  type FragilityAnalysisResult
 } from "@caphtech/casegraph-core";
 
 import incidentAnalysisFixture from "../fixtures/incident-analysis.fixture.json";
@@ -337,6 +342,7 @@ function evaluateReplayOnlyScenario(
         result.cycles.map((cycle) => cycle.node_ids),
         scenario.cycles.cycle_node_sets
       ),
+      explanation_evidence: cycleExplanationEvidenceMatches(result),
       warnings: sameStringArray(result.warnings, scenario.cycles.warnings)
     });
   }
@@ -351,6 +357,7 @@ function evaluateReplayOnlyScenario(
         result.components.map((component) => component.node_ids),
         scenario.components.component_node_sets
       ),
+      explanation_evidence: componentExplanationEvidenceMatches(result),
       warnings: sameStringArray(result.warnings, scenario.components.warnings)
     });
   }
@@ -364,6 +371,7 @@ function evaluateReplayOnlyScenario(
         result.bridges.map((bridge) => `${bridge.source_id}::${bridge.target_id}`),
         scenario.bridges.bridge_pairs
       ),
+      explanation_evidence: bridgeExplanationEvidenceMatches(result),
       warnings: sameStringArray(result.warnings, scenario.bridges.warnings)
     });
   }
@@ -386,6 +394,7 @@ function evaluateReplayOnlyScenario(
         ),
         scenario.cutpoints.separated_component_node_sets_by_node
       ),
+      explanation_evidence: cutpointExplanationEvidenceMatches(result),
       warnings: sameStringArray(result.warnings, scenario.cutpoints.warnings)
     });
   }
@@ -400,6 +409,7 @@ function evaluateReplayOnlyScenario(
         scenario.fragility.node_ids
       ),
       top_node_id: (result.nodes[0]?.node_id ?? null) === scenario.fragility.top_node_id,
+      explanation_evidence: fragilityExplanationEvidenceMatches(result),
       warnings: sameStringArray(result.warnings, scenario.fragility.warnings)
     });
   }
@@ -566,6 +576,7 @@ async function evaluateWorkspaceStructureScenario(
           result.cycles.map((cycle) => cycle.node_ids),
           scenario.cycles.cycle_node_sets
         ),
+        explanation_evidence: cycleExplanationEvidenceMatches(result),
         warnings: sameStringArray(result.warnings, scenario.cycles.warnings)
       }
     };
@@ -583,6 +594,7 @@ async function evaluateWorkspaceStructureScenario(
           result.components.map((component) => component.node_ids),
           scenario.components.component_node_sets
         ),
+        explanation_evidence: componentExplanationEvidenceMatches(result),
         warnings: sameStringArray(result.warnings, scenario.components.warnings)
       }
     };
@@ -599,6 +611,7 @@ async function evaluateWorkspaceStructureScenario(
           result.bridges.map((bridge) => `${bridge.source_id}::${bridge.target_id}`),
           scenario.bridges.bridge_pairs
         ),
+        explanation_evidence: bridgeExplanationEvidenceMatches(result),
         warnings: sameStringArray(result.warnings, scenario.bridges.warnings)
       }
     };
@@ -624,6 +637,7 @@ async function evaluateWorkspaceStructureScenario(
           ),
           scenario.cutpoints.separated_component_node_sets_by_node
         ),
+        explanation_evidence: cutpointExplanationEvidenceMatches(result),
         warnings: sameStringArray(result.warnings, scenario.cutpoints.warnings)
       }
     };
@@ -641,6 +655,7 @@ async function evaluateWorkspaceStructureScenario(
           scenario.fragility.node_ids
         ),
         top_node_id: (result.nodes[0]?.node_id ?? null) === scenario.fragility.top_node_id,
+        explanation_evidence: fragilityExplanationEvidenceMatches(result),
         warnings: sameStringArray(result.warnings, scenario.fragility.warnings)
       }
     };
@@ -662,6 +677,108 @@ function metric(
     passed: Object.values(checks).every(Boolean),
     checks
   };
+}
+
+function cycleExplanationEvidenceMatches(result: CycleAnalysisResult): boolean {
+  if (result.explanations.length !== result.cycles.length) {
+    return false;
+  }
+
+  return result.cycles.every((cycle, index) =>
+    sameJson(result.explanations[index]?.evidence, {
+      projection: result.projection,
+      goal_node_id: result.goal_node_id,
+      warnings: result.warnings,
+      cycle_index: index + 1,
+      cycle_count: result.cycle_count,
+      node_ids: cycle.node_ids,
+      edge_pairs: cycle.edge_pairs
+    })
+  );
+}
+
+function componentExplanationEvidenceMatches(result: ComponentAnalysisResult): boolean {
+  if (result.explanations.length !== result.components.length) {
+    return false;
+  }
+
+  return result.components.every((component, index) =>
+    sameJson(result.explanations[index]?.evidence, {
+      projection: result.projection,
+      goal_node_id: result.goal_node_id,
+      warnings: result.warnings,
+      component_index: index + 1,
+      component_count: result.component_count,
+      node_ids: component.node_ids,
+      node_count: component.node_count,
+      edge_count: component.edge_count
+    })
+  );
+}
+
+function bridgeExplanationEvidenceMatches(result: BridgeAnalysisResult): boolean {
+  if (result.explanations.length !== result.bridges.length) {
+    return false;
+  }
+
+  return result.bridges.every((bridge, index) =>
+    sameJson(result.explanations[index]?.evidence, {
+      projection: result.projection,
+      goal_node_id: result.goal_node_id,
+      warnings: result.warnings,
+      bridge_index: index + 1,
+      bridge_count: result.bridge_count,
+      source_id: bridge.source_id,
+      target_id: bridge.target_id,
+      left_node_ids: bridge.left_node_ids,
+      right_node_ids: bridge.right_node_ids
+    })
+  );
+}
+
+function cutpointExplanationEvidenceMatches(result: CutpointAnalysisResult): boolean {
+  if (result.explanations.length !== result.cutpoints.length) {
+    return false;
+  }
+
+  return result.cutpoints.every((cutpoint, index) =>
+    sameJson(result.explanations[index]?.evidence, {
+      projection: result.projection,
+      goal_node_id: result.goal_node_id,
+      warnings: result.warnings,
+      cutpoint_index: index + 1,
+      cutpoint_count: result.cutpoint_count,
+      node_id: cutpoint.node_id,
+      separated_component_count: cutpoint.separated_component_count,
+      separated_component_node_sets: cutpoint.separated_component_node_sets
+    })
+  );
+}
+
+function fragilityExplanationEvidenceMatches(result: FragilityAnalysisResult): boolean {
+  if (result.explanations.length !== result.nodes.length) {
+    return false;
+  }
+
+  return result.nodes.every((node, index) =>
+    sameJson(result.explanations[index]?.evidence, {
+      projection: result.projection,
+      goal_node_id: result.goal_node_id,
+      warnings: result.warnings,
+      rank: index + 1,
+      node_id: node.node_id,
+      kind: node.kind,
+      state: node.state,
+      title: node.title,
+      fragility_score: node.fragility_score,
+      incident_bridge_count: node.incident_bridge_count,
+      cutpoint_component_count: node.cutpoint_component_count,
+      downstream_count: node.downstream_count,
+      goal_context_count: node.goal_context_count,
+      max_distance: node.max_distance,
+      reason_tags: node.reason_tags
+    })
+  );
 }
 
 function summarizeOverall(scenarios: ScenarioMetric[]): HitRate {
@@ -709,6 +826,10 @@ function nodeIds(nodes: Array<{ node_id: string }>): string[] {
 
 function sameStringArray(left: string[], right: string[]): boolean {
   return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function sameJson(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function sameNullableStringArray(left: string[] | null, right: string[] | null): boolean {

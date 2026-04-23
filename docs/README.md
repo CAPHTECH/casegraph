@@ -197,6 +197,16 @@ The shared substrate is fixed narrowly:
 - after scoping, the graph is normalized to a simple undirected form: direction is erased, duplicate endpoint pairs collapse to one edge, and self-loops are ignored with warning `self_loop_ignored`
 - if a goal-scoped projection has no unresolved nodes, the result stays empty and returns warning `scope_has_no_unresolved_nodes` instead of failing
 
+The structural risk explanation contract is frozen at the user-facing analysis level:
+
+- `beta_0` / `components` explain disconnected unresolved work regions
+- `beta_1` / cycle witnesses explain dependency loops or mutual blocking structures
+- `bridges` explain single dependency edges whose removal separates unresolved work regions
+- `cutpoints` explain single tasks or events whose removal separates unresolved work regions
+- `fragility` explains prioritized intervention candidates with evidence tags and metrics
+
+JSON results preserve machine-readable evidence: projection metadata (`case_id`, `revision`, `projection`, `goal_node_id`, `warnings`) plus surface-specific node ids, edge pairs, separated node sets, raw counts, and useful metrics such as component sizes and fragility scoring signals. Projection and normalization warnings propagate to every derived surface, and the outputs remain read-only projections: they do not append events, update projection mappings, mutate graph state, or create a new source of truth.
+
 `topology` itself remains an experimental mechanism for core and evaluation use.  
 It is only exposed through `@caphtech/casegraph-core/experimental`, not the root `@caphtech/casegraph-core`,  
 and it is not surfaced directly as a stable user-facing command.
@@ -219,7 +229,10 @@ Out of scope:
 - persistent homology
 - first-class temporal topology APIs
 - high-dimensional simplices and Betti-2+
+- new projection semantics beyond `hard_unresolved` and `hard_goal_scope(goal_node_id)`
 - new stable CLI or public schema additions
+- broad UX redesign of graph-reading or analysis surfaces
+- mutation or source-of-truth changes from analysis output
 
 In the reference implementation, the raw topology API in `packages/core` is isolated under `@caphtech/casegraph-core/experimental`,  
 the stable CLI stays on `cycles`, `components`, `bridges`, `cutpoints`, and `fragility`,  

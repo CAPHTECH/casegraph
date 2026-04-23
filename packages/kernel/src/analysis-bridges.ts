@@ -1,3 +1,4 @@
+import { type BridgeRiskExplanation, buildBridgeExplanations } from "./analysis-explanations.js";
 import { collectStructuralBridges } from "./analysis-structural.js";
 import {
   collectTopologyComponents,
@@ -21,6 +22,7 @@ export interface BridgeAnalysisResult {
   goal_node_id: string | null;
   bridge_count: number;
   bridges: BridgeSummary[];
+  explanations: BridgeRiskExplanation[];
   warnings: string[];
 }
 
@@ -44,6 +46,7 @@ export function analyzeBridges(
   }));
 
   bridges.sort(compareBridges);
+  const warningList = [...warnings].sort((left, right) => left.localeCompare(right));
 
   return {
     case_id: state.caseRecord.case_id,
@@ -52,7 +55,15 @@ export function analyzeBridges(
     goal_node_id: projected.goal_node_id,
     bridge_count: bridges.length,
     bridges,
-    warnings: [...warnings].sort((left, right) => left.localeCompare(right))
+    explanations: buildBridgeExplanations(
+      {
+        projection: projected.projection,
+        goal_node_id: projected.goal_node_id,
+        warnings: warningList
+      },
+      bridges
+    ),
+    warnings: warningList
   };
 }
 
