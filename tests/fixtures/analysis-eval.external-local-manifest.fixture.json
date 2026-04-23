@@ -11,7 +11,7 @@
           "labels": {
             "expected_beta_0": 0,
             "expected_beta_1": 0,
-            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+            "expected_warning_ids": []
           }
         }
       ]
@@ -27,7 +27,7 @@
           "labels": {
             "expected_beta_0": 0,
             "expected_beta_1": 0,
-            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+            "expected_warning_ids": []
           }
         }
       ]
@@ -43,7 +43,7 @@
           "labels": {
             "expected_beta_0": 0,
             "expected_beta_1": 0,
-            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+            "expected_warning_ids": []
           }
         }
       ]
@@ -59,7 +59,7 @@
           "labels": {
             "expected_beta_0": 0,
             "expected_beta_1": 0,
-            "expected_warning_ids": ["scope_has_no_unresolved_nodes"]
+            "expected_warning_ids": []
           }
         }
       ]
