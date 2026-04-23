@@ -134,14 +134,13 @@ export function buildComponentExplanations(
     kind: "component",
     label: `work region ${index + 1}`,
     summary: `Contains ${count(component.node_count, "unresolved node")} and ${count(component.edge_count, "hard dependency")}: ${component.node_ids.join(",")}.`,
-    evidence: {
-      ...copyContext(context),
+    evidence: withContext(context, {
       component_index: index + 1,
       component_count: components.length,
       node_ids: [...component.node_ids],
       node_count: component.node_count,
       edge_count: component.edge_count
-    }
+    })
   }));
 }
 
@@ -153,13 +152,12 @@ export function buildCycleExplanations(
     kind: "cycle",
     label: `dependency loop ${index + 1}`,
     summary: `Involves ${count(cycle.node_ids.length, "unresolved node")}: ${cycle.node_ids.join(",")}.`,
-    evidence: {
-      ...copyContext(context),
+    evidence: withContext(context, {
       cycle_index: index + 1,
       cycle_count: cycles.length,
       node_ids: [...cycle.node_ids],
       edge_pairs: cycle.edge_pairs.map((edgePair) => ({ ...edgePair }))
-    }
+    })
   }));
 }
 
@@ -171,15 +169,14 @@ export function buildBridgeExplanations(
     kind: "bridge",
     label: `single dependency edge ${index + 1}`,
     summary: `Hard dependency between ${bridge.source_id} and ${bridge.target_id} separates ${count(bridge.left_node_ids.length, "node")} from ${count(bridge.right_node_ids.length, "node")}.`,
-    evidence: {
-      ...copyContext(context),
+    evidence: withContext(context, {
       bridge_index: index + 1,
       bridge_count: bridges.length,
       source_id: bridge.source_id,
       target_id: bridge.target_id,
       left_node_ids: [...bridge.left_node_ids],
       right_node_ids: [...bridge.right_node_ids]
-    }
+    })
   }));
 }
 
@@ -191,8 +188,7 @@ export function buildCutpointExplanations(
     kind: "cutpoint",
     label: `single separating node ${index + 1}`,
     summary: `Node ${cutpoint.node_id} separates unresolved work into ${count(cutpoint.separated_component_count, "region")} when removed.`,
-    evidence: {
-      ...copyContext(context),
+    evidence: withContext(context, {
       cutpoint_index: index + 1,
       cutpoint_count: cutpoints.length,
       node_id: cutpoint.node_id,
@@ -200,7 +196,7 @@ export function buildCutpointExplanations(
       separated_component_node_sets: cutpoint.separated_component_node_sets.map((nodeIds) => [
         ...nodeIds
       ])
-    }
+    })
   }));
 }
 
@@ -212,8 +208,7 @@ export function buildFragilityExplanations(
     kind: "fragility",
     label: `intervention candidate ${index + 1}`,
     summary: `${node.node_id} is a prioritized intervention candidate with score ${node.fragility_score}; evidence=${node.reason_tags.join("+") || "metric"}.`,
-    evidence: {
-      ...copyContext(context),
+    evidence: withContext(context, {
       rank: index + 1,
       node_id: node.node_id,
       kind: node.kind,
@@ -226,8 +221,18 @@ export function buildFragilityExplanations(
       goal_context_count: node.goal_context_count,
       max_distance: node.max_distance,
       reason_tags: [...node.reason_tags]
-    }
+    })
   }));
+}
+
+function withContext<TEvidence extends object>(
+  context: StructuralExplanationContext,
+  evidence: TEvidence
+): StructuralExplanationContext & TEvidence {
+  return {
+    ...copyContext(context),
+    ...evidence
+  };
 }
 
 function copyContext(context: StructuralExplanationContext): StructuralExplanationContext {

@@ -14,6 +14,13 @@ import {
   replayCaseEvents
 } from "@caphtech/casegraph-core";
 import { describe, expect, it } from "vitest";
+import {
+  expectedBridgeExplanationEvidence,
+  expectedComponentExplanationEvidence,
+  expectedCutpointExplanationEvidence,
+  expectedCycleExplanationEvidence,
+  expectedFragilityExplanationEvidence
+} from "./helpers/structural-explanation-evidence.js";
 
 interface TestNodeInput {
   node_id: string;
@@ -565,88 +572,46 @@ function buildState(input: { caseId: string; nodes: TestNodeInput[]; edges: Test
 
 function expectCycleExplanationsToMatchEvidence(result: CycleAnalysisResult): void {
   expect(result.explanations).toHaveLength(result.cycles.length);
-  for (const [index, cycle] of result.cycles.entries()) {
-    expect(result.explanations[index]?.evidence).toEqual({
-      projection: result.projection,
-      goal_node_id: result.goal_node_id,
-      warnings: result.warnings,
-      cycle_index: index + 1,
-      cycle_count: result.cycle_count,
-      node_ids: cycle.node_ids,
-      edge_pairs: cycle.edge_pairs
-    });
+  for (const index of result.cycles.keys()) {
+    expect(result.explanations[index]?.evidence).toEqual(
+      expectedCycleExplanationEvidence(result, index)
+    );
   }
 }
 
 function expectComponentExplanationsToMatchEvidence(result: ComponentAnalysisResult): void {
   expect(result.explanations).toHaveLength(result.components.length);
-  for (const [index, component] of result.components.entries()) {
-    expect(result.explanations[index]?.evidence).toEqual({
-      projection: result.projection,
-      goal_node_id: result.goal_node_id,
-      warnings: result.warnings,
-      component_index: index + 1,
-      component_count: result.component_count,
-      node_ids: component.node_ids,
-      node_count: component.node_count,
-      edge_count: component.edge_count
-    });
+  for (const index of result.components.keys()) {
+    expect(result.explanations[index]?.evidence).toEqual(
+      expectedComponentExplanationEvidence(result, index)
+    );
   }
 }
 
 function expectBridgeExplanationsToMatchEvidence(result: BridgeAnalysisResult): void {
   expect(result.explanations).toHaveLength(result.bridges.length);
-  for (const [index, bridge] of result.bridges.entries()) {
-    expect(result.explanations[index]?.evidence).toEqual({
-      projection: result.projection,
-      goal_node_id: result.goal_node_id,
-      warnings: result.warnings,
-      bridge_index: index + 1,
-      bridge_count: result.bridge_count,
-      source_id: bridge.source_id,
-      target_id: bridge.target_id,
-      left_node_ids: bridge.left_node_ids,
-      right_node_ids: bridge.right_node_ids
-    });
+  for (const index of result.bridges.keys()) {
+    expect(result.explanations[index]?.evidence).toEqual(
+      expectedBridgeExplanationEvidence(result, index)
+    );
   }
 }
 
 function expectCutpointExplanationsToMatchEvidence(result: CutpointAnalysisResult): void {
   expect(result.explanations).toHaveLength(result.cutpoints.length);
-  for (const [index, cutpoint] of result.cutpoints.entries()) {
-    expect(result.explanations[index]?.evidence).toEqual({
-      projection: result.projection,
-      goal_node_id: result.goal_node_id,
-      warnings: result.warnings,
-      cutpoint_index: index + 1,
-      cutpoint_count: result.cutpoint_count,
-      node_id: cutpoint.node_id,
-      separated_component_count: cutpoint.separated_component_count,
-      separated_component_node_sets: cutpoint.separated_component_node_sets
-    });
+  for (const index of result.cutpoints.keys()) {
+    expect(result.explanations[index]?.evidence).toEqual(
+      expectedCutpointExplanationEvidence(result, index)
+    );
   }
 }
 
 function expectFragilityExplanationsToMatchEvidence(result: FragilityAnalysisResult): void {
   expect(result.explanations).toHaveLength(result.nodes.length);
-  for (const [index, node] of result.nodes.entries()) {
-    expect(result.explanations[index]?.evidence).toEqual({
-      projection: result.projection,
-      goal_node_id: result.goal_node_id,
-      warnings: result.warnings,
-      rank: index + 1,
-      node_id: node.node_id,
-      kind: node.kind,
-      state: node.state,
-      title: node.title,
-      fragility_score: node.fragility_score,
-      incident_bridge_count: node.incident_bridge_count,
-      cutpoint_component_count: node.cutpoint_component_count,
-      downstream_count: node.downstream_count,
-      goal_context_count: node.goal_context_count,
-      max_distance: node.max_distance,
-      reason_tags: node.reason_tags
-    });
+  for (const index of result.nodes.keys()) {
+    expect(result.explanations[index]?.evidence).toEqual(
+      expectedFragilityExplanationEvidence(result, index)
+    );
   }
 }
 
