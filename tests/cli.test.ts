@@ -1560,7 +1560,7 @@ async function addCliNode(
   caseId: string,
   node: { id: string; kind?: string; title?: string; state?: string }
 ) {
-  await runJsonCommand(workspaceRoot, [
+  const result = await runJsonCommand(workspaceRoot, [
     "node",
     "add",
     "--case",
@@ -1574,6 +1574,9 @@ async function addCliNode(
     "--state",
     node.state ?? "todo"
   ]);
+
+  expect(result.code).toBe(0);
+  expect(result.json?.ok).toBe(true);
 }
 
 async function addCliEdge(
@@ -1581,7 +1584,7 @@ async function addCliEdge(
   caseId: string,
   edge: { id: string; type: string; from: string; to: string }
 ) {
-  await runJsonCommand(workspaceRoot, [
+  const result = await runJsonCommand(workspaceRoot, [
     "edge",
     "add",
     "--case",
@@ -1595,6 +1598,9 @@ async function addCliEdge(
     "--to",
     edge.to
   ]);
+
+  expect(result.code).toBe(0);
+  expect(result.json?.ok).toBe(true);
 }
 
 function nodeIds(nodes: NodeLike[]): string[] {

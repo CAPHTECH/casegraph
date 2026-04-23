@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from "node:util";
+
 import type {
   BridgeAnalysisResult,
   ComponentAnalysisResult,
@@ -179,5 +181,5 @@ export function fragilityExplanationEvidenceMatches(result: FragilityAnalysisRes
 }
 
 function sameJson(left: unknown, right: unknown): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return isDeepStrictEqual(left, right);
 }

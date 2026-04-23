@@ -133,7 +133,7 @@ export function buildComponentExplanations(
   return components.map((component, index) => ({
     kind: "component",
     label: `work region ${index + 1}`,
-    summary: `Contains ${count(component.node_count, "unresolved node")} and ${count(component.edge_count, "hard dependency")}: ${component.node_ids.join(",")}.`,
+    summary: `Contains ${count(component.node_count, "unresolved node")} and ${count(component.edge_count, "hard dependency", "hard dependencies")}: ${component.node_ids.join(",")}.`,
     evidence: withContext(context, {
       component_index: index + 1,
       component_count: components.length,
@@ -243,6 +243,6 @@ function copyContext(context: StructuralExplanationContext): StructuralExplanati
   };
 }
 
-function count(value: number, noun: string): string {
-  return `${value} ${noun}${value === 1 ? "" : "s"}`;
+function count(value: number, singular: string, plural = `${singular}s`): string {
+  return `${value} ${value === 1 ? singular : plural}`;
 }
